@@ -106,14 +106,14 @@ if (mode === 'alg') {
     process.exit(1);
   }
 
-  const caseType = caseEntry.method || caseEntry.type || 'default';
+  const caseType = caseEntry.method ?? 'default';
   const config = applyForceFlags(typeToConfig(caseType));
   const ext = config.outputFormat;
   const outputPath = resolve(outputDir, `${caseId}.${ext}`);
 
   await renderCube({
     ...config,
-    alg: caseEntry.notation || caseEntry.alg,
+    alg: caseEntry.notation,
     setupAlg: setupAlg || caseEntry.setup || '',
     outputPath,
   });
@@ -137,14 +137,14 @@ if (mode === 'alg') {
 
   const results = [];
   for (const c of cases) {
-    const caseType = c.method || c.type || 'default';
+    const caseType = c.method ?? 'default';
     const config = applyForceFlags(typeToConfig(caseType));
     const ext = config.outputFormat;
     const outputPath = resolve(outputDir, `${c.id}.${ext}`);
     try {
       await renderCube({
         ...config,
-        alg: c.notation || c.alg,
+        alg: c.notation,
         setupAlg: setupAlg || c.setup || '',
         outputPath,
       });
