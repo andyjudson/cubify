@@ -12,13 +12,12 @@ const ESBUILD = resolve(CFOP_APP_DIR, 'node_modules/.bin/esbuild');
 const BUNDLE_PATH = '/tmp/cubify-twisty-bundle.js';
 
 const PLAYER_W = 288;
-const PLAYER_VIZ_H = 288; // viewport and output image size
-// Control panel is ~52px tall at the bottom of the player.
-// clip-path: inset(0 0 52px 0) removes it visually from a 288px-tall player.
-// Player and viewport are both 288px; the bottom 52px of the player is the control panel.
-const CONTROL_PANEL_H = 64;
-const PLAYER_H = PLAYER_VIZ_H;
-const VIEWPORT_H = PLAYER_VIZ_H;
+const PLAYER_VIZ_H = 288; // output image size
+// TwistyPlayer allocates: cube_height = total_height - control_panel_height.
+// Viewport and player are set taller so cube fills exactly PLAYER_VIZ_H px.
+// Playwright clip crops the screenshot back to PLAYER_VIZ_H, excluding the panel.
+const PLAYER_H = 288;
+const VIEWPORT_H = 288;
 
 function ensureBundle() {
   if (existsSync(BUNDLE_PATH)) return;
@@ -56,8 +55,8 @@ function buildHtml(config) {
 <html>
 <head>
 <style>
-  html, body { margin: 0; padding: 0; width: ${PLAYER_W}px; height: ${VIEWPORT_H}px; background: white; overflow: hidden; }
-  twisty-player { display: block; width: ${PLAYER_W}px; height: ${PLAYER_H}px; clip-path: inset(0 0 ${CONTROL_PANEL_H}px 0); }
+  html, body { margin: 0; padding: 0; width: ${PLAYER_W}px; height: ${VIEWPORT_H}px; background: white; }
+  twisty-player { display: block; width: ${PLAYER_W}px; height: ${PLAYER_H}px; }
 </style>
 </head>
 <body>
@@ -106,12 +105,33 @@ export async function renderCube(config) {
     });
     const page = await context.newPage();
 
+    // Inject intercepts before any page scripts run
+    await page.addInitScript(() => {
+      // Intercept attachShadow to force open mode and capture the shadow root
+      const _orig = Element.prototype.attachShadow;
+      Element.prototype.attachShadow = function(opts) {
+        const sr = _orig.call(this, { ...opts, mode: 'open' });
+        if (!window.__playerShadowRoot) window.__playerShadowRoot = sr;
+        return sr;
+      };
+      // Intercept getContext to capture WebGL canvas
+      const _origCtx = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function(type, opts) {
+        const ctx = _origCtx.call(this, type, opts);
+        if ((type === 'webgl' || type === 'webgl2') && !window.__renderCanvas) {
+          window.__renderCanvas = this;
+        }
+        return ctx;
+      };
+    });
+
     await page.goto(`http://127.0.0.1:${port}/`);
     try {
       await page.waitForFunction(() => window.__playerReady === true, { timeout: 10000 });
     } catch { /* proceed anyway */ }
 
-    // Hide hint facelets post-render — setting in constructor breaks WebGL
+
+    // Post-render: hide hint facelets (safe post-render; controlPanel property breaks WebGL)
     await page.evaluate(() => {
       const p = document.querySelector('twisty-player');
       if (p) p.hintFacelets = 'none';
@@ -134,15 +154,38 @@ export async function renderCube(config) {
 }
 
 async function capturePng(page, outputPath) {
-  // clip-path: inset(0 0 CONTROL_PANEL_H 0) on the player element hides the control panel
-  // at the compositor level — no shadow DOM access needed. Viewport is PLAYER_VIZ_H so the
-  // screenshot is already the right size.
-  await page.screenshot({ path: outputPath });
+  // Get the visualization element bounding rect via intercepted shadow root references.
+  // 3D (PG3D): clip to WebGL canvas rect — excludes control panel entirely.
+  // 2D (experimental-2D-LL): clip to twisty-2d-scene-wrapper rect in the player shadow root.
+  const rect = await page.evaluate(() => {
+    // 3D path
+    const canvas = window.__renderCanvas;
+    if (canvas) {
+      const r = canvas.getBoundingClientRect();
+      return { x: r.x, y: r.y, width: r.width, height: r.height };
+    }
+    // 2D path — scene wrapper is a direct child of the player shadow root's inner div
+    const sr = window.__playerShadowRoot;
+    if (sr) {
+      const scene = sr.querySelector('twisty-2d-scene-wrapper');
+      if (scene) {
+        const r = scene.getBoundingClientRect();
+        return { x: r.x, y: r.y, width: r.width, height: r.height };
+      }
+    }
+    return null;
+  });
+
+  if (rect && rect.width > 0 && rect.height > 0) {
+    await page.screenshot({ path: outputPath, clip: rect });
+    execSync(`sips -Z ${PLAYER_VIZ_H} "${outputPath}"`, { stdio: 'pipe' });
+    execSync(`sips --padColor FFFFFF --padToHeightWidth ${PLAYER_VIZ_H} ${PLAYER_VIZ_H} "${outputPath}"`, { stdio: 'pipe' });
+  } else {
+    await page.screenshot({ path: outputPath });
+  }
 }
 
+
 async function captureSvg(page, outputPath) {
-  // 2D visualization — take PNG and save with .svg path for now
-  // TwistyPlayer shadow DOM is closed; true SVG extraction requires browser download API
-  // Render as PNG using same approach, write to outputPath
   await capturePng(page, outputPath);
 }
