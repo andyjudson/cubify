@@ -68,7 +68,7 @@ function typeToConfig(type) {
 }
 
 function applyForceFlags(config) {
-  if (force2d) { config.visualization = 'experimental-2D-LL'; config.outputFormat = 'svg'; }
+  if (force2d) { config.visualization = 'experimental-2D-LL'; config.outputFormat = 'png'; }
   if (force3d) { config.visualization = 'PG3D';               config.outputFormat = 'png'; }
   return config;
 }
