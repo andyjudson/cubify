@@ -1,9 +1,26 @@
-import { resolve, basename, extname } from 'path';
+import { resolve, basename } from 'path';
 import { readFileSync } from 'fs';
 import { ensureOutputDir } from './lib/output.mjs';
 import { renderCube } from './lib/renderer.mjs';
 import { lookupCase } from './lib/lookup.mjs';
-import { maskForType } from './lib/masks.mjs';
+import { maskForCase } from './lib/masks.mjs';
+
+// --- Setup derivation ---
+// For OLL/PLL: experimentalSetupAnchor='end' means the player shows the START of the alg
+// by default (i.e. setup + inv(alg)), giving the recognition pattern.
+// We only need z2 to orient yellow on top — cubing.js handles the inversion.
+// An explicit --setup flag always overrides this.
+
+async function getAlg() {
+  const mod = await import('../cfop-app/node_modules/cubing/dist/lib/cubing/alg/index.js');
+  return mod.Alg;
+}
+
+function deriveSetupAlg(method, explicitSetup) {
+  if (explicitSetup) return explicitSetup;
+  if (method === 'oll' || method === 'pll') return 'z2';
+  return '';
+}
 
 // --- Arg parsing ---
 
@@ -55,15 +72,17 @@ if (!mode) {
 
 // --- Type-to-config mapping ---
 
-function typeToConfig(type) {
+// maskField: the 'mask' field value from JSON ('edge' | 'corner' | undefined)
+function typeToConfig(method, maskField) {
   // All output formats are PNG — Playwright screenshot only supports PNG.
   // OLL/PLL use 2D top-layer visualization; others use 3D perspective.
-  switch (type) {
-    case 'oll':   return { visualization: 'experimental-2D-LL', mask: maskForType('oll'),     outputFormat: 'png' };
-    case 'pll':   return { visualization: 'experimental-2D-LL', mask: maskForType('pll'),     outputFormat: 'png' };
-    case 'f2l':   return { visualization: 'PG3D',               mask: maskForType('f2l'),     outputFormat: 'png' };
-    case 'cross': return { visualization: 'PG3D',               mask: maskForType('cross'),   outputFormat: 'png' };
-    default:      return { visualization: 'PG3D',               mask: maskForType('default'), outputFormat: 'png' };
+  const orbits = maskForCase(method, maskField);
+  switch (method) {
+    case 'oll':   return { visualization: 'experimental-2D-LL', mask: orbits, outputFormat: 'png' };
+    case 'pll':   return { visualization: 'experimental-2D-LL', mask: orbits, outputFormat: 'png' };
+    case 'f2l':   return { visualization: 'PG3D',               mask: orbits, outputFormat: 'png' };
+    case 'cross': return { visualization: 'PG3D',               mask: orbits, outputFormat: 'png' };
+    default:      return { visualization: 'PG3D',               mask: orbits, outputFormat: 'png' };
   }
 }
 
@@ -80,9 +99,9 @@ const outputDir = ensureOutputDir();
 if (mode === 'alg') {
   const alg = rawAlgTokens.join(' ');
 
-  // Validate via cubing.js Alg parser (dynamic import from cfop-app)
+  // Validate via cubing.js Alg parser
   try {
-    const { Alg } = await import('../cfop-app/node_modules/cubing/dist/lib/cubing/alg/index.js');
+    const Alg = await getAlg();
     Alg.fromString(alg);
   } catch (err) {
     console.error(`Error: Invalid algorithm "${alg}" — ${err.message}`);
@@ -90,11 +109,12 @@ if (mode === 'alg') {
   }
 
   const timestamp = Date.now();
-  const config = applyForceFlags(typeToConfig('default'));
+  const config = applyForceFlags(typeToConfig('default', undefined));
   const ext = config.outputFormat;
   const outputPath = resolve(outputDir, `cubify-${timestamp}.${ext}`);
+  const resolvedSetup = deriveSetupAlg('default', setupAlg);
 
-  await renderCube({ ...config, alg, setupAlg, outputPath });
+  await renderCube({ ...config, alg, setupAlg: resolvedSetup, outputPath });
   console.log(outputPath);
 
 } else if (mode === 'case') {
@@ -107,14 +127,16 @@ if (mode === 'alg') {
   }
 
   const caseType = caseEntry.method ?? 'default';
-  const config = applyForceFlags(typeToConfig(caseType));
+  const config = applyForceFlags(typeToConfig(caseType, caseEntry.mask));
   const ext = config.outputFormat;
   const outputPath = resolve(outputDir, `${caseId}.${ext}`);
+
+  const resolvedSetup = deriveSetupAlg(caseType, setupAlg || caseEntry.setup || '');
 
   await renderCube({
     ...config,
     alg: caseEntry.notation,
-    setupAlg: setupAlg || caseEntry.setup || '',
+    setupAlg: resolvedSetup,
     outputPath,
   });
   console.log(outputPath);
@@ -138,14 +160,15 @@ if (mode === 'alg') {
   const results = [];
   for (const c of cases) {
     const caseType = c.method ?? 'default';
-    const config = applyForceFlags(typeToConfig(caseType));
+    const config = applyForceFlags(typeToConfig(caseType, c.mask));
     const ext = config.outputFormat;
     const outputPath = resolve(outputDir, `${c.id}.${ext}`);
     try {
+      const resolvedSetup = deriveSetupAlg(caseType, setupAlg || c.setup || '');
       await renderCube({
         ...config,
         alg: c.notation,
-        setupAlg: setupAlg || c.setup || '',
+        setupAlg: resolvedSetup,
         outputPath,
       });
       results.push({ ok: true, outputPath, id: c.id });

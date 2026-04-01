@@ -43,7 +43,7 @@ function buildHtml(config) {
     puzzle: '3x3x3',
     visualization,
     alg,
-    ...(setupAlg ? { experimentalSetupAlg: setupAlg, experimentalSetupAnchor: 'start' } : {}),
+    ...(setupAlg ? { experimentalSetupAlg: setupAlg, experimentalSetupAnchor: 'end' } : {}),
     background: 'none',
   };
 
