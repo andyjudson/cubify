@@ -55,7 +55,7 @@ function buildHtml(config) {
 <html>
 <head>
 <style>
-  html, body { margin: 0; padding: 0; width: ${PLAYER_W}px; height: ${VIEWPORT_H}px; background: white; }
+  html, body { margin: 0; padding: 0; width: ${PLAYER_W}px; height: ${VIEWPORT_H}px; background: transparent; }
   twisty-player { display: block; width: ${PLAYER_W}px; height: ${PLAYER_H}px; }
 </style>
 </head>
@@ -177,9 +177,8 @@ async function capturePng(page, outputPath) {
   });
 
   if (rect && rect.width > 0 && rect.height > 0) {
-    await page.screenshot({ path: outputPath, clip: rect });
+    await page.screenshot({ path: outputPath, clip: rect, omitBackground: true });
     execSync(`sips -Z ${PLAYER_VIZ_H} "${outputPath}"`, { stdio: 'pipe' });
-    execSync(`sips --padColor FFFFFF --padToHeightWidth ${PLAYER_VIZ_H} ${PLAYER_VIZ_H} "${outputPath}"`, { stdio: 'pipe' });
   } else {
     await page.screenshot({ path: outputPath });
   }
