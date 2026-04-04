@@ -16,9 +16,14 @@ async function getAlg() {
   return mod.Alg;
 }
 
-function deriveSetupAlg(method, explicitSetup) {
+function deriveSetupAlg(method, alg, explicitSetup) {
   if (explicitSetup) return explicitSetup;
   if (method === 'oll' || method === 'pll') return 'z2';
+  if (method === 'f2l') {
+    // y-prefixed algs target the FL slot; compensate in setup to normalise display to FR slot
+    const leadingY = alg && alg.match(/^(y'?)\s/);
+    return leadingY ? `z2 ${leadingY[1]}` : 'z2';
+  }
   return '';
 }
 
@@ -112,7 +117,7 @@ if (mode === 'alg') {
   const config = applyForceFlags(typeToConfig('default', undefined));
   const ext = config.outputFormat;
   const outputPath = resolve(outputDir, `cubify-${timestamp}.${ext}`);
-  const resolvedSetup = deriveSetupAlg('default', setupAlg);
+  const resolvedSetup = deriveSetupAlg('default', alg, setupAlg);
 
   await renderCube({ ...config, alg, setupAlg: resolvedSetup, outputPath });
   console.log(outputPath);
@@ -131,7 +136,7 @@ if (mode === 'alg') {
   const ext = config.outputFormat;
   const outputPath = resolve(outputDir, `${caseId}.${ext}`);
 
-  const resolvedSetup = deriveSetupAlg(caseType, setupAlg || caseEntry.setup || '');
+  const resolvedSetup = deriveSetupAlg(caseType, caseEntry.notation, setupAlg || caseEntry.setup || '');
 
   await renderCube({
     ...config,
@@ -142,9 +147,9 @@ if (mode === 'alg') {
   console.log(outputPath);
 
 } else if (mode === 'file') {
-  // Resolve path — relative paths default to cfop-app/public/data/
-  const resolvedPath = filePath.startsWith('/')
-    ? filePath
+  // Resolve path — bare filenames default to cfop-app/public/data/; paths with slashes resolve from cwd
+  const resolvedPath = (filePath.startsWith('/') || filePath.includes('/'))
+    ? resolve(filePath)
     : resolve('cfop-app/public/data', filePath);
 
   let cases;
@@ -164,7 +169,7 @@ if (mode === 'alg') {
     const ext = config.outputFormat;
     const outputPath = resolve(outputDir, `${c.id}.${ext}`);
     try {
-      const resolvedSetup = deriveSetupAlg(caseType, setupAlg || c.setup || '');
+      const resolvedSetup = deriveSetupAlg(caseType, c.notation, setupAlg || c.setup || '');
       await renderCube({
         ...config,
         alg: c.notation,
