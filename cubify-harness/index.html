@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cubify-harness</title>
+  <link rel="stylesheet" href="./css/cubify.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 4px; color: #fff; }
+    .subtitle { font-size: 0.85rem; color: #888; margin-bottom: 24px; }
+
+    .layout { display: flex; gap: 24px; flex-wrap: wrap; }
+
+    /* Cube container — intentionally no explicit height (PoC proof) */
+    #cube-container {
+      width: 400px;
+      aspect-ratio: 1;
+      background: #0d0d1a;
+      border-radius: 8px;
+      border: 1px solid #333;
+      overflow: hidden;
+      position: relative;
+    }
+    #cube-container canvas { display: block; }
+
+    .controls { display: flex; flex-direction: column; gap: 16px; min-width: 260px; flex: 1; }
+
+    .control-group label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #888;
+      margin-bottom: 6px;
+    }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      padding: 6px 14px;
+      border-radius: 5px;
+      border: 1px solid #444;
+      background: #222;
+      color: #ddd;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.15s;
+    }
+    button:hover { background: #333; }
+    button.active { background: #2d5af5; border-color: #2d5af5; color: #fff; }
+
+    .alg-label {
+      font-size: 0.78rem;
+      color: #aaa;
+      font-family: monospace;
+      margin-top: 4px;
+      min-height: 1.2em;
+    }
+
+    /* Debug panel */
+    .debug-panel {
+      margin-top: 24px;
+      background: #0d0d1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .debug-panel h3 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .debug-tabs { display: flex; gap: 8px; margin-bottom: 8px; }
+    .debug-tabs button { font-size: 0.75rem; padding: 3px 10px; }
+    #debug-pre {
+      font-family: monospace;
+      font-size: 0.78rem;
+      color: #7fc;
+      white-space: pre-wrap;
+      max-height: 220px;
+      overflow-y: auto;
+      line-height: 1.5;
+    }
+    #face-state-pre {
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #adf;
+      white-space: pre;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<h1>cubify-harness</h1>
+
+<div class="layout">
+
+  <!-- Cube viewport — no height set, sized by aspect-ratio only -->
+  <div id="cube-container"></div>
+
+  <div class="controls">
+
+    <div class="control-group">
+      <label>Algorithm</label>
+      <div class="btn-row" id="alg-buttons"></div>
+      <div class="alg-label" id="alg-label"></div>
+    </div>
+
+    <div class="control-group">
+      <label>Stickering</label>
+      <div class="btn-row" id="sticker-buttons"></div>
+    </div>
+
+    <div class="control-group">
+      <label>Playback</label>
+      <div class="btn-row">
+        <button id="btn-play">▶ Play</button>
+        <button id="btn-stop" disabled>■ Stop</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label>Step through moves</label>
+      <div class="btn-row">
+        <button id="btn-prev">← Prev</button>
+        <button id="btn-next">Next →</button>
+        <button id="btn-reset">Reset</button>
+      </div>
+      <div class="alg-label" id="step-label">—</div>
+    </div>
+
+    <div class="control-group">
+      <label>Camera</label>
+      <div class="btn-row">
+        <button id="btn-cam-reset">Reset view</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label>Speed</label>
+      <div class="btn-row">
+        <button id="btn-speed-slow" data-speed="500">Slow</button>
+        <button id="btn-speed-mid" class="active" data-speed="300">Normal</button>
+        <button id="btn-speed-fast" data-speed="120">Fast</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Debug panel -->
+<div class="debug-panel">
+  <h3>Debug</h3>
+  <div class="debug-tabs">
+    <button id="tab-log" class="active" onclick="showTab('log')">Event log</button>
+    <button id="tab-faces" onclick="showTab('faces')">Face state</button>
+  </div>
+  <pre id="debug-pre"></pre>
+  <pre id="face-state-pre" style="display:none"></pre>
+</div>
+
+<script type="module">
+  import { CubeState } from './src/CubeState.js';
+  import { AlgParser } from './src/AlgParser.js';
+  import { CubeRenderer3D } from './src/CubeRenderer3D.js';
+
+  // Warm up kpuzzle early (cached after first call)
+  const _solvedBase = await CubeState.solved();
+
+  // ---- Named algorithms ----
+  const ALGS = [
+    { label: 'Solved',  notation: '' },
+    { label: 'Sune',    notation: "R U R' U R U2 R'" },
+    { label: 'T-Perm',  notation: "R U R' U' R' F R2 U' R' U' R U R' F'" },
+    { label: 'Sexy ×6', notation: "R U R' U' R U R' U' R U R' U' R U R' U' R U R' U' R U R' U'" },
+  ];
+
+  // ---- Stickering presets ----
+  const STICKERINGS = ['full', 'oll', 'pll', 'f2l', 'cross'];
+
+  // ---- State ----
+  let currentAlgIndex = 0;
+  let currentStickering = 'full';
+  let currentMoves = [];
+  let stepIndex = 0;
+  let isPlaying = false;
+
+  // ---- Renderer ----
+  const container = document.getElementById('cube-container');
+  const renderer = new CubeRenderer3D({ debug: true, animSpeed: 300 });
+  renderer.mount(container);
+
+  // ---- Debug log ----
+  const debugPre = document.getElementById('debug-pre');
+  const faceStatePre = document.getElementById('face-state-pre');
+
+  function appendLog(msg) {
+    debugPre.textContent = msg + '\n' + debugPre.textContent;
+  }
+
+  window.addEventListener('cubify:log', e => appendLog(e.detail));
+  appendLog('[demo] page loaded');
+
+  function showTab(tab) {
+    document.getElementById('tab-log').classList.toggle('active', tab === 'log');
+    document.getElementById('tab-faces').classList.toggle('active', tab === 'faces');
+    debugPre.style.display = tab === 'log' ? '' : 'none';
+    faceStatePre.style.display = tab === 'faces' ? '' : 'none';
+  }
+  window.showTab = showTab;
+
+  // ---- Apply state snapshot (no animation) ----
+  function applyStateToRenderer(state) {
+    renderer.setState(state);
+    faceStatePre.textContent = state.toString();
+  }
+
+  function updateStepLabel() {
+    const total = currentMoves.length;
+    if (total === 0) { document.getElementById('step-label').textContent = '(no moves)'; return; }
+    const move = currentMoves[stepIndex - 1] ?? '—';
+    document.getElementById('step-label').textContent = `Step ${stepIndex}/${total} — last: ${move}`;
+  }
+
+  // ---- Load algorithm — jump to end state, no animation ----
+  function loadAlg(idx) {
+    stopPlay();
+    currentAlgIndex = idx;
+    const alg = ALGS[idx];
+    currentMoves = alg.notation ? AlgParser.parse(alg.notation) : [];
+    stepIndex = currentMoves.length;
+    document.getElementById('alg-label').textContent = alg.notation || '(solved)';
+    updateAlgButtons();
+    const state = _solvedBase.applyAlg(currentMoves.slice(0, stepIndex));
+    applyStateToRenderer(state);
+    updateStepLabel();
+    appendLog(`[demo] loaded: ${alg.label} (${currentMoves.length} moves)`);
+  }
+
+  // ---- Snap step (no animation) ----
+  function snapToStep(idx) {
+    stepIndex = Math.max(0, Math.min(idx, currentMoves.length));
+    const state = _solvedBase.applyAlg(currentMoves.slice(0, stepIndex));
+    applyStateToRenderer(state);
+    updateStepLabel();
+    appendLog(`[demo] step ${stepIndex}/${currentMoves.length}`);
+  }
+
+  // ---- Animated step forward ----
+  function animateStepForward(onDone) {
+    if (stepIndex >= currentMoves.length) { onDone?.(); return; }
+    const move = currentMoves[stepIndex];
+    stepIndex++;
+    renderer.animateMove(move, () => {
+      const after = _solvedBase.applyAlg(currentMoves.slice(0, stepIndex));
+      faceStatePre.textContent = after.toString();
+      updateStepLabel();
+      onDone?.();
+    });
+  }
+
+  // ---- Play all ----
+  function startPlay() {
+    if (isPlaying || currentMoves.length === 0) return;
+    // If at end, reset first
+    if (stepIndex >= currentMoves.length) {
+      stepIndex = 0;
+      applyStateToRenderer(_solvedBase);
+    }
+    isPlaying = true;
+    document.getElementById('btn-play').disabled = true;
+    document.getElementById('btn-stop').disabled = false;
+
+    const playNext = () => {
+      if (!isPlaying || stepIndex >= currentMoves.length) {
+        stopPlay();
+        appendLog('[demo] playback complete');
+        return;
+      }
+      animateStepForward(() => {
+        if (isPlaying) setTimeout(playNext, 80);
+      });
+    };
+    appendLog('[demo] play started');
+    playNext();
+  }
+
+  function stopPlay() {
+    isPlaying = false;
+    document.getElementById('btn-play').disabled = false;
+    document.getElementById('btn-stop').disabled = true;
+  }
+
+  // ---- Build alg buttons ----
+  function updateAlgButtons() {
+    document.querySelectorAll('#alg-buttons button').forEach((btn, i) => {
+      btn.classList.toggle('active', i === currentAlgIndex);
+    });
+  }
+
+  const algBtnContainer = document.getElementById('alg-buttons');
+  ALGS.forEach((alg, i) => {
+    const btn = document.createElement('button');
+    btn.textContent = alg.label;
+    btn.onclick = () => loadAlg(i);
+    algBtnContainer.appendChild(btn);
+  });
+
+  // ---- Build stickering buttons ----
+  function updateStickerButtons() {
+    document.querySelectorAll('#sticker-buttons button').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.preset === currentStickering);
+    });
+  }
+
+  const stickerBtnContainer = document.getElementById('sticker-buttons');
+  STICKERINGS.forEach(preset => {
+    const btn = document.createElement('button');
+    btn.textContent = preset;
+    btn.dataset.preset = preset;
+    btn.onclick = () => {
+      currentStickering = preset;
+      updateStickerButtons();
+      const state = _solvedBase.applyAlg(currentMoves.slice(0, stepIndex));
+      applyStateToRenderer(state);
+      appendLog(`[demo] stickering: ${preset} (Phase 4 — visual only for now)`);
+    };
+    stickerBtnContainer.appendChild(btn);
+  });
+
+  // ---- Playback controls ----
+  document.getElementById('btn-play').onclick = startPlay;
+  document.getElementById('btn-stop').onclick = () => { stopPlay(); appendLog('[demo] stopped'); };
+
+  // ---- Step controls ----
+  document.getElementById('btn-prev').onclick = () => {
+    stopPlay();
+    if (stepIndex <= 0 || renderer._animating) return;
+    const lastMove = currentMoves[stepIndex - 1];
+    const inverseMove = CubeState.invertAlg([lastMove])[0];
+    stepIndex--;
+    renderer.animateMove(inverseMove, () => {
+      const state = _solvedBase.applyAlg(currentMoves.slice(0, stepIndex));
+      faceStatePre.textContent = state.toString();
+      updateStepLabel();
+    });
+  };
+  document.getElementById('btn-next').onclick = () => {
+    stopPlay();
+    if (stepIndex < currentMoves.length) animateStepForward();
+  };
+  document.getElementById('btn-reset').onclick = () => {
+    stopPlay();
+    snapToStep(0);
+    appendLog('[demo] reset to solved');
+  };
+
+  // ---- Camera ----
+  document.getElementById('btn-cam-reset').onclick = () => {
+    renderer.resetCamera();
+    appendLog('[demo] camera reset');
+  };
+
+  // ---- Speed ----
+  document.querySelectorAll('[data-speed]').forEach(btn => {
+    btn.onclick = () => {
+      renderer._animSpeed = parseInt(btn.dataset.speed);
+      document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      appendLog(`[demo] speed: ${btn.dataset.speed}ms`);
+    };
+  });
+
+  // ---- Initial load ----
+  loadAlg(1); // Sune by default
+  updateStickerButtons();
+</script>
+
+</body>
+</html>

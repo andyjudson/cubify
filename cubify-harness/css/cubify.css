@@ -1,0 +1,12 @@
+/* cubify-poc colour tokens — override these to theme the cube */
+:root {
+  --cubify-U: #ffffff;      /* white  — Up face    */
+  --cubify-R: #ff4500;      /* red    — Right face  */
+  --cubify-F: #00a550;      /* green  — Front face  */
+  --cubify-D: #ffdd00;      /* yellow — Down face   */
+  --cubify-L: #ff6600;      /* orange — Left face   */
+  --cubify-B: #003399;      /* blue   — Back face   */
+  --cubify-hidden: #333333; /* grey   — masked stickers */
+  --cubify-bg: transparent; /* canvas background    */
+  --cubify-gap: 0.05;       /* cubelet gap (Three.js units) */
+}

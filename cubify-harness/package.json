@@ -1,0 +1,25 @@
+{
+  "name": "cubify-harness",
+  "version": "0.1.0",
+  "description": "3×3 Rubik's cube visualisation test harness",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.170.0"
+  },
+  "peerDependencies": {
+    "cubing": "^0.63.3"
+  },
+  "devDependencies": {
+    "node-canvas": "^2.9.0",
+    "vite": "^8.0.8"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
