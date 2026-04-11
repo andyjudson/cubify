@@ -10,6 +10,8 @@ Add a unit test suite for `cubify-harness` covering the hard-won ground truth in
 
 As the library becomes load-bearing for cfop-app, regressions in `toFaceArray()`, orientation formulas, or sticker slot mappings become user-visible bugs. The test suite encodes the verified facts from `cube-mapping-lessons.md` so they can't silently break.
 
+Also refer to cubify-harness/verify-perms.mjs
+
 ---
 
 ## Test Targets
