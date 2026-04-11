@@ -181,3 +181,35 @@ case 5: return idx(-x, -y);  // -Z = B face
 - Must reset all quaternions to identity before assigning colours, because `stickerIndex` assumes identity orientation
 
 **Key insight**: a physically-simulated cube never has sticker flicker because stickers don't change in reality. A computationally-reconstructed cube can flicker whenever the reconstruction has a bug. Prefer physical simulation.
+
+---
+
+## 9. `faceCW` cycle direction trap
+
+In `buildPerm`, a cycle `[a, b, c, d]` means **sticker at `a` moves to `b`**, `b` to `c`, etc.
+
+For a face with corner positions TL=`off`, TR=`off+2`, BR=`off+8`, BL=`off+6`:
+
+| Cycle | Movement | Direction |
+|-------|----------|-----------|
+| `[off, off+6, off+8, off+2]` | TL→BL→BR→TR | **CCW** |
+| `[off, off+2, off+8, off+6]` | TL→TR→BR→BL | **CW** ✓ |
+
+**The trap**: `[off, off+6, off+8, off+2]` looks "clockwise" when reading the offsets (+6 is BL, +8 is BR, +2 is TR, so it traces a CW path geometrically) — but the semantics are "sticker at TL goes to BL" which is CCW.
+
+**Why single-move tests don't catch it**: in solved state, all stickers on a face are the same colour. CCW vs CW face rotation on a monochrome face is invisible. The bug only surfaces in multi-move sequences, when stickers from other moves land on the face and then rotate in the wrong direction.
+
+**Verified correct**: `faceCW(off)` must use `[[off,off+2,off+8,off+6], [off+1,off+5,off+7,off+3]]`.
+
+---
+
+## 10. Cross-checking a WCA perm model against cubing.js CubeState
+
+When running a cycle-based sticker permutation model (WCA convention) against `CubeState.toFaceArray()`:
+
+- **Single moves R, F, L, B**: same in both — cross-check directly
+- **Single U, U', D, D'**: cubing.js U = WCA U', so swap: test perm `U` against `CubeState.applyAlg(["U'"])` and vice versa
+- **Double turns U2, D2**: symmetric — cross-check directly
+- **Multi-move algs with U/D**: don't cross-check. Alg `R U R' U'` in WCA ≠ `R U R' U'` in cubing.js (U goes opposite way). The states they produce are fundamentally different. Only cross-check multi-move algs using R, F, L, B exclusively.
+
+**T-perm order in a flat 54-sticker model**: T-perm has order 2 on a physical cube (piece-based). But in a flat 54-sticker permutation model, the order depends on the combination of face-rotation direction and cross-face cycle direction. Don't use T-perm order as a regression test for the sticker model — it is not a reliable indicator of correctness.
