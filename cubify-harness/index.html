@@ -7,20 +7,31 @@
   <link rel="stylesheet" href="./css/cubify.css" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
     body {
       font-family: system-ui, sans-serif;
       background: #1a1a2e;
       color: #e0e0e0;
-      padding: 20px;
-      min-height: 100vh;
+      padding: 16px 16px 196px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
     }
-    h1 { font-size: 1.2rem; margin-bottom: 16px; color: #fff; }
+    h1 { font-size: 1.1rem; margin-bottom: 12px; color: #fff; flex-shrink: 0; }
 
-    /* ---- Top area: cube + controls side by side ---- */
-    .top { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+    /* ---- Top area: cube + controls side by side, fills remaining space ---- */
+    .top {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      flex: 1;
+      min-height: 0;
+    }
 
     #cube-container {
-      width: 360px;
+      /* Fill available height, square aspect ratio */
+      height: 100%;
       aspect-ratio: 1;
       background: #0d0d1a;
       border-radius: 8px;
@@ -36,7 +47,7 @@
       grid-template-columns: 1fr 1fr;
       gap: 12px 20px;
       flex: 1;
-      min-width: 300px;
+      min-width: 260px;
       align-content: start;
     }
     .control-group { display: flex; flex-direction: column; gap: 5px; }
@@ -72,13 +83,26 @@
       min-height: 1.1em;
     }
 
-    /* ---- Debug panel ---- */
+    /* ---- Debug panel — fixed to bottom, fixed height ---- */
     .debug-panel {
-      margin-top: 16px;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 180px;
       background: #0d0d1a;
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 12px;
+      border-top: 1px solid #333;
+      padding: 8px 16px 10px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+    }
+    .debug-panel h3 { flex-shrink: 0; }
+    .debug-tabs { flex-shrink: 0; }
+    .validator-row { flex-shrink: 0; }
+    .validator-input-row { flex-shrink: 0; }
+    #move-status { flex-shrink: 0; }
+    #tab-validator-panel { overflow-y: auto; flex: 1; }
+    #debug-pre, #face-state-pre, #kpattern-pre {
+      flex: 1; overflow-y: auto; max-height: none;
     }
     .debug-panel h3 {
       font-size: 0.7rem;

@@ -193,7 +193,7 @@ export class CubeRenderer3D {
     this._controls = new OrbitControls(this._camera, this._renderer.domElement);
     this._controls.enableDamping = true;
     this._controls.dampingFactor = 0.08;
-    this._controls.minDistance = 6;
+    this._controls.minDistance = 9;
     this._controls.maxDistance = 12;
     // Limit vertical rotation: min ~15° above horizon, max ~75° (no looking straight down)
     this._controls.minPolarAngle = Math.PI * 0.25;  // 45° from top — limits white visibility
