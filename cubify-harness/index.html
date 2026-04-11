@@ -41,15 +41,14 @@
 
     /* ---- Controls column ---- */
     .controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
       flex: 1;
       min-width: 260px;
       align-content: start;
     }
     .control-group { display: flex; flex-direction: column; gap: 4px; }
-    .control-group.full-width { grid-column: 1 / -1; }
 
     .control-label {
       font-size: 0.65rem;
@@ -120,7 +119,7 @@
 
   <div class="controls">
 
-    <div class="control-group full-width">
+    <div class="control-group">
       <span class="control-label">Algorithm</span>
       <div class="btn-row" id="alg-buttons"></div>
       <div class="alg-label" id="alg-label"></div>
@@ -134,36 +133,31 @@
       </div>
     </div>
 
-    <!-- Right column: Step, Speed, Reset stacked -->
-    <div style="display:flex;flex-direction:column;gap:10px">
-
-      <div class="control-group">
-        <span class="control-label">Step</span>
-        <div class="btn-row">
-          <button id="btn-prev" class="button is-harness is-small">&#8592; Prev</button>
-          <button id="btn-next" class="button is-harness is-small">Next &#8594;</button>
-        </div>
-        <div class="alg-label" id="step-label">—</div>
+    <div class="control-group">
+      <span class="control-label">Step</span>
+      <div class="btn-row">
+        <button id="btn-prev" class="button is-harness is-small">&#8592; Prev</button>
+        <button id="btn-next" class="button is-harness is-small">Next &#8594;</button>
       </div>
+      <div class="alg-label" id="step-label">—</div>
+    </div>
 
-      <div class="control-group">
-        <span class="control-label">Speed</span>
-        <div class="btn-row">
-          <button class="button is-harness is-small" data-speed="500">Slow</button>
-          <button class="button is-harness is-small is-active" data-speed="300">Normal</button>
-          <button class="button is-harness is-small" data-speed="120">Fast</button>
-        </div>
+    <div class="control-group">
+      <span class="control-label">Speed</span>
+      <div class="btn-row">
+        <button class="button is-harness is-small" data-speed="500">Slow</button>
+        <button class="button is-harness is-small is-active" data-speed="300">Normal</button>
+        <button class="button is-harness is-small" data-speed="120">Fast</button>
       </div>
+    </div>
 
-      <div class="control-group">
-        <span class="control-label">Reset</span>
-        <div class="btn-row">
-          <button id="btn-reset" class="button is-harness is-small">Reset case</button>
-          <button id="btn-solved" class="button is-harness is-small">Solved</button>
-          <button id="btn-cam-reset" class="button is-harness is-small">Reset view</button>
-        </div>
+    <div class="control-group">
+      <span class="control-label">Reset</span>
+      <div class="btn-row">
+        <button id="btn-reset" class="button is-harness is-small">Reset case</button>
+        <button id="btn-solved" class="button is-harness is-small">Solved</button>
+        <button id="btn-cam-reset" class="button is-harness is-small">Reset view</button>
       </div>
-
     </div>
 
   </div>
