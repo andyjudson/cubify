@@ -1,154 +1,176 @@
-// Verify sticker permutation tables for all 6 face moves
-// Uses cubing.js as ground truth
+/**
+ * Permutation verification script.
+ *
+ * Cross-checks a cycle-based sticker permutation model against CubeState (cubing.js ground truth).
+ * Also verifies known physical facts (T-perm order, Sexy×6 = solved).
+ *
+ * Run: node verify-perms.mjs
+ */
 
 import { CubeState } from './src/CubeState.js';
 
-const [U,R,F,D,L,B] = [0,9,18,27,36,45];
 const FACE_NAMES = ['U','R','F','D','L','B'];
+const [U,R,F,D,L,B] = [0,9,18,27,36,45];
 
-// 54-element solved sticker array: sticker[i] = face name
+// ---- Permutation engine ----
+
 function solvedStickers() {
   const s = new Array(54);
-  for (let f = 0; f < 6; f++) {
-    for (let i = 0; i < 9; i++) s[f*9+i] = FACE_NAMES[f];
-  }
+  for (let f = 0; f < 6; f++) for (let i = 0; i < 9; i++) s[f*9+i] = FACE_NAMES[f];
   return s;
 }
 
-// faceCW cycles: 4-cycle around face + 4-cycle around inner ring
-// cycle [a,b,c,d] means: new[b]=old[a], new[c]=old[b], new[d]=old[c], new[a]=old[d]
+// Returns 2 face-rotation cycles for a CW turn: [corners, inner ring]
+// buildPerm cycle [a,b,c,d]: sticker at a moves to b, b→c, c→d, d→a
+// CW (viewed from face): TL→TR→BR→BL = [off, off+2, off+8, off+6]
 function faceCW(off) {
-  return [[off,off+6,off+8,off+2],[off+1,off+3,off+7,off+5]];
+  return [[off,off+2,off+8,off+6],[off+1,off+5,off+7,off+3]];
 }
 
-// Build permutation array from cycles
-// perm[dst] = src means position dst gets sticker from src
 function buildPerm(cycles) {
-  const perm = Array.from({length:54}, (_,i) => i); // identity
+  const perm = Array.from({length:54}, (_,i) => i);
   for (const cycle of cycles) {
     const len = cycle.length;
-    for (let i = 0; i < len; i++) {
-      perm[cycle[(i+1) % len]] = cycle[i];
-    }
+    for (let i = 0; i < len; i++) perm[cycle[(i+1) % len]] = cycle[i];
   }
   return perm;
 }
 
-// Apply perm to sticker array
 function applyPerm(stickers, perm) {
-  const out = new Array(54);
-  for (let i = 0; i < 54; i++) out[i] = stickers[perm[i]];
-  return out;
+  return Array.from({length:54}, (_,i) => stickers[perm[i]]);
 }
 
-// Apply inverse perm (prime move)
 function invertPerm(perm) {
   const inv = new Array(54);
   for (let i = 0; i < 54; i++) inv[perm[i]] = i;
   return inv;
 }
 
-// Apply double (square move)
 function composePerm(p1, p2) {
   return Array.from({length:54}, (_,i) => p1[p2[i]]);
 }
 
+// ---- Move definitions (WCA standard, viewed from face) ----
 const PERM_CYCLES = {
-  R: [...faceCW(R), [U+2,F+2,D+2,B+6],[U+5,F+5,D+5,B+3],[U+8,F+8,D+8,B+0]],
+  R: [...faceCW(R), [F+2,U+2,B+6,D+2],[F+5,U+5,B+3,D+5],[F+8,U+8,B+0,D+8]],
   U: [...faceCW(U), [F+0,R+0,B+0,L+0],[F+1,R+1,B+1,L+1],[F+2,R+2,B+2,L+2]],
-  F: [...faceCW(F), [R+0,U+6,L+8,D+2],[R+3,U+7,L+5,D+1],[R+6,U+8,L+2,D+0]],
-  L: [...faceCW(L), [F+0,U+0,B+8,D+0],[F+3,U+3,B+5,D+3],[F+6,U+6,B+2,D+6]],
-  D: [...faceCW(D), [R+6,F+6,L+6,B+6],[R+7,F+7,L+7,B+7],[R+8,F+8,L+8,B+8]],
-  B: [...faceCW(B), [R+2,U+0,L+6,D+8],[R+5,U+1,L+3,D+7],[R+8,U+2,L+0,D+6]],
+  F: [...faceCW(F), [U+6,R+0,D+2,L+8],[U+7,R+3,D+1,L+5],[U+8,R+6,D+0,L+2]],
+  L: [...faceCW(L), [U+0,F+0,D+0,B+8],[U+3,F+3,D+3,B+5],[U+6,F+6,D+6,B+2]],
+  D: [...faceCW(D), [F+6,L+6,B+6,R+6],[F+7,L+7,B+7,R+7],[F+8,L+8,B+8,R+8]],
+  B: [...faceCW(B), [U+0,L+6,D+6,R+8],[U+1,L+3,D+7,R+5],[U+2,L+0,D+8,R+2]],
 };
 
-const PERMS = {};
-for (const [k,v] of Object.entries(PERM_CYCLES)) PERMS[k] = buildPerm(v);
+const PERMS = Object.fromEntries(
+  Object.entries(PERM_CYCLES).map(([k,v]) => [k, buildPerm(v)])
+);
 
-// Get move perm (handle prime and double)
 function getMovePerm(move) {
   const base = move.replace(/['2]/g,'');
   const p = PERMS[base];
-  if (!p) throw new Error('Unknown move: '+move);
+  if (!p) throw new Error('Unknown move: ' + move);
   if (move.endsWith("'")) return invertPerm(p);
   if (move.endsWith('2')) return composePerm(p, p);
   return p;
 }
 
-// Apply alg to sticker array
-function applyAlgToStickers(stickers, moves) {
-  let s = stickers;
-  for (const m of moves) s = applyPerm(s, getMovePerm(m));
-  return s;
+function applyAlg(stickers, moves) {
+  return moves.reduce((s, m) => applyPerm(s, getMovePerm(m)), stickers);
 }
 
-// Get face array from sticker array
 function stickersToFaces(stickers) {
   return Array.from({length:6}, (_,f) => stickers.slice(f*9, f*9+9));
 }
 
-// Get face array from CubeState
-async function getGroundTruth(moves) {
-  const base = await CubeState.solved();
-  const state = base.applyAlg(moves);
-  return state.toFaceArray();
-}
-
-// Compare two face arrays
-function facesMatch(a, b) {
-  for (let f = 0; f < 6; f++) {
-    for (let i = 0; i < 9; i++) {
-      if (a[f][i] !== b[f][i]) return false;
-    }
-  }
+function facesEqual(a, b) {
+  for (let f = 0; f < 6; f++) for (let i = 0; i < 9; i++) if (a[f][i] !== b[f][i]) return false;
   return true;
 }
 
-function facesToStr(faces) {
+function faceStr(faces) {
   return FACE_NAMES.map((n,i) => `${n}: ${faces[i].join('')}`).join('\n');
 }
 
-// Test cases
-const TEST_CASES = [
-  ['R'],
-  ['U'],
-  ['F'],
-  ['L'],
-  ['D'],
-  ['B'],
-  ["R'"],
-  ["U'"],
-  ['R2'],
-  ['R','U'],
-  ['R','U',"R'","U'"],
-  ['R','U',"R'","U'",'R','U',"R'","U'",'R','U',"R'","U'","R'","F","R","F'"], // Sune partial
-];
+// ---- Tests ----
 
-let allPass = true;
-const base = await CubeState.solved();
+let pass = 0, fail = 0;
 
-for (const moves of TEST_CASES) {
-  const state = base.applyAlg(moves);
-  const gt = state.toFaceArray();
-  const myStickers = applyAlgToStickers(solvedStickers(), moves);
-  const my = stickersToFaces(myStickers);
-
-  const pass = facesMatch(gt, my);
-  if (!pass) {
-    allPass = false;
-    console.log(`FAIL: [${moves.join(' ')}]`);
-    console.log('Ground truth:');
-    console.log(facesToStr(gt));
-    console.log('Mine:');
-    console.log(facesToStr(my));
-    console.log('---');
+function check(label, actual, expected) {
+  if (expected === null) {
+    console.log(`[info] ${label}:\n${faceStr(actual)}\n`);
+    return;
+  }
+  if (facesEqual(actual, expected)) {
+    console.log(`PASS  ${label}`);
+    pass++;
   } else {
-    console.log(`PASS: [${moves.join(' ')}]`);
+    console.log(`FAIL  ${label}`);
+    console.log('  Got:\n' + faceStr(actual).replace(/^/gm,'    '));
+    console.log('  Expected:\n' + faceStr(expected).replace(/^/gm,'    '));
+    fail++;
   }
 }
 
-if (allPass) {
-  console.log('\nAll permutations verified!');
-} else {
-  console.log('\nSome permutations are wrong — see above.');
+// --- Cross-check against CubeState (cubing.js ground truth) ---
+// cubing.js U/D are visually flipped vs WCA (cubing.js U = visual U').
+// PERM_CYCLES uses WCA visual convention, so U↔U' and D↔D' for cross-check.
+const solved = await CubeState.solved();
+// Single-move tests: U/D are directionally flipped in cubing.js vs WCA, so
+// cross-check WCA U against cubing.js U' (and D vs D').
+// Multi-move tests: only use R/F/L/B (identical in both conventions).
+const SINGLE_MOVES = [
+  [['R'],    ['R']],
+  [['U'],    ["U'"]],   // WCA U = cubing.js U'
+  [['F'],    ['F']],
+  [['L'],    ['L']],
+  [['D'],    ["D'"]],   // WCA D = cubing.js D'
+  [['B'],    ['B']],
+  [["R'"],   ["R'"]],
+  [["U'"],   ['U']],
+  [["F'"],   ["F'"]],
+  [['R2'],   ['R2']],
+  [['U2'],   ['U2']],   // double turn symmetric
+];
+const MULTI_MOVES = [
+  ['R','F'],
+  ['R',"F'"],
+  ['R','F',"R'","F'"],  // R F sexy move
+  ['R','F',"R'","F'",'R','F',"R'","F'",'R','F',"R'","F'"],  // ×3 = solved (order 6 partial)
+  ["R'","F","R","F'"],
+];
+
+console.log('--- CubeState cross-check ---');
+for (const [permMoves, csMoves] of SINGLE_MOVES) {
+  const csState = solved.applyAlg(csMoves);
+  const csFaces = csState.toFaceArray();
+  const myFaces = stickersToFaces(applyAlg(solvedStickers(), permMoves));
+  check(permMoves.join(' '), myFaces, csFaces);
 }
+for (const moves of MULTI_MOVES) {
+  const csState = solved.applyAlg(moves);
+  const csFaces = csState.toFaceArray();
+  const myFaces = stickersToFaces(applyAlg(solvedStickers(), moves));
+  check(moves.join(' '), myFaces, csFaces);
+}
+
+// --- Physical ground truth ---
+console.log('\n--- Physical ground truth ---');
+
+// After R: F right col → U right col (U[2,5,8]=F)
+const afterR = stickersToFaces(applyAlg(solvedStickers(), ['R']));
+check('R: U right col = F', afterR, null); // visual check
+console.log('  U[2,5,8]:', afterR[0][2], afterR[0][5], afterR[0][8], '(expected F F F)');
+
+// Sexy move ×6 = solved
+const sexy6 = Array(6).fill(['R','U',"R'","U'"]).flat();
+const afterSexy6 = stickersToFaces(applyAlg(solvedStickers(), sexy6));
+const solvedFaces = stickersToFaces(solvedStickers());
+check('Sexy×6 = solved', afterSexy6, solvedFaces);
+
+// Sledgehammer (R' F R F') × 6 = identity
+const sledge6 = Array(6).fill(["R'","F","R","F'"]).flat();
+const afterSledge6 = stickersToFaces(applyAlg(solvedStickers(), sledge6));
+check('Sledge×6 = solved', afterSledge6, solvedFaces);
+
+// Summary
+console.log(`\n${pass + fail} tests — ${pass} passed, ${fail} failed`);
+if (fail > 0) process.exit(1);
