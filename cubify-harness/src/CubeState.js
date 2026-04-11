@@ -136,6 +136,7 @@ const CENTER_FACES = ['U','R','F','D','L','B'];
 // Face name by index
 const FACE_NAMES = ['U','R','F','D','L','B'];
 
+
 export class CubeState {
   /**
    * @param {Object} kPattern — a cubing.js KPattern instance
@@ -154,7 +155,7 @@ export class CubeState {
   }
 
   /**
-   * Apply a single WCA move string. Returns a new CubeState (immutable).
+   * Apply a single move string. Returns a new CubeState (immutable).
    * @param {string} move — e.g. "R", "U'", "F2"
    * @returns {CubeState}
    */
@@ -163,8 +164,8 @@ export class CubeState {
   }
 
   /**
-   * Apply an array of WCA move strings. Returns a new CubeState (immutable).
-   * @param {string[]} moves
+   * Apply an array (or space-separated string) of moves. Returns a new CubeState (immutable).
+   * @param {string[]|string} moves
    * @returns {CubeState}
    */
   applyAlg(moves) {
@@ -262,6 +263,18 @@ export class CubeState {
       if (m.endsWith('2')) return m;
       return m + "'";
     });
+  }
+
+  /**
+   * Return the raw KPattern piece/orientation data for debugging.
+   * @returns {{ corners: { pieces: number[], orientation: number[] }, edges: { pieces: number[], orientation: number[] } }}
+   */
+  toRawPattern() {
+    const d = this._kPattern.patternData;
+    return {
+      corners: { pieces: [...d.CORNERS.pieces], orientation: [...d.CORNERS.orientation] },
+      edges:   { pieces: [...d.EDGES.pieces],   orientation: [...d.EDGES.orientation]   },
+    };
   }
 
   /**

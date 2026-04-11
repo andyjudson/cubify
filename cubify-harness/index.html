@@ -157,15 +157,34 @@
   </div>
 </div>
 
+<!-- Move validator -->
+<div class="debug-panel" style="margin-top:16px;">
+  <h3>Move validator — apply to current state</h3>
+  <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+    <div class="btn-row" id="move-buttons"></div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <input id="move-input" type="text" placeholder="e.g. R U R' or M2" style="
+        flex:1; padding:6px 10px; border-radius:5px; border:1px solid #444;
+        background:#1a1a2e; color:#ddd; font-family:monospace; font-size:0.9rem;
+      "/>
+      <button id="btn-move-apply">Apply</button>
+      <button id="btn-move-reset">Reset cube</button>
+    </div>
+    <div class="alg-label" id="move-status">Applied moves: (none)</div>
+  </div>
+</div>
+
 <!-- Debug panel -->
 <div class="debug-panel">
   <h3>Debug</h3>
   <div class="debug-tabs">
     <button id="tab-log" class="active" onclick="showTab('log')">Event log</button>
     <button id="tab-faces" onclick="showTab('faces')">Face state</button>
+    <button id="tab-kpattern" onclick="showTab('kpattern')">KPattern</button>
   </div>
   <pre id="debug-pre"></pre>
   <pre id="face-state-pre" style="display:none"></pre>
+  <pre id="kpattern-pre" style="display:none; color:#fc9;"></pre>
 </div>
 
 <script type="module">
@@ -177,11 +196,15 @@
   const _solvedBase = await CubeState.solved();
 
   // ---- Named algorithms ----
+  // caseAlg: true  → start from case state (inverse alg applied to solved), stepping solves it
+  // caseAlg: false → start from solved, stepping executes the alg
   const ALGS = [
-    { label: 'Solved',  notation: '' },
-    { label: 'Sune',    notation: "R U R' U R U2 R'" },
-    { label: 'T-Perm',  notation: "R U R' U' R' F R2 U' R' U' R U R' F'" },
-    { label: 'Sexy ×6', notation: "R U R' U' R U R' U' R U R' U' R U R' U' R U R' U' R U R' U'" },
+    { label: 'Solved',  notation: '',                                                                          caseAlg: false },
+    { label: 'Sune',    notation: "R U R' U R U2 R'",                                                         caseAlg: true  },
+    { label: 'T-Perm',  notation: "R U R' U' R' F R2 U' R' U' R U R' F'",                                    caseAlg: true  },
+    { label: 'Ua-Perm', notation: "R U' R U R U R U' R' U' R2",                                              caseAlg: true  },
+    { label: 'H-Perm',  notation: "M2 U M2 U2 M2 U M2",                                                      caseAlg: true  },
+    { label: 'Sexy ×6', notation: "R U R' U' R U R' U' R U R' U' R U R' U' R U R' U' R U R' U'",            caseAlg: false },
   ];
 
   // ---- Stickering presets ----
@@ -210,18 +233,69 @@
   window.addEventListener('cubify:log', e => appendLog(e.detail));
   appendLog('[demo] page loaded');
 
+  const kpatternPre = document.getElementById('kpattern-pre');
+
   function showTab(tab) {
     document.getElementById('tab-log').classList.toggle('active', tab === 'log');
     document.getElementById('tab-faces').classList.toggle('active', tab === 'faces');
-    debugPre.style.display = tab === 'log' ? '' : 'none';
-    faceStatePre.style.display = tab === 'faces' ? '' : 'none';
+    document.getElementById('tab-kpattern').classList.toggle('active', tab === 'kpattern');
+    debugPre.style.display     = tab === 'log'      ? '' : 'none';
+    faceStatePre.style.display = tab === 'faces'    ? '' : 'none';
+    kpatternPre.style.display  = tab === 'kpattern' ? '' : 'none';
   }
   window.showTab = showTab;
+
+  const CORNER_NAMES = ['URF','URB','ULB','ULF','DRF','DLF','DLB','DRB'];
+  const EDGE_NAMES   = ['UF','UR','UB','UL','DF','DR','DB','DL','FR','FL','BR','BL'];
+
+  function formatKPattern(state) {
+    const { corners, edges } = state.toRawPattern();
+    const lines = ['CORNERS  slot  piece  orient  (piece name → slot name)'];
+    for (let i = 0; i < 8; i++) {
+      const moved = corners.pieces[i] !== i || corners.orientation[i] !== 0;
+      const flag  = moved ? ' ←' : '';
+      lines.push(`         [${i}]   ${corners.pieces[i]}      ${corners.orientation[i]}       ${CORNER_NAMES[corners.pieces[i]]} → ${CORNER_NAMES[i]}${flag}`);
+    }
+    lines.push('');
+    lines.push('EDGES    slot  piece  orient  (piece name → slot name)');
+    for (let i = 0; i < 12; i++) {
+      const moved = edges.pieces[i] !== i || edges.orientation[i] !== 0;
+      const flag  = moved ? ' ←' : '';
+      lines.push(`         [${i.toString().padStart(2)}]  ${edges.pieces[i].toString().padStart(2)}      ${edges.orientation[i]}       ${EDGE_NAMES[edges.pieces[i]].padEnd(2)} → ${EDGE_NAMES[i]}${flag}`);
+    }
+    return lines.join('\n');
+  }
+
+  function updateDebugState(state, prevFaces = null) {
+    faceStatePre.textContent = state.toString();
+    kpatternPre.textContent  = formatKPattern(state);
+    if (prevFaces) {
+      const faces = state.toFaceArray();
+      const diffs = [];
+      const faceNames = ['U','R','F','D','L','B'];
+      for (let f = 0; f < 6; f++)
+        for (let s = 0; s < 9; s++)
+          if (faces[f][s] !== prevFaces[f][s])
+            diffs.push(`${faceNames[f]}[${s}] ${prevFaces[f][s]}→${faces[f][s]}`);
+      appendLog(`[step] ${diffs.length} sticker${diffs.length !== 1 ? 's' : ''} changed: ${diffs.join('  ') || '—'}`);
+    }
+  }
 
   // ---- Apply state snapshot (no animation) ----
   function applyStateToRenderer(state) {
     renderer.setState(state);
-    faceStatePre.textContent = state.toString();
+    updateDebugState(state);
+    // Keep move-validator in sync
+    liveState = state;
+    appliedMoves = [];
+    if (typeof document !== 'undefined') {
+      const el = document.getElementById('move-status');
+      if (el) {
+        const solved = state.isSolved();
+        el.textContent = `Applied: (none)${solved ? '  ✓ SOLVED' : ''}`;
+        el.style.color = solved ? '#7fc' : '#aaa';
+      }
+    }
   }
 
   function updateStepLabel() {
@@ -231,17 +305,23 @@
     document.getElementById('step-label').textContent = `Step ${stepIndex}/${total} — last: ${move}`;
   }
 
-  // ---- Load algorithm — jump to end state, no animation ----
+  // Case state = solved with inverse alg applied. Step 0 shows the case;
+  // stepping forward applies each move of the alg, ending at solved.
+  let currentCaseState = _solvedBase;
+
+  // ---- Load algorithm ----
   function loadAlg(idx) {
     stopPlay();
     currentAlgIndex = idx;
     const alg = ALGS[idx];
     currentMoves = alg.notation ? AlgParser.parse(alg.notation) : [];
-    stepIndex = currentMoves.length;
+    currentCaseState = (alg.caseAlg && currentMoves.length)
+      ? _solvedBase.applyAlg(CubeState.invertAlg(currentMoves))
+      : _solvedBase;
+    stepIndex = 0;
     document.getElementById('alg-label').textContent = alg.notation || '(solved)';
     updateAlgButtons();
-    const state = _solvedBase.applyAlg(currentMoves.slice(0, stepIndex));
-    applyStateToRenderer(state);
+    applyStateToRenderer(currentCaseState);
     updateStepLabel();
     appendLog(`[demo] loaded: ${alg.label} (${currentMoves.length} moves)`);
   }
@@ -249,7 +329,7 @@
   // ---- Snap step (no animation) ----
   function snapToStep(idx) {
     stepIndex = Math.max(0, Math.min(idx, currentMoves.length));
-    const state = _solvedBase.applyAlg(currentMoves.slice(0, stepIndex));
+    const state = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex));
     applyStateToRenderer(state);
     updateStepLabel();
     appendLog(`[demo] step ${stepIndex}/${currentMoves.length}`);
@@ -259,10 +339,11 @@
   function animateStepForward(onDone) {
     if (stepIndex >= currentMoves.length) { onDone?.(); return; }
     const move = currentMoves[stepIndex];
+    const prevFaces = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex)).toFaceArray();
     stepIndex++;
     renderer.animateMove(move, () => {
-      const after = _solvedBase.applyAlg(currentMoves.slice(0, stepIndex));
-      faceStatePre.textContent = after.toString();
+      const after = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex));
+      updateDebugState(after, prevFaces);
       updateStepLabel();
       onDone?.();
     });
@@ -274,7 +355,7 @@
     // If at end, reset first
     if (stepIndex >= currentMoves.length) {
       stepIndex = 0;
-      applyStateToRenderer(_solvedBase);
+      applyStateToRenderer(currentCaseState);
     }
     isPlaying = true;
     document.getElementById('btn-play').disabled = true;
@@ -346,11 +427,12 @@
     stopPlay();
     if (stepIndex <= 0 || renderer._animating) return;
     const lastMove = currentMoves[stepIndex - 1];
+    const prevFaces = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex)).toFaceArray();
     const inverseMove = CubeState.invertAlg([lastMove])[0];
     stepIndex--;
     renderer.animateMove(inverseMove, () => {
-      const state = _solvedBase.applyAlg(currentMoves.slice(0, stepIndex));
-      faceStatePre.textContent = state.toString();
+      const state = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex));
+      updateDebugState(state, prevFaces);
       updateStepLabel();
     });
   };
@@ -361,7 +443,7 @@
   document.getElementById('btn-reset').onclick = () => {
     stopPlay();
     snapToStep(0);
-    appendLog('[demo] reset to solved');
+    appendLog('[demo] reset to case state');
   };
 
   // ---- Camera ----
@@ -379,6 +461,79 @@
       appendLog(`[demo] speed: ${btn.dataset.speed}ms`);
     };
   });
+
+  // ---- Move validator ----
+  // Tracks the live visual state independently so we can apply one move at a time.
+  let liveState = _solvedBase;
+  let appliedMoves = [];
+
+  function setLiveState(state, movesLabel) {
+    liveState = state;
+    renderer.setState(state);
+    updateDebugState(state);
+    const solved = state.isSolved();
+    document.getElementById('move-status').textContent =
+      `Applied: ${movesLabel || '(none)'}${solved ? '  ✓ SOLVED' : ''}`;
+    document.getElementById('move-status').style.color = solved ? '#7fc' : '#aaa';
+  }
+
+  // Build 18-move button grid (U R F D L B × normal/prime/double)
+  const MOVE_BUTTONS = [
+    'U',"U'",
+    'R',"R'",
+    'F',"F'",
+    'D',"D'",
+    'L',"L'",
+    'B',"B'",
+    'M',"M'",
+  ];
+  const moveBtnContainer = document.getElementById('move-buttons');
+  MOVE_BUTTONS.forEach(mv => {
+    const btn = document.createElement('button');
+    btn.textContent = mv;
+    btn.style.fontFamily = 'monospace';
+    btn.style.minWidth = '40px';
+    btn.onclick = () => applyLiveMove(mv);
+    moveBtnContainer.appendChild(btn);
+  });
+
+  function applyLiveMove(mv, onDone) {
+    if (renderer._animating) { onDone?.(); return; }
+    const prevFaces = liveState.toFaceArray();
+    const nextState = liveState.applyMove(mv);
+    appliedMoves.push(mv);
+    renderer.animateMove(mv, () => {
+      liveState = nextState;
+      updateDebugState(nextState, prevFaces);
+      const solved = nextState.isSolved();
+      document.getElementById('move-status').textContent =
+        `Applied: ${appliedMoves.join(' ')}${solved ? '  ✓ SOLVED' : ''}`;
+      document.getElementById('move-status').style.color = solved ? '#7fc' : '#aaa';
+      onDone?.();
+    });
+  }
+
+  document.getElementById('btn-move-apply').onclick = () => {
+    const input = document.getElementById('move-input');
+    const notation = input.value.trim();
+    if (!notation) return;
+    const moves = AlgParser.parse(notation);
+    if (!moves.length) { appendLog(`[validator] could not parse: ${notation}`); return; }
+    appendLog(`[validator] applying: ${moves.join(' ')}`);
+    let i = 0;
+    const next = () => {
+      if (i >= moves.length) return;
+      applyLiveMove(moves[i++], next);
+    };
+    next();
+  };
+
+  document.getElementById('btn-move-reset').onclick = () => {
+    stopPlay();
+    appliedMoves = [];
+    setLiveState(_solvedBase, '(none)');
+    appendLog('[validator] reset to solved');
+  };
 
   // ---- Initial load ----
   loadAlg(1); // Sune by default

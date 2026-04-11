@@ -119,8 +119,8 @@ function stickerIndex(pos, slot) {
 
 // ---- Face rotation axis/filter for animation ----
 const MOVE_AXIS = {
-  U: { axis: new THREE.Vector3(0,  1, 0), dir:  1, filter: p => p.y ===  1 },
-  D: { axis: new THREE.Vector3(0,  1, 0), dir: -1, filter: p => p.y === -1 },
+  U: { axis: new THREE.Vector3(0,  1, 0), dir: -1, filter: p => p.y ===  1 },
+  D: { axis: new THREE.Vector3(0,  1, 0), dir:  1, filter: p => p.y === -1 },
   R: { axis: new THREE.Vector3(1,  0, 0), dir: -1, filter: p => p.x ===  1 },
   L: { axis: new THREE.Vector3(1,  0, 0), dir:  1, filter: p => p.x === -1 },
   F: { axis: new THREE.Vector3(0,  0, 1), dir: -1, filter: p => p.z ===  1 },
