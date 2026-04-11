@@ -204,14 +204,14 @@
 <div class="debug-panel">
   <h3>Debug</h3>
   <div class="debug-tabs">
-    <button id="tab-validator" class="active" onclick="showTab('validator')">Move validator</button>
-    <button id="tab-log" onclick="showTab('log')">Event log</button>
+    <button id="tab-log" class="active" onclick="showTab('log')">Event log</button>
+    <button id="tab-validator" onclick="showTab('validator')">Move validator</button>
     <button id="tab-faces" onclick="showTab('faces')">Face state</button>
     <button id="tab-kpattern" onclick="showTab('kpattern')">KPattern</button>
   </div>
 
   <!-- Move validator tab -->
-  <div id="tab-validator-panel">
+  <div id="tab-validator-panel" style="display:none">
     <div class="validator-row" id="move-buttons"></div>
     <div class="validator-input-row">
       <input id="move-input" type="text" placeholder="e.g. R U R' U' or Sune notation" />
@@ -221,7 +221,7 @@
     <div id="move-status" style="font-size:0.72rem;font-family:monospace;color:#555;min-height:1em;"></div>
   </div>
 
-  <pre id="debug-pre" style="display:none"></pre>
+  <pre id="debug-pre"></pre>
   <pre id="face-state-pre" style="display:none"></pre>
   <pre id="kpattern-pre" style="display:none"></pre>
 </div>
@@ -595,8 +595,9 @@
   };
 
   // ---- Initial load ----
-  loadAlg(1); // Sune by default
+  loadAlg(0); // Sune by default (index 0 now Solved removed)
   updateStickerButtons();
+  showTab('log');
 </script>
 
 </body>
