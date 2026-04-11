@@ -498,7 +498,8 @@
   });
 
   function applyLiveMove(mv, onDone) {
-    if (renderer._animating) { onDone?.(); return; }
+    if (renderer._animating) { appendLog(`[validator] skip (animating): ${mv}`); onDone?.(); return; }
+    appendLog(`[validator] move: ${mv}`);
     const prevFaces = liveState.toFaceArray();
     const nextState = liveState.applyMove(mv);
     appliedMoves.push(mv);
@@ -518,14 +519,23 @@
     const notation = input.value.trim();
     if (!notation) return;
     const moves = AlgParser.parse(notation);
-    if (!moves.length) { appendLog(`[validator] could not parse: ${notation}`); return; }
-    appendLog(`[validator] applying: ${moves.join(' ')}`);
-    let i = 0;
-    const next = () => {
-      if (i >= moves.length) return;
-      applyLiveMove(moves[i++], next);
-    };
-    next();
+    appendLog(`[validator] parsed ${moves.length} moves: ${moves.join(' ')}`);
+    if (!moves.length) return;
+    // Compute the full end state upfront
+    const endState = moves.reduce((s, m) => s.applyMove(m), liveState);
+    // Use renderer.animateAlg — same path as Play, known to work
+    renderer.animateAlg(moves, (idx) => {
+      appendLog(`[validator] move: ${moves[idx]}`);
+    }, () => {
+      liveState = endState;
+      appliedMoves.push(...moves);
+      updateDebugState(endState);
+      const solved = endState.isSolved();
+      document.getElementById('move-status').textContent =
+        `Applied: ${appliedMoves.join(' ')}${solved ? '  ✓ SOLVED' : ''}`;
+      document.getElementById('move-status').style.color = solved ? '#7fc' : '#aaa';
+      appendLog('[validator] done');
+    });
   };
 
   document.getElementById('btn-move-reset').onclick = () => {

@@ -392,7 +392,7 @@ export class CubeRenderer3D {
         this._scene.remove(pivot);
         this._updateCubeletMetadata();
         this._animating = false;
-        onDone?.();
+        setTimeout(() => onDone?.(), 0);
       }
     };
   }
