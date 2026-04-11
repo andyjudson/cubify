@@ -15,6 +15,7 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
 // ---- Colours (hex strings for canvas, hex numbers for Three) ----
 const FACE_COLOURS_HEX = {
@@ -24,7 +25,7 @@ const FACE_COLOURS_HEX = {
   D: '#ffd000',
   L: '#e06000',
   B: '#0f4fad',
-  X: '#111111',  // black plastic — used for hidden faces
+  X: '#2a2a2a',  // dark grey — hidden/masked stickers (distinct from black plastic body)
 };
 const FACE_COLOURS = Object.fromEntries(
   Object.entries(FACE_COLOURS_HEX).map(([k, v]) => [k, parseInt(v.slice(1), 16)])
@@ -51,8 +52,8 @@ function makeStickerTexture(colourHex) {
   canvas.height = size;
   const ctx = canvas.getContext('2d');
 
-  // Black background (plastic body)
-  ctx.fillStyle = '#111111';
+  // Dark grey plastic body
+  ctx.fillStyle = '#141414';
   ctx.fillRect(0, 0, size, size);
 
   // Rounded-rect sticker
@@ -79,7 +80,7 @@ function makeStickerTexture(colourHex) {
 
 // Shared solid-black material for all inner (non-outward) faces — no texture, no sticker shape
 const BLACK_MATERIAL = new THREE.MeshStandardMaterial({
-  color: 0x111111,
+  color: 0x141414,
   roughness: 0.9,
   metalness: 0.0,
 });
@@ -137,7 +138,7 @@ export class CubeRenderer3D {
    * @param {number}  [options.animSpeed=300]   — ms per quarter-turn animation
    * @param {boolean} [options.debug=false]
    */
-  constructor({ gap = 0.06, animSpeed = 300, debug = false } = {}) {
+  constructor({ gap = 0.02, animSpeed = 300, debug = false } = {}) {
     this._gap = gap;
     this._animSpeed = animSpeed;
     this._debug = debug;
@@ -171,7 +172,7 @@ export class CubeRenderer3D {
     this._container = container;
 
     this._scene = new THREE.Scene();
-    this._scene.background = new THREE.Color(0x111111);
+    this._scene.background = new THREE.Color(0x000000);
 
     this._camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
     this._camera.position.set(5.5, 4.5, 5.5);
@@ -264,8 +265,8 @@ export class CubeRenderer3D {
   _buildCubelets() {
     const positions = buildCubeletPositions();
     const size = 1 - this._gap;
-    // One shared geometry for all cubelets
-    const geo = new THREE.BoxGeometry(size, size, size);
+    // Rounded box geometry — slight bevel on cubelet edges
+    const geo = new RoundedBoxGeometry(size, size, size, 2, 0.03);
 
     for (const pos of positions) {
       const isOutward = outwardSlots(pos);
