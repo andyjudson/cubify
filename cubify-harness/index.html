@@ -11,90 +11,108 @@
       font-family: system-ui, sans-serif;
       background: #1a1a2e;
       color: #e0e0e0;
-      padding: 24px;
+      padding: 20px;
       min-height: 100vh;
     }
-    h1 { font-size: 1.4rem; margin-bottom: 4px; color: #fff; }
-    .subtitle { font-size: 0.85rem; color: #888; margin-bottom: 24px; }
+    h1 { font-size: 1.2rem; margin-bottom: 16px; color: #fff; }
 
-    .layout { display: flex; gap: 24px; flex-wrap: wrap; }
+    /* ---- Top area: cube + controls side by side ---- */
+    .top { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
 
-    /* Cube container — intentionally no explicit height (PoC proof) */
     #cube-container {
-      width: 400px;
+      width: 360px;
       aspect-ratio: 1;
       background: #0d0d1a;
       border-radius: 8px;
       border: 1px solid #333;
       overflow: hidden;
-      position: relative;
+      flex-shrink: 0;
     }
     #cube-container canvas { display: block; }
 
-    .controls { display: flex; flex-direction: column; gap: 16px; min-width: 260px; flex: 1; }
+    /* ---- Controls column ---- */
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 20px;
+      flex: 1;
+      min-width: 300px;
+      align-content: start;
+    }
+    .control-group { display: flex; flex-direction: column; gap: 5px; }
+    .control-group.full-width { grid-column: 1 / -1; }
 
     .control-group label {
-      display: block;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #888;
-      margin-bottom: 6px;
+      color: #666;
     }
-    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-row { display: flex; gap: 5px; flex-wrap: wrap; }
+
     button {
-      padding: 6px 14px;
-      border-radius: 5px;
+      padding: 5px 11px;
+      border-radius: 4px;
       border: 1px solid #444;
       background: #222;
       color: #ddd;
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       transition: background 0.15s;
+      white-space: nowrap;
     }
-    button:hover { background: #333; }
+    button:hover { background: #2a2a2a; }
     button.active { background: #2d5af5; border-color: #2d5af5; color: #fff; }
+    button:disabled { opacity: 0.4; cursor: default; }
 
     .alg-label {
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       color: #aaa;
       font-family: monospace;
-      margin-top: 4px;
-      min-height: 1.2em;
+      min-height: 1.1em;
     }
 
-    /* Debug panel */
+    /* ---- Debug panel ---- */
     .debug-panel {
-      margin-top: 24px;
+      margin-top: 16px;
       background: #0d0d1a;
       border: 1px solid #333;
       border-radius: 8px;
       padding: 12px;
     }
     .debug-panel h3 {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #666;
+      color: #555;
       margin-bottom: 8px;
     }
-    .debug-tabs { display: flex; gap: 8px; margin-bottom: 8px; }
-    .debug-tabs button { font-size: 0.75rem; padding: 3px 10px; }
+    .debug-tabs { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+    .debug-tabs button { font-size: 0.72rem; padding: 3px 9px; }
+
+    /* Move validator inside debug panel */
+    .validator-row {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px;
+    }
+    .validator-row button { font-family: monospace; min-width: 36px; text-align: center; }
+    .validator-input-row { display: flex; gap: 6px; margin-bottom: 6px; }
+    #move-input {
+      flex: 1; padding: 5px 9px; border-radius: 4px; border: 1px solid #444;
+      background: #111827; color: #ddd; font-family: monospace; font-size: 0.85rem;
+    }
+    #move-status { font-size: 0.75rem; font-family: monospace; color: #aaa; margin-bottom: 8px; }
+
     #debug-pre {
-      font-family: monospace;
-      font-size: 0.78rem;
-      color: #7fc;
-      white-space: pre-wrap;
-      max-height: 220px;
-      overflow-y: auto;
-      line-height: 1.5;
+      font-family: monospace; font-size: 0.75rem; color: #7fc;
+      white-space: pre-wrap; max-height: 180px; overflow-y: auto; line-height: 1.5;
     }
     #face-state-pre {
-      font-family: monospace;
-      font-size: 0.85rem;
-      color: #adf;
-      white-space: pre;
-      line-height: 1.6;
+      font-family: monospace; font-size: 0.82rem; color: #adf;
+      white-space: pre; line-height: 1.6;
+    }
+    #kpattern-pre {
+      font-family: monospace; font-size: 0.75rem; color: #fc9;
+      white-space: pre; line-height: 1.5;
     }
   </style>
 </head>
@@ -102,20 +120,20 @@
 
 <h1>cubify-harness</h1>
 
-<div class="layout">
+<div class="top">
 
-  <!-- Cube viewport — no height set, sized by aspect-ratio only -->
+  <!-- Cube viewport — no explicit height (PoC proof: aspect-ratio only) -->
   <div id="cube-container"></div>
 
   <div class="controls">
 
-    <div class="control-group">
+    <div class="control-group full-width">
       <label>Algorithm</label>
       <div class="btn-row" id="alg-buttons"></div>
       <div class="alg-label" id="alg-label"></div>
     </div>
 
-    <div class="control-group">
+    <div class="control-group full-width">
       <label>Stickering</label>
       <div class="btn-row" id="sticker-buttons"></div>
     </div>
@@ -129,62 +147,59 @@
     </div>
 
     <div class="control-group">
+      <label>Speed</label>
+      <div class="btn-row">
+        <button data-speed="500">Slow</button>
+        <button class="active" data-speed="300">Normal</button>
+        <button data-speed="120">Fast</button>
+      </div>
+    </div>
+
+    <div class="control-group">
       <label>Step through moves</label>
       <div class="btn-row">
         <button id="btn-prev">← Prev</button>
         <button id="btn-next">Next →</button>
-        <button id="btn-reset">Reset</button>
       </div>
       <div class="alg-label" id="step-label">—</div>
     </div>
 
     <div class="control-group">
-      <label>Camera</label>
+      <label>Reset</label>
       <div class="btn-row">
+        <button id="btn-reset">Reset case</button>
+        <button id="btn-solved">Solved</button>
         <button id="btn-cam-reset">Reset view</button>
       </div>
     </div>
 
-    <div class="control-group">
-      <label>Speed</label>
-      <div class="btn-row">
-        <button id="btn-speed-slow" data-speed="500">Slow</button>
-        <button id="btn-speed-mid" class="active" data-speed="300">Normal</button>
-        <button id="btn-speed-fast" data-speed="120">Fast</button>
-      </div>
-    </div>
-
   </div>
 </div>
 
-<!-- Move validator -->
-<div class="debug-panel" style="margin-top:16px;">
-  <h3>Move validator — apply to current state</h3>
-  <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
-    <div class="btn-row" id="move-buttons"></div>
-    <div style="display:flex; gap:8px; align-items:center;">
-      <input id="move-input" type="text" placeholder="e.g. R U R' or M2" style="
-        flex:1; padding:6px 10px; border-radius:5px; border:1px solid #444;
-        background:#1a1a2e; color:#ddd; font-family:monospace; font-size:0.9rem;
-      "/>
-      <button id="btn-move-apply">Apply</button>
-      <button id="btn-move-reset">Reset cube</button>
-    </div>
-    <div class="alg-label" id="move-status">Applied moves: (none)</div>
-  </div>
-</div>
-
-<!-- Debug panel -->
+<!-- Debug panel (includes move validator) -->
 <div class="debug-panel">
   <h3>Debug</h3>
   <div class="debug-tabs">
-    <button id="tab-log" class="active" onclick="showTab('log')">Event log</button>
+    <button id="tab-validator" class="active" onclick="showTab('validator')">Move validator</button>
+    <button id="tab-log" onclick="showTab('log')">Event log</button>
     <button id="tab-faces" onclick="showTab('faces')">Face state</button>
     <button id="tab-kpattern" onclick="showTab('kpattern')">KPattern</button>
   </div>
-  <pre id="debug-pre"></pre>
+
+  <!-- Move validator tab -->
+  <div id="tab-validator-panel">
+    <div class="validator-row" id="move-buttons"></div>
+    <div class="validator-input-row">
+      <input id="move-input" type="text" placeholder="e.g. R U R' U' or Sune notation" />
+      <button id="btn-move-apply">Apply</button>
+      <button id="btn-move-reset">Reset to solved</button>
+    </div>
+    <div id="move-status" style="font-size:0.72rem;font-family:monospace;color:#555;min-height:1em;"></div>
+  </div>
+
+  <pre id="debug-pre" style="display:none"></pre>
   <pre id="face-state-pre" style="display:none"></pre>
-  <pre id="kpattern-pre" style="display:none; color:#fc9;"></pre>
+  <pre id="kpattern-pre" style="display:none"></pre>
 </div>
 
 <script type="module">
@@ -199,7 +214,6 @@
   // caseAlg: true  → start from case state (inverse alg applied to solved), stepping solves it
   // caseAlg: false → start from solved, stepping executes the alg
   const ALGS = [
-    { label: 'Solved',  notation: '',                                                                          caseAlg: false },
     { label: 'Sune',    notation: "R U R' U R U2 R'",                                                         caseAlg: true  },
     { label: 'T-Perm',  notation: "R U R' U' R' F R2 U' R' U' R U R' F'",                                    caseAlg: true  },
     { label: 'Ua-Perm', notation: "R U' R U R U R U' R' U' R2",                                              caseAlg: true  },
@@ -236,9 +250,10 @@
   const kpatternPre = document.getElementById('kpattern-pre');
 
   function showTab(tab) {
-    document.getElementById('tab-log').classList.toggle('active', tab === 'log');
-    document.getElementById('tab-faces').classList.toggle('active', tab === 'faces');
-    document.getElementById('tab-kpattern').classList.toggle('active', tab === 'kpattern');
+    ['validator','log','faces','kpattern'].forEach(t => {
+      document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
+    });
+    document.getElementById('tab-validator-panel').style.display = tab === 'validator' ? '' : 'none';
     debugPre.style.display     = tab === 'log'      ? '' : 'none';
     faceStatePre.style.display = tab === 'faces'    ? '' : 'none';
     kpatternPre.style.display  = tab === 'kpattern' ? '' : 'none';
@@ -450,6 +465,16 @@
   document.getElementById('btn-cam-reset').onclick = () => {
     renderer.resetCamera();
     appendLog('[demo] camera reset');
+  };
+
+  // ---- Solved ----
+  document.getElementById('btn-solved').onclick = () => {
+    stopPlay();
+    applyStateToRenderer(_solvedBase);
+    currentMoves = [];
+    stepIndex = 0;
+    updateStepLabel();
+    appendLog('[demo] jumped to solved');
   };
 
   // ---- Speed ----
