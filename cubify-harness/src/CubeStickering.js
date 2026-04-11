@@ -2,15 +2,23 @@
  * CubeStickering — CFOP stickering presets for CubeRenderer3D.
  *
  * forPreset(name) returns a Map<cubeletIndex, boolean[6]> where each boolean
- * indicates whether that slot's sticker is visible.
+ * indicates whether that slot's sticker is visible (true = coloured, false = hidden/grey).
  *
  * Cubelet index order matches buildCubeletPositions() in CubeRenderer3D.js:
- *   for x of [-1,0,1] / for y of [-1,0,1] / for z of [-1,0,1], skip core.
+ *   for x of [-1,0,1] / for y of [-1,0,1] / for z of [-1,0,1], skip core (0,0,0).
  *
  * Three.js slot order: [0=+X=R, 1=-X=L, 2=+Y=U, 3=-Y=D, 4=+Z=F, 5=-Z=B]
+ *
+ * Presets designed around CFOP stages:
+ *   full        — all stickers visible                         (masks.mjs: default)
+ *   cross       — D-face stickers on 4 bottom edges only       (masks.mjs: cross)
+ *   f2l         — bottom two layers fully visible, top hidden  (masks.mjs: f2l)
+ *   oll         — full top layer (1-look OLL)                  (masks.mjs: oll_1look)
+ *   oll-2look   — U-face on top edges only, corners hidden     (masks.mjs: oll_2look)
+ *   pll         — full top layer (1-look PLL)                  (masks.mjs: pll_1look)
+ *   pll-2look   — top corners only, edges hidden               (masks.mjs: pll_2look)
  */
 
-// Cubelet positions in the same iteration order as CubeRenderer3D._buildCubelets()
 const CUBELET_POSITIONS = (() => {
   const out = [];
   for (const x of [-1, 0, 1])
@@ -21,26 +29,27 @@ const CUBELET_POSITIONS = (() => {
   return out;
 })();
 
-// Slot order: [0=+X=R, 1=-X=L, 2=+Y=U, 3=-Y=D, 4=+Z=F, 5=-Z=B]
+// Which slots face outward for a given position
 function outwardSlots({ x, y, z }) {
   return [x === 1, x === -1, y === 1, y === -1, z === 1, z === -1];
 }
 
+// Piece type helpers
+const isTopLayer    = p => p.y ===  1;
+const isBottomLayer = p => p.y === -1;
+const isMiddleLayer = p => p.y ===  0;
+const isCorner      = p => Math.abs(p.x) === 1 && Math.abs(p.z) === 1;
+const isEdge        = p => !isCorner(p);  // among non-centre cubelets: edge if not corner
+const isCenter      = p => (p.x === 0 && p.z === 0) || (p.x === 0 && p.y === 0) || (p.z === 0 && p.y === 0);
+
+// slot 2 = +Y = U face, slot 3 = -Y = D face
+const U_SLOT = 2;
+const D_SLOT = 3;
+
 export class CubeStickering {
   /**
-   * Returns a sticker visibility map for a named CFOP preset.
-   *
-   * Supported presets:
-   *   full         — all stickers visible
-   *   oll          — top layer (y=1) all stickers; rest hidden
-   *   pll          — top layer (y=1) all stickers; rest hidden (same mask as oll)
-   *   f2l          — bottom two layers (y≤0) all stickers; top hidden
-   *   cross        — D-face sticker only on D-center + 4 D-layer edges; rest hidden
-   *   oll-edges    — U-face + top-layer edge stickers only (no top corners)
-   *   pll-corners  — top-layer corner stickers only (no edges)
-   *
    * @param {string} name
-   * @returns {Map<number, boolean[]>} cubelet index → slot visibility[6]
+   * @returns {Map<number, boolean[]>}
    */
   static forPreset(name) {
     const map = new Map();
@@ -50,43 +59,48 @@ export class CubeStickering {
       let vis;
 
       switch (name) {
+
         case 'full':
-          vis = outward.slice(); // all outward slots visible
+          vis = outward.slice();
+          break;
+
+        case 'cross': {
+          // White cross: U centre + 4 top edges + 4 middle layer edges (both stickers each)
+          const isUCentre    = pos.x === 0 && pos.y === 1 && pos.z === 0;
+          const isTopEdge    = isTopLayer(pos)    && !isCorner(pos) && !isCenter(pos);
+          const isMiddleEdge = isMiddleLayer(pos) && !isCenter(pos); // FR, FL, BR, BL
+          vis = outward.map((isOut, slot) => {
+            if (isUCentre && slot === U_SLOT) return true;
+            if (isTopEdge    && isOut) return true;
+            if (isMiddleEdge && isOut) return true;
+            return false;
+          });
+          break;
+        }
+
+        case 'f2l':
+          // Bottom two layers fully visible, top layer hidden
+          vis = outward.map(isOut => isOut && !isTopLayer(pos));
           break;
 
         case 'oll':
         case 'pll':
-          // Top layer only — all outward stickers of y=1 cubelets
-          vis = outward.map(isOut => isOut && pos.y === 1);
+          // Full top layer — all outward stickers on y=1 pieces
+          vis = outward.map(isOut => isOut && isTopLayer(pos));
           break;
 
-        case 'f2l':
-          // Bottom two layers — all outward stickers of y≤0 cubelets
-          vis = outward.map(isOut => isOut && pos.y <= 0);
-          break;
-
-        case 'cross': {
-          // D center (0,-1,0) + 4 D-layer edges (one of x,z is 0, the other is 0 too... no)
-          // D edges: (±1,-1,0) and (0,-1,±1) — exactly one of |x|,|z| is 1, the other 0
-          // D corners: |x|=1 AND |z|=1 → excluded
-          const isCrosspiece = pos.y === -1 &&
-            !(Math.abs(pos.x) === 1 && Math.abs(pos.z) === 1);
-          // Show only the D-face slot (slot 3) on these pieces
-          vis = outward.map((isOut, slot) => isOut && isCrosspiece && slot === 3);
+        case 'oll-2look': {
+          // 2-look OLL step 1: U-face on top edges only, corners hidden
+          // Matches masks.mjs oll_2look: EDGES:----OOOO----, CORNERS:----IIII
+          const isTopEdge = isTopLayer(pos) && !isCorner(pos) && !isCenter(pos);
+          vis = outward.map((isOut, slot) => isOut && isTopEdge && slot === U_SLOT);
           break;
         }
 
-        case 'oll-edges': {
-          // U face + top-layer edge stickers; corners hidden (no top-corner stickers shown)
-          // Top-layer corners: |x|=1 AND |z|=1 at y=1
-          const isTopCorner = pos.y === 1 && Math.abs(pos.x) === 1 && Math.abs(pos.z) === 1;
-          vis = outward.map(isOut => isOut && pos.y === 1 && !isTopCorner);
-          break;
-        }
-
-        case 'pll-corners': {
-          // Top-layer corner stickers only
-          const isTopCorner = pos.y === 1 && Math.abs(pos.x) === 1 && Math.abs(pos.z) === 1;
+        case 'pll-2look': {
+          // 2-look PLL step 1: top corners only, top edges hidden
+          // Matches masks.mjs pll_2look: EDGES:----OOOO----, CORNERS:--------
+          const isTopCorner = isTopLayer(pos) && isCorner(pos);
           vis = outward.map(isOut => isOut && isTopCorner);
           break;
         }
@@ -102,11 +116,7 @@ export class CubeStickering {
     return map;
   }
 
-  /**
-   * Return all supported preset names.
-   * @returns {string[]}
-   */
   static presetNames() {
-    return ['full', 'oll', 'pll', 'f2l', 'cross', 'oll-edges', 'pll-corners'];
+    return ['full', 'cross', 'f2l', 'oll', 'oll-2look', 'pll', 'pll-2look'];
   }
 }

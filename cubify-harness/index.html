@@ -157,10 +157,6 @@
       <div class="alg-label" id="alg-label"></div>
     </div>
 
-    <div class="control-group full-width">
-      <label>Stickering</label>
-      <div class="btn-row" id="sticker-buttons"></div>
-    </div>
 
     <div class="control-group">
       <label>Playback</label>
@@ -242,15 +238,13 @@
     { label: 'T-Perm',  notation: "R U R' U' R' F R2 U' R' U' R U R' F'",                                    caseAlg: true  },
     { label: 'Ua-Perm', notation: "R U' R U R U R U' R' U' R2",                                              caseAlg: true  },
     { label: 'H-Perm',  notation: "M2 U M2 U2 M2 U M2",                                                      caseAlg: true  },
-    { label: 'Sexy ×6', notation: "R U R' U' R U R' U' R U R' U' R U R' U' R U R' U' R U R' U'",            caseAlg: false },
+    { label: 'Sexy ×6',        notation: "R U R' U' R U R' U' R U R' U' R U R' U' R U R' U' R U R' U'",                                                                                                    caseAlg: false },
+    { label: 'Sledge ×6',     notation: "R' F R F' R' F R F' R' F R F' R' F R F' R' F R F' R' F R F'",                                                                                              caseAlg: false },
   ];
 
-  // ---- Stickering presets ----
-  const STICKERINGS = ['full', 'oll', 'pll', 'f2l', 'cross'];
 
   // ---- State ----
   let currentAlgIndex = 0;
-  let currentStickering = 'full';
   let currentMoves = [];
   let stepIndex = 0;
   let isPlaying = false;
@@ -435,27 +429,6 @@
     algBtnContainer.appendChild(btn);
   });
 
-  // ---- Build stickering buttons ----
-  function updateStickerButtons() {
-    document.querySelectorAll('#sticker-buttons button').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.preset === currentStickering);
-    });
-  }
-
-  const stickerBtnContainer = document.getElementById('sticker-buttons');
-  STICKERINGS.forEach(preset => {
-    const btn = document.createElement('button');
-    btn.textContent = preset;
-    btn.dataset.preset = preset;
-    btn.onclick = () => {
-      currentStickering = preset;
-      updateStickerButtons();
-      const state = _solvedBase.applyAlg(currentMoves.slice(0, stepIndex));
-      applyStateToRenderer(state);
-      appendLog(`[demo] stickering: ${preset} (Phase 4 — visual only for now)`);
-    };
-    stickerBtnContainer.appendChild(btn);
-  });
 
   // ---- Playback controls ----
   document.getElementById('btn-play').onclick = startPlay;
@@ -595,8 +568,7 @@
   };
 
   // ---- Initial load ----
-  loadAlg(0); // Sune by default (index 0 now Solved removed)
-  updateStickerButtons();
+  loadAlg(0); // Sune by default
   showTab('log');
 </script>
 
