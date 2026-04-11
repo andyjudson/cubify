@@ -1,26 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>cubify-harness</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css" />
   <link rel="stylesheet" href="./css/cubify.css" />
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; }
     body {
-      font-family: system-ui, sans-serif;
       background: #1a1a2e;
       color: #e0e0e0;
-      padding: 16px 16px 196px;
+      padding: 12px 16px 196px;
       display: flex;
       flex-direction: column;
       height: 100vh;
       overflow: hidden;
     }
-    h1 { font-size: 1.1rem; margin-bottom: 12px; color: #fff; flex-shrink: 0; }
 
-    /* ---- Top area: cube + controls side by side, fills remaining space ---- */
+    /* ---- Top area: cube + controls side by side ---- */
     .top {
       display: flex;
       gap: 20px;
@@ -30,10 +29,9 @@
     }
 
     #cube-container {
-      /* Fill available height, square aspect ratio */
       height: 100%;
       aspect-ratio: 1;
-      background: #000000;
+      background: #000;
       border-radius: 8px;
       border: 1px solid #333;
       overflow: hidden;
@@ -45,176 +43,149 @@
     .controls {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px 20px;
+      gap: 10px 20px;
       flex: 1;
       min-width: 260px;
       align-content: start;
     }
-    .control-group { display: flex; flex-direction: column; gap: 5px; }
+    .control-group { display: flex; flex-direction: column; gap: 4px; }
     .control-group.full-width { grid-column: 1 / -1; }
 
-    .control-group label {
-      font-size: 0.7rem;
+    .control-label {
+      font-size: 0.65rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: #666;
     }
-    .btn-row { display: flex; gap: 5px; flex-wrap: wrap; }
-
-    button {
-      padding: 5px 11px;
-      border-radius: 4px;
-      border: 1px solid #444;
-      background: #222;
-      color: #ddd;
-      cursor: pointer;
-      font-size: 0.82rem;
-      transition: background 0.15s;
-      white-space: nowrap;
-    }
-    button:hover { background: #2a2a2a; }
-    button.active { background: #2d5af5; border-color: #2d5af5; color: #fff; }
-    button:disabled { opacity: 0.4; cursor: default; }
+    .btn-row { display: flex; gap: 4px; flex-wrap: wrap; }
 
     .alg-label {
-      font-size: 0.75rem;
-      color: #aaa;
+      font-size: 0.72rem;
+      color: #888;
       font-family: monospace;
       min-height: 1.1em;
     }
 
-    /* ---- Debug panel — fixed to bottom, fixed height ---- */
+    /* ---- Debug panel — fixed to bottom ---- */
     .debug-panel {
       position: fixed;
       bottom: 0; left: 0; right: 0;
       height: 180px;
       background: #0d0d1a;
       border-top: 1px solid #333;
-      padding: 8px 16px 10px;
+      padding: 8px 16px 8px;
       z-index: 10;
       display: flex;
       flex-direction: column;
     }
-    .debug-panel h3 { flex-shrink: 0; }
-    .debug-tabs { flex-shrink: 0; }
-    .validator-row { flex-shrink: 0; }
-    .validator-input-row { flex-shrink: 0; }
-    #move-status { flex-shrink: 0; }
+
+    /* Bulma tabs overrides for dark panel */
+    .debug-panel .tabs { flex-shrink: 0; margin-bottom: 6px; }
+    .debug-panel .tabs ul { border-bottom-color: #333; }
+    .debug-panel .tabs li a { color: #888; border-bottom-color: #333; padding: 2px 10px; font-size: 0.72rem; }
+    .debug-panel .tabs li.is-active a { color: #fff; border-bottom-color: #4a90d9; }
+
+    .validator-row { flex-shrink: 0; display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+    .validator-input-row { flex-shrink: 0; display: flex; gap: 6px; margin-bottom: 4px; }
+    #move-status { flex-shrink: 0; font-size: 0.72rem; font-family: monospace; color: #666; margin-bottom: 4px; }
     #tab-validator-panel { overflow-y: auto; flex: 1; }
+
     #debug-pre, #face-state-pre, #kpattern-pre {
       flex: 1; overflow-y: auto; max-height: none;
     }
-    .debug-panel h3 {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #555;
-      margin-bottom: 8px;
-    }
-    .debug-tabs { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
-    .debug-tabs button { font-size: 0.72rem; padding: 3px 9px; }
+    #debug-pre    { font-family: monospace; font-size: 0.75rem; color: #7fc; white-space: pre-wrap; line-height: 1.5; }
+    #face-state-pre { font-family: monospace; font-size: 0.82rem; color: #adf; white-space: pre; line-height: 1.6; }
+    #kpattern-pre { font-family: monospace; font-size: 0.75rem; color: #fc9; white-space: pre; line-height: 1.5; }
 
-    /* Move validator inside debug panel */
-    .validator-row {
-      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px;
+    /* Bulma button size/colour tweaks for dark bg */
+    .button.is-harness {
+      background: #222;
+      border-color: #444;
+      color: #ccc;
+      font-size: 0.78rem;
     }
-    .validator-row button { font-family: monospace; min-width: 36px; text-align: center; }
-    .validator-input-row { display: flex; gap: 6px; margin-bottom: 6px; }
-    #move-input {
-      flex: 1; padding: 5px 9px; border-radius: 4px; border: 1px solid #444;
-      background: #111827; color: #ddd; font-family: monospace; font-size: 0.85rem;
-    }
-    #move-status { font-size: 0.75rem; font-family: monospace; color: #aaa; margin-bottom: 8px; }
-
-    #debug-pre {
-      font-family: monospace; font-size: 0.75rem; color: #7fc;
-      white-space: pre-wrap; max-height: 180px; overflow-y: auto; line-height: 1.5;
-    }
-    #face-state-pre {
-      font-family: monospace; font-size: 0.82rem; color: #adf;
-      white-space: pre; line-height: 1.6;
-    }
-    #kpattern-pre {
-      font-family: monospace; font-size: 0.75rem; color: #fc9;
-      white-space: pre; line-height: 1.5;
-    }
+    .button.is-harness:hover { background: #2a2a2a; color: #fff; }
+    .button.is-harness.is-active,
+    .button.is-harness.is-info { background: #2d5af5; border-color: #2d5af5; color: #fff; }
+    .button.is-harness:disabled { opacity: 0.35; }
   </style>
 </head>
 <body>
 
-<h1>cubify-harness</h1>
+<p class="has-text-weight-semibold mb-2" style="font-size:1rem;color:#fff;flex-shrink:0">cubify-harness</p>
 
 <div class="top">
 
-  <!-- Cube viewport — no explicit height (PoC proof: aspect-ratio only) -->
   <div id="cube-container"></div>
 
   <div class="controls">
 
     <div class="control-group full-width">
-      <label>Algorithm</label>
+      <span class="control-label">Algorithm</span>
       <div class="btn-row" id="alg-buttons"></div>
       <div class="alg-label" id="alg-label"></div>
     </div>
 
-
     <div class="control-group">
-      <label>Playback</label>
+      <span class="control-label">Playback</span>
       <div class="btn-row">
-        <button id="btn-play">▶ Play</button>
-        <button id="btn-stop" disabled>■ Stop</button>
+        <button id="btn-play" class="button is-harness is-small">&#9654; Play</button>
+        <button id="btn-stop" class="button is-harness is-small" disabled>&#9632; Stop</button>
       </div>
     </div>
 
     <div class="control-group">
-      <label>Speed</label>
+      <span class="control-label">Speed</span>
       <div class="btn-row">
-        <button data-speed="500">Slow</button>
-        <button class="active" data-speed="300">Normal</button>
-        <button data-speed="120">Fast</button>
+        <button class="button is-harness is-small" data-speed="500">Slow</button>
+        <button class="button is-harness is-small is-active" data-speed="300">Normal</button>
+        <button class="button is-harness is-small" data-speed="120">Fast</button>
       </div>
     </div>
 
     <div class="control-group">
-      <label>Step through moves</label>
+      <span class="control-label">Step</span>
       <div class="btn-row">
-        <button id="btn-prev">← Prev</button>
-        <button id="btn-next">Next →</button>
+        <button id="btn-prev" class="button is-harness is-small">&#8592; Prev</button>
+        <button id="btn-next" class="button is-harness is-small">Next &#8594;</button>
       </div>
       <div class="alg-label" id="step-label">—</div>
     </div>
 
     <div class="control-group">
-      <label>Reset</label>
+      <span class="control-label">Reset</span>
       <div class="btn-row">
-        <button id="btn-reset">Reset case</button>
-        <button id="btn-solved">Solved</button>
-        <button id="btn-cam-reset">Reset view</button>
+        <button id="btn-reset" class="button is-harness is-small">Reset case</button>
+        <button id="btn-solved" class="button is-harness is-small">Solved</button>
+        <button id="btn-cam-reset" class="button is-harness is-small">Reset view</button>
       </div>
     </div>
 
   </div>
 </div>
 
-<!-- Debug panel (includes move validator) -->
+<!-- Debug panel -->
 <div class="debug-panel">
-  <h3>Debug</h3>
-  <div class="debug-tabs">
-    <button id="tab-log" class="active" onclick="showTab('log')">Event log</button>
-    <button id="tab-validator" onclick="showTab('validator')">Move validator</button>
-    <button id="tab-faces" onclick="showTab('faces')">Face state</button>
-    <button id="tab-kpattern" onclick="showTab('kpattern')">KPattern</button>
+  <div class="tabs">
+    <ul>
+      <li id="tab-log" class="is-active"><a onclick="showTab('log')">Event log</a></li>
+      <li id="tab-validator"><a onclick="showTab('validator')">Move validator</a></li>
+      <li id="tab-faces"><a onclick="showTab('faces')">Face state</a></li>
+      <li id="tab-kpattern"><a onclick="showTab('kpattern')">KPattern</a></li>
+    </ul>
   </div>
 
   <!-- Move validator tab -->
   <div id="tab-validator-panel" style="display:none">
     <div class="validator-row" id="move-buttons"></div>
     <div class="validator-input-row">
-      <input id="move-input" type="text" placeholder="e.g. R U R' U' or Sune notation" />
-      <button id="btn-move-apply">Apply</button>
-      <button id="btn-move-reset">Reset to solved</button>
+      <input id="move-input" class="input is-small" type="text"
+             placeholder="e.g. R U R' U'"
+             style="font-family:monospace;background:#111827;border-color:#444;color:#ddd;" />
+      <button id="btn-move-apply" class="button is-harness is-small">Apply</button>
+      <button id="btn-move-reset" class="button is-harness is-small">Reset</button>
     </div>
-    <div id="move-status" style="font-size:0.72rem;font-family:monospace;color:#555;min-height:1em;"></div>
+    <div id="move-status"></div>
   </div>
 
   <pre id="debug-pre"></pre>
@@ -234,14 +205,13 @@
   // caseAlg: true  → start from case state (inverse alg applied to solved), stepping solves it
   // caseAlg: false → start from solved, stepping executes the alg
   const ALGS = [
-    { label: 'Sune',    notation: "R U R' U R U2 R'",                                                         caseAlg: true  },
-    { label: 'T-Perm',  notation: "R U R' U' R' F R2 U' R' U' R U R' F'",                                    caseAlg: true  },
-    { label: 'Ua-Perm', notation: "R U' R U R U R U' R' U' R2",                                              caseAlg: true  },
-    { label: 'H-Perm',  notation: "M2 U M2 U2 M2 U M2",                                                      caseAlg: true  },
-    { label: 'Sexy ×6',        notation: "R U R' U' R U R' U' R U R' U' R U R' U' R U R' U' R U R' U'",                                                                                                    caseAlg: false },
-    { label: 'Sledge ×6',     notation: "R' F R F' R' F R F' R' F R F' R' F R F' R' F R F' R' F R F'",                                                                                              caseAlg: false },
+    { label: 'Sune',       notation: "R U R' U R U2 R'",                                                      caseAlg: true  },
+    { label: 'T-Perm',     notation: "R U R' U' R' F R2 U' R' U' R U R' F'",                                  caseAlg: true  },
+    { label: 'Ua-Perm',    notation: "R U' R U R U R U' R' U' R2",                                            caseAlg: true  },
+    { label: 'H-Perm',     notation: "M2 U M2 U2 M2 U M2",                                                    caseAlg: true  },
+    { label: 'Sexy ×6',    notation: "R U R' U' R U R' U' R U R' U' R U R' U' R U R' U' R U R' U'",          caseAlg: false },
+    { label: 'Sledge ×6',  notation: "R' F R F' R' F R F' R' F R F' R' F R F' R' F R F' R' F R F'",          caseAlg: false },
   ];
-
 
   // ---- State ----
   let currentAlgIndex = 0;
@@ -269,7 +239,7 @@
 
   function showTab(tab) {
     ['validator','log','faces','kpattern'].forEach(t => {
-      document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
+      document.getElementById(`tab-${t}`)?.classList.toggle('is-active', t === tab);
     });
     document.getElementById('tab-validator-panel').style.display = tab === 'validator' ? '' : 'none';
     debugPre.style.display     = tab === 'log'      ? '' : 'none';
@@ -318,16 +288,13 @@
   function applyStateToRenderer(state) {
     renderer.setState(state);
     updateDebugState(state);
-    // Keep move-validator in sync
     liveState = state;
     appliedMoves = [];
-    if (typeof document !== 'undefined') {
-      const el = document.getElementById('move-status');
-      if (el) {
-        const solved = state.isSolved();
-        el.textContent = `Applied: (none)${solved ? '  ✓ SOLVED' : ''}`;
-        el.style.color = solved ? '#7fc' : '#aaa';
-      }
+    const el = document.getElementById('move-status');
+    if (el) {
+      const solved = state.isSolved();
+      el.textContent = `Applied: (none)${solved ? '  ✓ SOLVED' : ''}`;
+      el.style.color = solved ? '#7fc' : '#666';
     }
   }
 
@@ -338,8 +305,6 @@
     document.getElementById('step-label').textContent = `Step ${stepIndex}/${total} — last: ${move}`;
   }
 
-  // Case state = solved with inverse alg applied. Step 0 shows the case;
-  // stepping forward applies each move of the alg, ending at solved.
   let currentCaseState = _solvedBase;
 
   // ---- Load algorithm ----
@@ -385,7 +350,6 @@
   // ---- Play all ----
   function startPlay() {
     if (isPlaying || currentMoves.length === 0) return;
-    // If at end, reset first
     if (stepIndex >= currentMoves.length) {
       stepIndex = 0;
       applyStateToRenderer(currentCaseState);
@@ -417,18 +381,18 @@
   // ---- Build alg buttons ----
   function updateAlgButtons() {
     document.querySelectorAll('#alg-buttons button').forEach((btn, i) => {
-      btn.classList.toggle('active', i === currentAlgIndex);
+      btn.classList.toggle('is-active', i === currentAlgIndex);
     });
   }
 
   const algBtnContainer = document.getElementById('alg-buttons');
   ALGS.forEach((alg, i) => {
     const btn = document.createElement('button');
+    btn.className = 'button is-harness is-small';
     btn.textContent = alg.label;
     btn.onclick = () => loadAlg(i);
     algBtnContainer.appendChild(btn);
   });
-
 
   // ---- Playback controls ----
   document.getElementById('btn-play').onclick = startPlay;
@@ -437,7 +401,7 @@
   // ---- Step controls ----
   document.getElementById('btn-prev').onclick = () => {
     stopPlay();
-    if (stepIndex <= 0 || renderer._animating) return;
+    if (stepIndex <= 0 || renderer.isAnimating) return;
     const lastMove = currentMoves[stepIndex - 1];
     const prevFaces = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex)).toFaceArray();
     const inverseMove = CubeState.invertAlg([lastMove])[0];
@@ -477,15 +441,14 @@
   // ---- Speed ----
   document.querySelectorAll('[data-speed]').forEach(btn => {
     btn.onclick = () => {
-      renderer._animSpeed = parseInt(btn.dataset.speed);
-      document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      renderer.setSpeed(parseInt(btn.dataset.speed));
+      document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
       appendLog(`[demo] speed: ${btn.dataset.speed}ms`);
     };
   });
 
   // ---- Move validator ----
-  // Tracks the live visual state independently so we can apply one move at a time.
   let liveState = _solvedBase;
   let appliedMoves = [];
 
@@ -496,31 +459,24 @@
     const solved = state.isSolved();
     document.getElementById('move-status').textContent =
       `Applied: ${movesLabel || '(none)'}${solved ? '  ✓ SOLVED' : ''}`;
-    document.getElementById('move-status').style.color = solved ? '#7fc' : '#aaa';
+    document.getElementById('move-status').style.color = solved ? '#7fc' : '#666';
   }
 
-  // Build 18-move button grid (U R F D L B × normal/prime/double)
-  const MOVE_BUTTONS = [
-    'U',"U'",
-    'R',"R'",
-    'F',"F'",
-    'D',"D'",
-    'L',"L'",
-    'B',"B'",
-    'M',"M'",
-  ];
+  // 14-move grid: U R F D L B × normal/prime, plus M M'
+  const MOVE_BUTTONS = ['U',"U'",'R',"R'",'F',"F'",'D',"D'",'L',"L'",'B',"B'",'M',"M'"];
   const moveBtnContainer = document.getElementById('move-buttons');
   MOVE_BUTTONS.forEach(mv => {
     const btn = document.createElement('button');
-    btn.textContent = mv;
+    btn.className = 'button is-harness is-small';
     btn.style.fontFamily = 'monospace';
-    btn.style.minWidth = '40px';
+    btn.style.minWidth = '38px';
+    btn.textContent = mv;
     btn.onclick = () => applyLiveMove(mv);
     moveBtnContainer.appendChild(btn);
   });
 
   function applyLiveMove(mv, onDone) {
-    if (renderer._animating) { appendLog(`[validator] skip (animating): ${mv}`); onDone?.(); return; }
+    if (renderer.isAnimating) { appendLog(`[validator] skip (animating): ${mv}`); onDone?.(); return; }
     appendLog(`[validator] move: ${mv}`);
     const prevFaces = liveState.toFaceArray();
     const nextState = liveState.applyMove(mv);
@@ -531,7 +487,7 @@
       const solved = nextState.isSolved();
       document.getElementById('move-status').textContent =
         `Applied: ${appliedMoves.join(' ')}${solved ? '  ✓ SOLVED' : ''}`;
-      document.getElementById('move-status').style.color = solved ? '#7fc' : '#aaa';
+      document.getElementById('move-status').style.color = solved ? '#7fc' : '#666';
       onDone?.();
     });
   }
@@ -543,9 +499,7 @@
     const moves = AlgParser.parse(notation);
     appendLog(`[validator] parsed ${moves.length} moves: ${moves.join(' ')}`);
     if (!moves.length) return;
-    // Compute the full end state upfront
     const endState = moves.reduce((s, m) => s.applyMove(m), liveState);
-    // Use renderer.animateAlg — same path as Play, known to work
     renderer.animateAlg(moves, (idx) => {
       appendLog(`[validator] move: ${moves[idx]}`);
     }, () => {
@@ -555,7 +509,7 @@
       const solved = endState.isSolved();
       document.getElementById('move-status').textContent =
         `Applied: ${appliedMoves.join(' ')}${solved ? '  ✓ SOLVED' : ''}`;
-      document.getElementById('move-status').style.color = solved ? '#7fc' : '#aaa';
+      document.getElementById('move-status').style.color = solved ? '#7fc' : '#666';
       appendLog('[validator] done');
     });
   };
@@ -568,7 +522,7 @@
   };
 
   // ---- Initial load ----
-  loadAlg(0); // Sune by default
+  loadAlg(0);
   showTab('log');
 </script>
 

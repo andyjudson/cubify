@@ -467,10 +467,9 @@ export class CubeRenderer3D {
     this._controls?.reset();
   }
 
-  setZoom(distance) {
-    const dir = this._camera.position.clone().normalize();
-    this._camera.position.copy(dir.multiplyScalar(distance));
-  }
+  setSpeed(ms) { this._animSpeed = ms; }
+
+  get isAnimating() { return this._animating; }
 
   getDebugLog() { return this._debugLog.join('\n'); }
 }
