@@ -214,3 +214,22 @@ When running a cycle-based sticker permutation model (WCA convention) against `C
 - **Multi-move algs with U/D**: don't cross-check. Alg `R U R' U'` in WCA ≠ `R U R' U'` in cubing.js (U goes opposite way). The states they produce are fundamentally different. Only cross-check multi-move algs using R, F, L, B exclusively.
 
 **T-perm order in a flat 54-sticker model**: T-perm has order 2 on a physical cube (piece-based). But in a flat 54-sticker permutation model, the order depends on the combination of face-rotation direction and cross-face cycle direction. Don't use T-perm order as a regression test for the sticker model — it is not a reliable indicator of correctness.
+
+---
+
+## 11. z2 setup convention — case display orientation
+
+**All CFOP case rendering uses `z2` before the inverse case alg:**
+```
+setup state = applyAlg(["z2", ...invertAlg(caseAlg)]) on solved cube
+```
+
+`z2` swaps U↔D and L↔R. This positions the case on the **D layer** (y = -1 in Three.js), so the viewer looking from above sees:
+- Cross solved on top (U layer, y=1)
+- Case pattern on the bottom layer (D layer, y=-1) — to be solved
+
+**Why this matters for stickering**: `masks.mjs` orbit strings target D-layer slots (4–7 for edges and corners) precisely because of this convention. `O` (oriented) shows only the D-face sticker (slot 3, -Y) — the sticker that reveals orientation in the case.
+
+**Never skip z2 for OLL/PLL/F2L cases**: without z2, the case lands on the U layer and the stickering masks target the wrong positions entirely, showing stickers on the wrong pieces.
+
+**cross** is the exception — cross is solved on the D layer, so `z2` puts the cross pieces back on U. The cross mask `EDGES:----IIIIIIII` hides D+middle edges and shows U edges, which after z2 is the cross layer. Consistent with the same convention.

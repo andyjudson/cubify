@@ -11,13 +11,45 @@
 - `CORNERS`: 8 chars — slots URF, URB, ULB, ULF, DRF, DLF, DLB, DRB
 - `CENTERS`: 6 chars — slots U, R, F, D, L, B
 
-## Char semantics
+## Char semantics (z2 setup convention)
 
 | Char | Name | Slot visibility |
 |------|------|-----------------|
 | `-` | show | All outward-facing slots visible |
 | `I` | ignore | All slots hidden (grey plastic) |
-| `O` | oriented | Only U face (slot 2) or D face (slot 3) visible |
+| `O` | oriented | D-face only (slot 3, -Y) — reveals orientation sticker after z2 setup |
+
+`O` targets slot 3 (-Y, D face) because after `z2 + inverse(case_alg)`, the case is positioned on the D layer. The D-face sticker is the one that shows the OLL orientation pattern (yellow sticker facing down).
+
+## z2 Setup Convention
+
+All CFOP case rendering — cfop-app images, cubify-scripts, and the harness — uses `z2` before the inverse case alg:
+
+```
+setup state = z2 + inverse(case_alg) applied to solved cube
+```
+
+This positions the case on the D layer (y = -1). The viewer looks from above and sees:
+- Cross on top (U layer, y=1) — already solved
+- Case pattern on the bottom layer (D layer, y=-1) — being solved
+
+`masks.mjs` orbit strings target D-layer slots (4–7 for edges, 4–7 for corners) because of this convention.
+
+## Preset Constants (matches masks.mjs exactly)
+
+```js
+const PRESETS = {
+  'full':      'EDGES:------------,CORNERS:--------,CENTERS:------',
+  'cross':     'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------',
+  'f2l':       'EDGES:----IIII----,CORNERS:----IIII,CENTERS:-----I',
+  'oll':       'EDGES:----OOOO----,CORNERS:----OOOO,CENTERS:------',
+  'oll-2look': 'EDGES:----OOOO----,CORNERS:----IIII,CENTERS:------',
+  'pll':       'EDGES:------------,CORNERS:--------,CENTERS:------',
+  'pll-2look': 'EDGES:----OOOO----,CORNERS:--------,CENTERS:------',
+};
+```
+
+Values copied from `cubify-scripts/lib/masks.mjs`. Must be kept in sync manually until spec 028 library extraction.
 
 ## Lookup Tables (static constants in CubeStickering.js)
 
@@ -35,23 +67,6 @@ const EDGE_ORBIT_TO_CUBELET = [16, 24, 14, 7, 11, 18, 9, 1, 22, 5, 20, 3];
 const CENTER_ORBIT_TO_CUBELET = [15, 21, 13, 10, 4, 12];
 // U=0→15, R=1→21, F=2→13, D=3→10, L=4→4, B=5→12
 ```
-
-## Preset Constants (U-layer-up convention, harness)
-
-```js
-const PRESETS = {
-  'full':      'EDGES:------------,CORNERS:--------,CENTERS:------',
-  'cross':     'EDGES:------------,CORNERS:IIIIIIII,CENTERS:------',
-  'f2l':       'EDGES:IIII--------,CORNERS:IIII----,CENTERS:I-----',
-  'oll':       'EDGES:IIII----IIII,CORNERS:OOOOIIII,CENTERS:------',
-  'oll-2look': 'EDGES:OOOOIIIIIIII,CORNERS:IIIIIIII,CENTERS:------',
-  'pll':       'EDGES:IIII--------,CORNERS:IIII----,CENTERS:------',
-  'pll-2look': 'EDGES:IIIIIIIIIIII,CORNERS:IIII----,CENTERS:------',
-};
-```
-
-> Note: these differ from `masks.mjs` MASKS because the harness displays with U-layer on top,
-> while masks.mjs was designed for cubify-scripts which renders OLL/PLL from the D-layer perspective.
 
 ## VisibilityMap
 

@@ -4,7 +4,7 @@
 
 ## Summary
 
-Replace `CubeStickering.forPreset()`'s hand-written geometric logic with an orbit string parser (`fromOrbitString()`), using `cubify-scripts/lib/masks.mjs` as the single source of truth for all preset definitions. Add stickering preset controls to the harness demo.
+Replace `CubeStickering.forPreset()`'s hand-written geometric logic with an orbit string parser (`fromOrbitString()`), using the same orbit string values as `cubify-scripts/lib/masks.mjs` — the single source of truth for all preset definitions. Add stickering preset controls to the harness demo.
 
 ---
 
@@ -100,34 +100,25 @@ That gives 26 cubelets at indices 0–25.
 | 4 | L | {x:-1, y:0, z:0} | 4 |
 | 5 | B | {x:0, y:0, z:-1} | 12 |
 
-### R2 — `O` token semantics vs harness display orientation
+### R2 — The z2 setup convention and masks.mjs alignment
 
-The `O` (oriented) token means: show only the U or D face sticker on this piece.
+**This is the fundamental design constraint for stickering.**
 
-In `masks.mjs` the OLL preset uses `O` on D-layer edges/corners (slots 4–7). This was designed for cubify-scripts where the case setup places the OLL case at the bottom of the displayed cube. In the **harness the case is shown with the U layer on top**, so OLL case setup places relevant pieces in the **U layer** (slots 0–3).
+In the cfop-app, cube case images are generated using a `z2` setup move before the inverse case alg. `z2` swaps the U and D layers (U↔D, L↔R). This means:
 
-**Resolution**: define harness-specific preset orbit strings for presets where the display orientation differs from cubify-scripts. Specifically OLL and PLL presets need adapted strings. `cross` and `f2l` strings can be used directly.
+- After `z2 + inverse(case_alg)`, the case is positioned on the **D layer** (y=-1 in 3D)
+- The camera looks from above — the "interesting" case layer appears at the bottom of the cube
+- `masks.mjs` orbit strings target **D-layer slots (4–7)** for OLL/PLL precisely because of this
 
-**Harness-adapted preset strings** (U-layer-up convention):
+This is intentional: the image shows the solved cross on top (white/U face visible at y=1) and the case pattern below — the viewer sees the cube as they would hold it, with the last layer facing them from below.
 
-| Preset | Orbit string | Rationale |
-|--------|-------------|-----------|
-| full | `EDGES:------------,CORNERS:--------,CENTERS:------` | All visible, same as masks.mjs default |
-| cross | `EDGES:------------,CORNERS:IIIIIIII,CENTERS:------` | U+middle edges visible, all corners hidden |
-| f2l | `EDGES:IIII--------,CORNERS:IIII----,CENTERS:I-----` | Hide U layer; show D + middle |
-| oll | `EDGES:----IIII----,CORNERS:----OOOO,CENTERS:------` | U layer: all; D+middle: hide; corners: U sticker only |
-| oll-2look | `EDGES:OOOOIIII----,CORNERS:IIIIIIII,CENTERS:------` | U edge orientations only, corners hidden |
-| pll | `EDGES:IIII--------,CORNERS:IIII----,CENTERS:------` | U layer all, rest hidden |
-| pll-2look | `EDGES:IIII--------,CORNERS:IIII----,CENTERS:------` | Top corners only |
+**Consequence for the harness**: the harness must use the same `z2` setup convention for OLL/PLL cases to match the cfop-app rendering. The case alg buttons should include `z2` in their setup, and `masks.mjs` strings should be used **directly** — not adapted for a different orientation.
 
-> **Note**: the harness preset strings differ from masks.mjs because the rendering perspective is inverted. This is documented — masks.mjs remains the source of truth for cubify-scripts; harness defines its own constants that follow the same syntax.
+**`O` token semantics** (oriented only): show only the D-face sticker (slot 3, -Y) on D-layer pieces. For `O` on D edges/corners after z2 setup, this shows the yellow U-face sticker as it would appear in the OLL case pattern. All side stickers hidden.
 
-### R3 — `O` token slot visibility
+### R3 — No cross-package import
 
-For a given piece, `O` (oriented) means:
-- Show only the **outward sticker on the U or D face**
-- Three.js slot 2 = +Y = U face; slot 3 = -Y = D face
-- All other outward slots → false
+`CubeStickering.js` does not import `masks.mjs` directly (separate packages). Preset strings are embedded as constants in `CubeStickering.js` with values copied from `masks.mjs`. These must be kept in sync manually until spec 028 library extraction.
 
 ---
 
@@ -151,7 +142,7 @@ type VisibilityMap = Map<cubeletIndex: number, slotVisibility: boolean[6]>
 ### `CubeStickering` API (revised)
 
 ```js
-// Orbit string constants — harness display convention (U-layer up)
+// Preset orbit strings — values match masks.mjs, z2-setup convention
 CubeStickering.PRESETS  // { full, cross, f2l, oll, 'oll-2look', pll, 'pll-2look' }
 
 // Parse orbit string → VisibilityMap
@@ -171,26 +162,28 @@ CubeStickering.presetNames(): string[]
    - Build `boolean[6]`: iterate slots 0–5, check `isOutward[slot]`, then apply char rule:
      - `-` → `isOutward[slot]`
      - `I` → `false`
-     - `O` → `isOutward[slot] && (slot === 2 || slot === 3)` (U or D face only)
+     - `O` → `isOutward[slot] && slot === 3` (D face only — the "yellow up" sticker after z2)
 3. Return `Map<cubeletIndex, boolean[6]>`
 
 ### Harness Demo Controls
 
-Add a **Stickering** control group to the controls column in `index.html`, above or below the Algorithm group:
+Add a **Stickering** control group to the controls column in `index.html`:
 
 ```
 [Full] [Cross] [F2L] [OLL 2L] [OLL] [PLL 2L] [PLL]
 ```
 
-- Active preset button highlighted (`is-active`)  
-- Stickering reapplied on preset change, on step-through, and on alg load  
+- Active preset button highlighted (`is-active`)
+- Stickering reapplied on preset change, on step-through, and on alg load
 - Default preset: `full`
+- Case alg buttons for OLL/PLL should use `z2` in their setup (same as cfop-app) so stickering renders correctly
 
 ---
 
 ## Implementation Notes
 
-- Keep `CubeStickering.js` as an ES module in `cubify-harness/src/` — do not import from `cubify-scripts/` directly (different package, would create cross-package dependency)
-- The lookup tables (CORNERS/EDGES/CENTERS slot → cubelet index) are constants derived from the position math above — embed directly in `CubeStickering.js`
-- `applyStickering()` in CubeRenderer3D greys hidden stickers using `FACE_COLOURS_HEX.X` — no API changes needed
-- Stickering needs to be re-applied after `setState()` (step-through, alg load) — the harness wires this up in `index.html`
+- Keep `CubeStickering.js` as an ES module in `cubify-harness/src/` — do not import from `cubify-scripts/`
+- The lookup tables are static constants derived from position math — embed directly
+- `applyStickering()` in CubeRenderer3D greys hidden stickers — no API changes needed
+- Stickering must be re-applied after every `setState()` call (step-through, alg load)
+- The `z2` setup convention is the **standard across all cubify apps** — document in cube-mapping-lessons.md §11
