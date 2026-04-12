@@ -177,14 +177,16 @@
 
   <!-- Move validator tab -->
   <div id="tab-validator-panel" style="display:none">
-    <div class="validator-row" id="move-buttons-face"></div>
-    <div class="validator-row" id="move-buttons-slice"></div>
-    <div class="validator-input-row">
-      <input id="move-input" class="input is-small" type="text"
-             placeholder="e.g. R U R' U'"
-             style="font-family:monospace;background:#111827;border-color:#444;color:#ddd;" />
-      <button id="btn-move-apply" class="button is-harness is-small">Apply</button>
-      <button id="btn-move-reset" class="button is-harness is-small">Reset</button>
+    <div style="display:inline-flex;flex-direction:column;gap:0">
+      <div class="validator-row" id="move-buttons-face"></div>
+      <div class="validator-row" id="move-buttons-other"></div>
+      <div class="validator-input-row">
+        <input id="move-input" class="input is-small" type="text"
+               placeholder="e.g. R U R' U'"
+               style="font-family:monospace;background:#111827;border-color:#444;color:#ddd;flex:1;min-width:0;" />
+        <button id="btn-move-apply" class="button is-harness is-small">Apply</button>
+        <button id="btn-move-reset" class="button is-harness is-small">Reset</button>
+      </div>
     </div>
     <div id="move-status"></div>
   </div>
@@ -464,7 +466,7 @@
   }
 
   const MOVE_BUTTONS_FACE  = ['U',"U'",'R',"R'",'F',"F'",'D',"D'",'L',"L'",'B',"B'"];
-  const MOVE_BUTTONS_SLICE = ['M',"M'",'S',"S'",'E',"E'",'x',"x'",'y',"y'",'z',"z'"];
+  const MOVE_BUTTONS_OTHER = ['M',"M'",'S',"S'",'E',"E'",'x',"x'",'y',"y'",'z',"z'"];
 
   function buildMoveButtons(moves, containerId) {
     const container = document.getElementById(containerId);
@@ -479,7 +481,7 @@
     });
   }
   buildMoveButtons(MOVE_BUTTONS_FACE,  'move-buttons-face');
-  buildMoveButtons(MOVE_BUTTONS_SLICE, 'move-buttons-slice');
+  buildMoveButtons(MOVE_BUTTONS_OTHER, 'move-buttons-other');
 
   function applyLiveMove(mv, onDone) {
     if (renderer.isAnimating) { appendLog(`[validator] skip (animating): ${mv}`); onDone?.(); return; }
