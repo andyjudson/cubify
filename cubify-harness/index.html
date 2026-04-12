@@ -498,6 +498,7 @@
     if (!str.trim()) return;
     try {
       const map = CubeStickering.fromOrbitString(str.trim());
+      renderer.setState(liveState);  // rebake colours before masking
       renderer.applyStickering(map);
       const covered = [...map.values()].filter(v => v.some(Boolean)).length;
       orbitStatus.textContent = `Applied — ${covered}/${map.size} cubelets with visible stickers`;
