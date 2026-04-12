@@ -194,15 +194,17 @@
 
   <!-- Stickering tab -->
   <div id="tab-stickering-panel" style="display:none;padding:2px 0">
-    <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
-      <input id="orbit-input" class="input is-small" type="text"
-             value="EDGES:------------,CORNERS:--------,CENTERS:------"
-             style="font-family:monospace;font-size:0.75rem;background:#111827;border-color:#444;color:#ddf;flex:1;min-width:0;" />
-      <button id="btn-orbit-apply" class="button is-harness is-small">Apply</button>
-      <button id="btn-orbit-clear" class="button is-harness is-small">Clear</button>
+    <div style="display:inline-flex;flex-direction:column;gap:0">
+      <div class="validator-row" id="orbit-examples"></div>
+      <div class="validator-input-row">
+        <input id="orbit-input" class="input is-small" type="text"
+               value="EDGES:------------,CORNERS:--------,CENTERS:------"
+               style="font-family:monospace;font-size:0.75rem;background:#111827;border-color:#444;color:#ddf;flex:1;min-width:0;" />
+        <button id="btn-orbit-apply" class="button is-harness is-small">Apply</button>
+        <button id="btn-orbit-clear" class="button is-harness is-small">Clear</button>
+      </div>
     </div>
-    <div class="btn-row" id="orbit-examples" style="margin-bottom:6px;flex-wrap:wrap"></div>
-    <div id="orbit-status" style="font-size:0.72rem;font-family:monospace;color:#666;"></div>
+    <div id="orbit-status" style="font-size:0.72rem;font-family:monospace;color:#666;margin-top:4px"></div>
   </div>
 
   <pre id="debug-pre"></pre>
