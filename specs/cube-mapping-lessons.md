@@ -231,7 +231,7 @@ The setup always begins with `z2`, which swaps U↔D. This positions the case on
 
 Some cases add a `y`, `y'`, or `y2` after the z2 to rotate the cube azimuthally, so a specific face appears front-on in the image (e.g. for asymmetric PLL patterns). The y rotation doesn't change which layer holds the case — only its facing direction.
 
-**Why this matters for stickering**: `masks.mjs` orbit strings always target D-layer slots (4–7) because of z2. The optional y component doesn't affect which slots need stickering. `O` (orient) follows the twisty player convention: primary sticker (slot 2 for U-layer, slot 3 for D-layer) is hidden; side stickers are visible. A yellow side sticker on a D-layer edge means it is flipped.
+**Why this matters for stickering**: `masks.mjs` orbit strings always target D-layer slots (4–7) because of z2. The optional y component doesn't affect which slots need stickering. `O` (orient) maps to cubing.js `IgnoreNonPrimary`: show the primary sticker only, grey all others. Primary slot = +Y (slot 2) for U-layer pieces, -Y (slot 3) for D-layer pieces. Middle-layer pieces have no primary face so all outward stickers show. Do not lock to slot 3 for all pieces — derive primary slot from `y` position.
 
 **Never skip z2**: without it, the case lands on U layer and the stickering masks target the wrong positions entirely.
 

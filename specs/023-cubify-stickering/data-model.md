@@ -17,9 +17,9 @@
 |------|------|-----------------|
 | `-` | show | All outward-facing slots visible |
 | `I` | ignore | All slots hidden (grey plastic) |
-| `O` | orient | Primary (U/D face) grey; side stickers visible — matches twisty player `O` convention |
+| `O` | orient | Primary sticker only visible (U face slot 2 for U-layer, D face slot 3 for D-layer); all others grey — cubing.js `IgnoreNonPrimary` |
 
-`O` follows the twisty player `experimentalStickeringMaskOrbits` convention: primary sticker (U face = slot 2, or D face = slot 3) is hidden; side stickers are shown. For a D-layer edge with `O`, the -Y sticker is grey and the side sticker is visible — a yellow side sticker means the piece is flipped, non-yellow means oriented. Middle-layer pieces have no primary face so all outward slots are shown.
+`O` maps to cubing.js `IgnoreNonPrimary`: the primary sticker (U face = slot 2 for U-layer pieces, D face = slot 3 for D-layer pieces) is shown; all other stickers are grey. Middle-layer pieces have no U/D face so all outward stickers are shown. Our original implementation locked this to slot 3 for all pieces — the fix is to derive the primary slot from the piece's y-position.
 
 ## Alg Setup Convention
 

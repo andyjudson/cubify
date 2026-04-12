@@ -100,14 +100,14 @@ export class CubeStickering {
         const cubeletIdx = table[i];
         const isOut = outwardSlots(CUBELET_POSITIONS[cubeletIdx]);
         const ch = chars[i];
-        // 'O' = to orient: primary sticker (U or D face) grey, side stickers visible
-        // Primary slot: 2 (+Y) for U-layer pieces, 3 (-Y) for D-layer, none for middle
+        // 'O' = IgnoreNonPrimary (cubing.js convention): show primary sticker only, grey others
+        // Primary slot: +Y (slot 2) for U-layer, -Y (slot 3) for D-layer, all for middle
         const { y } = CUBELET_POSITIONS[cubeletIdx];
         const primarySlot = y === 1 ? 2 : y === -1 ? 3 : -1;
         map.set(cubeletIdx, isOut.map((outward, slot) => {
           if (ch === '-') return outward;
           if (ch === 'I') return false;
-          if (ch === 'O') return outward && slot !== primarySlot;  // grey U/D face, show sides
+          if (ch === 'O') return primarySlot === -1 ? outward : (outward && slot === primarySlot);
           return false;
         }));
       }
