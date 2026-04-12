@@ -129,7 +129,7 @@ const MOVE_AXIS = {
   F: { axis: new THREE.Vector3(0,  0, 1), dir: -1, filter: p => p.z ===  1 },
   B: { axis: new THREE.Vector3(0,  0, 1), dir:  1, filter: p => p.z === -1 },
   M: { axis: new THREE.Vector3(1,  0, 0), dir:  1, filter: p => p.x ===  0 },
-  E: { axis: new THREE.Vector3(0,  1, 0), dir: -1, filter: p => p.y ===  0 },
+  E: { axis: new THREE.Vector3(0,  1, 0), dir:  1, filter: p => p.y ===  0 },  // follows D (same flip as D)
   S: { axis: new THREE.Vector3(0,  0, 1), dir: -1, filter: p => p.z ===  0 },
   // Whole-cube rotations — all cubelets move
   X: { axis: new THREE.Vector3(1,  0, 0), dir: -1, filter: () => true },
