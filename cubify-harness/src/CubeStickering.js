@@ -46,14 +46,12 @@ function outwardSlots({ x, y, z }) {
 
 // Piece type helpers (used by legacy forPreset geometric logic)
 const isTopLayer    = p => p.y ===  1;
-const isBottomLayer = p => p.y === -1;
 const isMiddleLayer = p => p.y ===  0;
 const isCorner      = p => Math.abs(p.x) === 1 && Math.abs(p.z) === 1;
 const isCenter      = p => (p.x === 0 && p.z === 0) || (p.x === 0 && p.y === 0) || (p.z === 0 && p.y === 0);
 
 // slot 2 = +Y = U face, slot 3 = -Y = D face
 const U_SLOT = 2;
-const D_SLOT = 3;
 
 // -- Orbit string parser ---------------------------------------------------
 
@@ -102,10 +100,14 @@ export class CubeStickering {
         const cubeletIdx = table[i];
         const isOut = outwardSlots(CUBELET_POSITIONS[cubeletIdx]);
         const ch = chars[i];
+        // 'O' = to orient: primary sticker (U or D face) grey, side stickers visible
+        // Primary slot: 2 (+Y) for U-layer pieces, 3 (-Y) for D-layer, none for middle
+        const { y } = CUBELET_POSITIONS[cubeletIdx];
+        const primarySlot = y === 1 ? 2 : y === -1 ? 3 : -1;
         map.set(cubeletIdx, isOut.map((outward, slot) => {
           if (ch === '-') return outward;
           if (ch === 'I') return false;
-          if (ch === 'O') return outward && slot === 3;  // D face only (-Y)
+          if (ch === 'O') return outward && slot !== primarySlot;  // grey U/D face, show sides
           return false;
         }));
       }

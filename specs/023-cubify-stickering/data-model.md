@@ -17,9 +17,9 @@
 |------|------|-----------------|
 | `-` | show | All outward-facing slots visible |
 | `I` | ignore | All slots hidden (grey plastic) |
-| `O` | oriented | D-face only (slot 3, -Y) — reveals orientation sticker after z2 setup |
+| `O` | orient | Primary (U/D face) grey; side stickers visible — matches twisty player `O` convention |
 
-`O` targets slot 3 (-Y, D face) because after `z2 + inverse(case_alg)`, the case is positioned on the D layer. The D-face sticker is the one that shows the OLL orientation pattern (yellow sticker facing down).
+`O` follows the twisty player `experimentalStickeringMaskOrbits` convention: primary sticker (U face = slot 2, or D face = slot 3) is hidden; side stickers are shown. For a D-layer edge with `O`, the -Y sticker is grey and the side sticker is visible — a yellow side sticker means the piece is flipped, non-yellow means oriented. Middle-layer pieces have no primary face so all outward slots are shown.
 
 ## Alg Setup Convention
 

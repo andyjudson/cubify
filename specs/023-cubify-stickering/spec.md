@@ -27,7 +27,7 @@ EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------
 - `CENTERS`: 6 slots — U=0, R=1, F=2, D=3, L=4, B=5
 - `-` = show all stickers on this piece
 - `I` = ignore (hide all stickers — grey plastic)
-- `O` = oriented only (D-face sticker only, slot 3 -Y — reveals orientation after z2 setup)
+- `O` = orient: primary sticker (U face slot 2, or D face slot 3) grey; side stickers visible — twisty player convention
 
 ---
 
