@@ -177,7 +177,8 @@
 
   <!-- Move validator tab -->
   <div id="tab-validator-panel" style="display:none">
-    <div class="validator-row" id="move-buttons"></div>
+    <div class="validator-row" id="move-buttons-face"></div>
+    <div class="validator-row" id="move-buttons-slice"></div>
     <div class="validator-input-row">
       <input id="move-input" class="input is-small" type="text"
              placeholder="e.g. R U R' U'"
@@ -462,18 +463,23 @@
     document.getElementById('move-status').style.color = solved ? '#7fc' : '#666';
   }
 
-  // 14-move grid: U R F D L B × normal/prime, plus M M'
-  const MOVE_BUTTONS = ['U',"U'",'R',"R'",'F',"F'",'D',"D'",'L',"L'",'B',"B'",'M',"M'",'x',"x'",'y',"y'",'z',"z'"];
-  const moveBtnContainer = document.getElementById('move-buttons');
-  MOVE_BUTTONS.forEach(mv => {
-    const btn = document.createElement('button');
-    btn.className = 'button is-harness is-small';
-    btn.style.fontFamily = 'monospace';
-    btn.style.minWidth = '38px';
-    btn.textContent = mv;
-    btn.onclick = () => applyLiveMove(mv);
-    moveBtnContainer.appendChild(btn);
-  });
+  const MOVE_BUTTONS_FACE  = ['U',"U'",'R',"R'",'F',"F'",'D',"D'",'L',"L'",'B',"B'"];
+  const MOVE_BUTTONS_SLICE = ['M',"M'",'S',"S'",'E',"E'",'x',"x'",'y',"y'",'z',"z'"];
+
+  function buildMoveButtons(moves, containerId) {
+    const container = document.getElementById(containerId);
+    moves.forEach(mv => {
+      const btn = document.createElement('button');
+      btn.className = 'button is-harness is-small';
+      btn.style.fontFamily = 'monospace';
+      btn.style.minWidth = '38px';
+      btn.textContent = mv;
+      btn.onclick = () => applyLiveMove(mv);
+      container.appendChild(btn);
+    });
+  }
+  buildMoveButtons(MOVE_BUTTONS_FACE,  'move-buttons-face');
+  buildMoveButtons(MOVE_BUTTONS_SLICE, 'move-buttons-slice');
 
   function applyLiveMove(mv, onDone) {
     if (renderer.isAnimating) { appendLog(`[validator] skip (animating): ${mv}`); onDone?.(); return; }
