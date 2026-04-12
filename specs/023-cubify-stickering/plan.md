@@ -149,7 +149,7 @@ type VisibilityMap = Map<cubeletIndex: number, slotVisibility: boolean[6]>
 
 ```js
 // Preset orbit strings — values match masks.mjs, z2-setup convention
-CubeStickering.PRESETS  // { full, cross, f2l, oll, 'oll-2look', pll, 'pll-2look' }
+CubeStickering.PRESETS  // { full, 'cross-white', 'cross-yellow', f2l, 'oll-1look', 'oll-2look', 'pll-1look', 'pll-2look' }
 
 // Parse orbit string → VisibilityMap
 CubeStickering.fromOrbitString(str: string): Map<number, boolean[6]>
@@ -176,7 +176,7 @@ CubeStickering.presetNames(): string[]
 Add a **Stickering** control group to the controls column in `index.html`:
 
 ```
-[Full] [Cross] [F2L] [OLL 2L] [OLL] [PLL 2L] [PLL]
+[Full] [Cross W] [Cross Y] [F2L] [OLL 2L] [OLL] [PLL 2L] [PLL]
 ```
 
 - Active preset button highlighted (`is-active`)

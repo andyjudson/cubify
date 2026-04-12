@@ -39,13 +39,14 @@ This positions the case on the D layer (y = -1). The viewer looks from above and
 
 ```js
 const PRESETS = {
-  'full':      'EDGES:------------,CORNERS:--------,CENTERS:------',
-  'cross':     'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------',
-  'f2l':       'EDGES:----IIII----,CORNERS:----IIII,CENTERS:-----I',
-  'oll':       'EDGES:----OOOO----,CORNERS:----OOOO,CENTERS:------',
-  'oll-2look': 'EDGES:----OOOO----,CORNERS:----IIII,CENTERS:------',
-  'pll':       'EDGES:------------,CORNERS:--------,CENTERS:------',
-  'pll-2look': 'EDGES:----OOOO----,CORNERS:--------,CENTERS:------',
+  'full':         'EDGES:------------,CORNERS:--------,CENTERS:------',
+  'cross-white':  'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------',  // white cross: U-layer edges after z2
+  'cross-yellow': 'EDGES:IIIIOOOOIIII,CORNERS:IIIIIIII,CENTERS:------',  // yellow cross: D-layer edge O stickers after z2
+  'f2l':          'EDGES:----IIII----,CORNERS:----IIII,CENTERS:-----I',
+  'oll-1look':    'EDGES:----OOOO----,CORNERS:----OOOO,CENTERS:------',
+  'oll-2look':    'EDGES:----OOOO----,CORNERS:----IIII,CENTERS:------',
+  'pll-1look':    'EDGES:------------,CORNERS:--------,CENTERS:------',
+  'pll-2look':    'EDGES:----OOOO----,CORNERS:--------,CENTERS:------',
 };
 ```
 
