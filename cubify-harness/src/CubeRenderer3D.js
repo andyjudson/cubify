@@ -131,6 +131,10 @@ const MOVE_AXIS = {
   M: { axis: new THREE.Vector3(1,  0, 0), dir:  1, filter: p => p.x ===  0 },
   E: { axis: new THREE.Vector3(0,  1, 0), dir: -1, filter: p => p.y ===  0 },
   S: { axis: new THREE.Vector3(0,  0, 1), dir: -1, filter: p => p.z ===  0 },
+  // Whole-cube rotations — all cubelets move
+  X: { axis: new THREE.Vector3(1,  0, 0), dir: -1, filter: () => true },
+  Y: { axis: new THREE.Vector3(0,  1, 0), dir: -1, filter: () => true },
+  Z: { axis: new THREE.Vector3(0,  0, 1), dir: -1, filter: () => true },
 };
 
 export class CubeRenderer3D {
