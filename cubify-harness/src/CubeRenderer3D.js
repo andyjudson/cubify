@@ -200,6 +200,7 @@ export class CubeRenderer3D {
 
     this._controls = new OrbitControls(this._camera, this._renderer.domElement);
     this._controls.enableDamping = true;
+    this._controls.enablePan = false;
     this._controls.dampingFactor = 0.08;
     this._controls.minDistance = 9;
     this._controls.maxDistance = 12;
