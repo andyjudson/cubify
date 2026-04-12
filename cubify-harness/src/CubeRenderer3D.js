@@ -39,13 +39,14 @@ const FACE_TO_IDX  = { U: 0, R: 1, F: 2, D: 3, L: 4, B: 5 };
 // Returns a CanvasTexture with a rounded-rect sticker on a black background.
 // Cached by colour string so we share textures across cubelets.
 const _textureCache = new Map();
+let _maxAnisotropy = 1;  // set once renderer is available
 
 function makeStickerTexture(colourHex) {
   if (_textureCache.has(colourHex)) return _textureCache.get(colourHex);
 
   const size   = 256;
-  const pad    = 24;   // black border width
-  const radius = 32;   // corner radius of the sticker
+  const pad    = 10;   // black border width
+  const radius = 8;    // corner radius — subtle, speed-cube style
 
   const canvas = document.createElement('canvas');
   canvas.width  = size;
@@ -74,6 +75,7 @@ function makeStickerTexture(colourHex) {
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = _maxAnisotropy;
   _textureCache.set(colourHex, tex);
   return tex;
 }
@@ -189,6 +191,7 @@ export class CubeRenderer3D {
 
     this._renderer = new THREE.WebGLRenderer({ antialias: true });
     this._renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    _maxAnisotropy = this._renderer.capabilities.getMaxAnisotropy();
     container.appendChild(this._renderer.domElement);
 
     this._controls = new OrbitControls(this._camera, this._renderer.domElement);
@@ -276,10 +279,8 @@ export class CubeRenderer3D {
       // Inner faces: solid black (shared texture).
       const materials = SLOT_TO_FACE.map((face, slot) => {
         if (!isOutward[slot]) return BLACK_MATERIAL;
-        return new THREE.MeshStandardMaterial({
+        return new THREE.MeshBasicMaterial({
           map: makeStickerTexture(FACE_COLOURS_HEX[face]),
-          roughness: 0.85,
-          metalness: 0.0,
         });
       });
 
@@ -320,10 +321,8 @@ export class CubeRenderer3D {
         const tex = makeStickerTexture(colourHex);
         // Replace material if it's the shared black one (slot became outward after a move)
         if (mesh.material[slot] === BLACK_MATERIAL) {
-          mesh.material[slot] = new THREE.MeshStandardMaterial({
+          mesh.material[slot] = new THREE.MeshBasicMaterial({
             map: tex,
-            roughness: 0.85,
-            metalness: 0.0,
           });
         } else {
           mesh.material[slot].map = tex;

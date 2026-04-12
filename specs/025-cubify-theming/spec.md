@@ -61,7 +61,7 @@ Per-face colour pickers or palette presets. Live preview. Export theme as JSON.
 
 ## Colour Reference
 
-### Classic Rubik's (current)
+### Classic Rubik's (current harness default)
 U: `#ffffff`, R: `#c41e1e`, F: `#1a7c2a`, D: `#ffd000`, L: `#e06000`, B: `#0f4fad`
 
 ### Twisty-style (brighter, thinner gaps)
@@ -69,6 +69,36 @@ U: `#ffffff`, R: `#ef3030`, F: `#22aa44`, D: `#ffdd00`, L: `#ff8800`, B: `#1155c
 
 ### Pastel/soft
 U: `#f5f5f5`, R: `#e57373`, F: `#81c784`, D: `#fff176`, L: `#ffb74d`, B: `#64b5f6`
+
+---
+
+## Baseline Values (established during 022 harness work)
+
+These are the two aesthetics we want to preserve as named themes.
+
+### `speed` — GAN-inspired (current harness state after 022 tuning)
+| Parameter | Value | Note |
+|-----------|-------|------|
+| `gap` | `0.02` | 3D space between cubelets |
+| Texture `pad` | `10` | Black border px on 256px canvas |
+| Texture `radius` | `8` | Corner radius px |
+| Bevel | `0.03` | RoundedBoxGeometry segments |
+| Plastic | `#141414` | Near-black body |
+| Material | `MeshBasicMaterial` | Flat-lit — no lighting response on stickers |
+
+Feels modern, clean, speed-cube-like. Faces almost flush, thin gap, minimal black surround.
+
+### `rubiks` — Classic (original harness state)
+| Parameter | Value | Note |
+|-----------|-------|------|
+| `gap` | `0.02` | (same — gap was always tight) |
+| Texture `pad` | `24` | Thick black border |
+| Texture `radius` | `32` | Pronounced rounded corners |
+| Bevel | `0.03` | |
+| Plastic | `#141414` | |
+| Material | `MeshStandardMaterial` (roughness 0.85) | Physically lit stickers |
+
+Feels like the familiar toy — chunky sticker tiles sitting on black plastic, similar to iamthecu.be.
 
 ---
 
