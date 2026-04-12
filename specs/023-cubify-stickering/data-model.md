@@ -21,9 +21,9 @@
 
 `O` targets slot 3 (-Y, D face) because after `z2 + inverse(case_alg)`, the case is positioned on the D layer. The D-face sticker is the one that shows the OLL orientation pattern (yellow sticker facing down).
 
-## z2 Setup Convention
+## Alg Setup Convention
 
-All CFOP case rendering — cfop-app images, cubify-scripts, and the harness — uses `z2` before the inverse case alg:
+All OLL or PLL case rendering for cfop-app images, cubify-scripts, and the harness — uses `z2` before the inverse case alg:
 
 ```
 setup state = z2 + inverse(case_alg) applied to solved cube
@@ -39,14 +39,14 @@ This positions the case on the D layer (y = -1). The viewer looks from above and
 
 ```js
 const PRESETS = {
-  'full':         'EDGES:------------,CORNERS:--------,CENTERS:------',
-  'cross-white':  'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------',  // white cross: U-layer edges after z2
-  'cross-yellow': 'EDGES:IIIIOOOOIIII,CORNERS:IIIIIIII,CENTERS:------',  // yellow cross: D-layer edge O stickers after z2
-  'f2l':          'EDGES:----IIII----,CORNERS:----IIII,CENTERS:-----I',
-  'oll-1look':    'EDGES:----OOOO----,CORNERS:----OOOO,CENTERS:------',
-  'oll-2look':    'EDGES:----OOOO----,CORNERS:----IIII,CENTERS:------',
-  'pll-1look':    'EDGES:------------,CORNERS:--------,CENTERS:------',
-  'pll-2look':    'EDGES:----OOOO----,CORNERS:--------,CENTERS:------',
+  'full':         'EDGES:------------,CORNERS:--------,CENTERS:------',  // all pieces visible — no masking
+  'cross-white':  'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------',  // U-layer edges shown (placement); all corners hidden
+  'cross-yellow': 'EDGES:IIIIOOOOIIII,CORNERS:IIIIIIII,CENTERS:------',  // D-layer edge orientation stickers (O) only; all corners hidden
+  'f2l':          'EDGES:----IIII----,CORNERS:----IIII,CENTERS:-----I',  // U+middle edges + U corners shown; D edges+corners hidden; B center hidden
+  'oll-1look':    'EDGES:----OOOO----,CORNERS:----OOOO,CENTERS:------',  // D-layer edge+corner orientation (O); U+middle pieces fully shown
+  'oll-2look':    'EDGES:----OOOO----,CORNERS:----IIII,CENTERS:------',  // D-layer edge orientation only; D corners hidden
+  'pll-1look':    'EDGES:------------,CORNERS:--------,CENTERS:------',  // all pieces visible — full colour for permutation recognition
+  'pll-2look':    'EDGES:----OOOO----,CORNERS:--------,CENTERS:------',  // D-layer edge orientation only; all corners fully shown
 };
 ```
 

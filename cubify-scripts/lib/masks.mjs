@@ -1,13 +1,13 @@
 // Mask orbit strings — keyed by method + optional mask field value from JSON
 export const MASKS = {
-  default:      'EDGES:------------,CORNERS:--------,CENTERS:------',
-  cross_white:  'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------',  // white cross: U-layer edges (slots 0-3) after z2
-  cross_yellow: 'EDGES:IIIIOOOOIIII,CORNERS:IIIIIIII,CENTERS:------',  // yellow cross: D-layer edge O stickers (slots 4-7) after z2
-  f2l:          'EDGES:----IIII----,CORNERS:----IIII,CENTERS:-----I',
-  oll_1look:    'EDGES:----OOOO----,CORNERS:----OOOO,CENTERS:------',  // 1-look OLL: show all top edges + corners
-  oll_2look:    'EDGES:----OOOO----,CORNERS:----IIII,CENTERS:------',  // 2-look OLL edge stage: hide corners
-  pll_1look:    'EDGES:------------,CORNERS:--------,CENTERS:------',  // 1-look PLL: show everything (same as default)
-  pll_2look:    'EDGES:----OOOO----,CORNERS:--------,CENTERS:------',  // 2-look PLL corner stage: hide top edges
+  default:      'EDGES:------------,CORNERS:--------,CENTERS:------',  // all pieces visible — no masking
+  cross_white:  'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------',  // U-layer edges shown (placement); all corners hidden
+  cross_yellow: 'EDGES:IIIIOOOOIIII,CORNERS:IIIIIIII,CENTERS:------',  // D-layer edge orientation stickers (O) only; all corners hidden
+  f2l:          'EDGES:----IIII----,CORNERS:----IIII,CENTERS:-----I',  // U+middle edges + U corners shown; D edges+corners hidden; B center hidden
+  oll_1look:    'EDGES:----OOOO----,CORNERS:----OOOO,CENTERS:------',  // D-layer edge+corner orientation (O); U+middle pieces fully shown
+  oll_2look:    'EDGES:----OOOO----,CORNERS:----IIII,CENTERS:------',  // EOLL: D-layer edge orientation only; D corners hidden
+  pll_1look:    'EDGES:------------,CORNERS:--------,CENTERS:------',  // all pieces visible — full colour for permutation recognition
+  pll_2look:    'EDGES:----OOOO----,CORNERS:--------,CENTERS:------',  // CPLL: D-layer edge orientation only; all corners fully shown
 };
 
 // Resolve orbit string from case method + explicit mask field value (from JSON)
