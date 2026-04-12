@@ -100,21 +100,27 @@ That gives 26 cubelets at indices 0–25.
 | 4 | L | {x:-1, y:0, z:0} | 4 |
 | 5 | B | {x:0, y:0, z:-1} | 12 |
 
-### R2 — The z2 setup convention and masks.mjs alignment
+### R2 — The setup move field and masks.mjs alignment
 
 **This is the fundamental design constraint for stickering.**
 
-In the cfop-app, cube case images are generated using a `z2` setup move before the inverse case alg. `z2` swaps the U and D layers (U↔D, L↔R). This means:
+Each case in the JSON data has an optional `setup` field (e.g. `"z2 y'"`) that specifies the orientation moves applied before the inverse case alg. Most cases default to `z2` alone. The full set found in the JSON:
 
-- After `z2 + inverse(case_alg)`, the case is positioned on the **D layer** (y=-1 in 3D)
-- The camera looks from above — the "interesting" case layer appears at the bottom of the cube
-- `masks.mjs` orbit strings target **D-layer slots (4–7)** for OLL/PLL precisely because of this
+| Setup value | Frequency |
+|-------------|-----------|
+| *(none — defaults to z2)* | Most cases |
+| `z2` | Some PLL |
+| `z2 y` | Some PLL |
+| `z2 y'` | Some OLL + PLL |
+| `z2 y2` | Some PLL |
 
-This is intentional: the image shows the solved cross on top (white/U face visible at y=1) and the case pattern below — the viewer sees the cube as they would hold it, with the last layer facing them from below.
+`z2` is always the first move — it swaps U↔D so the case lands on the D layer (y=-1). The optional `y`/`y'`/`y2` then rotates the cube azimuthally to show a specific face front-on in the image (e.g. for a PLL that is asymmetric, rotating ensures the recognisable feature faces the viewer).
 
-**Consequence for the harness**: the harness must use the same `z2` setup convention for OLL/PLL cases to match the cfop-app rendering. The case alg buttons should include `z2` in their setup, and `masks.mjs` strings should be used **directly** — not adapted for a different orientation.
+**Consequence for stickering**: the stickering mask is defined in terms of the D-layer position (after z2). The `y` rotations don't change which layer the case is on — only which direction it faces — so the masks still target D-layer slots regardless of the y component. `masks.mjs` orbit strings are correct as-is.
 
-**`O` token semantics** (oriented only): show only the D-face sticker (slot 3, -Y) on D-layer pieces. For `O` on D edges/corners after z2 setup, this shows the yellow U-face sticker as it would appear in the OLL case pattern. All side stickers hidden.
+**Consequence for the harness**: when demonstrating stickering with OLL/PLL cases, the setup move from the JSON should be applied (including any y rotation) before the inverse alg.
+
+**`O` token semantics** (oriented only): show only the D-face sticker (slot 3, -Y) on D-layer pieces. After z2 setup, this is the sticker that reveals orientation in the OLL case pattern. All side stickers hidden.
 
 ### R3 — No cross-package import
 

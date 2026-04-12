@@ -217,19 +217,22 @@ When running a cycle-based sticker permutation model (WCA convention) against `C
 
 ---
 
-## 11. z2 setup convention — case display orientation
+## 11. Case setup convention — z2 + optional y rotation
 
-**All CFOP case rendering uses `z2` before the inverse case alg:**
+**All CFOP case rendering applies a `setup` move before the inverse case alg.** The setup value comes from the `setup` field in the alg JSON (defaults to `z2` if absent):
+
 ```
-setup state = applyAlg(["z2", ...invertAlg(caseAlg)]) on solved cube
+setup state = applyAlg([...setup_moves, ...invertAlg(caseAlg)]) on solved cube
 ```
 
-`z2` swaps U↔D and L↔R. This positions the case on the **D layer** (y = -1 in Three.js), so the viewer looking from above sees:
-- Cross solved on top (U layer, y=1)
+The setup always begins with `z2`, which swaps U↔D. This positions the case on the **D layer** (y = -1 in Three.js):
+- Cross solved on top (U layer, y=1) — already done
 - Case pattern on the bottom layer (D layer, y=-1) — to be solved
 
-**Why this matters for stickering**: `masks.mjs` orbit strings target D-layer slots (4–7 for edges and corners) precisely because of this convention. `O` (oriented) shows only the D-face sticker (slot 3, -Y) — the sticker that reveals orientation in the case.
+Some cases add a `y`, `y'`, or `y2` after the z2 to rotate the cube azimuthally, so a specific face appears front-on in the image (e.g. for asymmetric PLL patterns). The y rotation doesn't change which layer holds the case — only its facing direction.
 
-**Never skip z2 for OLL/PLL/F2L cases**: without z2, the case lands on the U layer and the stickering masks target the wrong positions entirely, showing stickers on the wrong pieces.
+**Why this matters for stickering**: `masks.mjs` orbit strings always target D-layer slots (4–7) because of z2. The optional y component doesn't affect which slots need stickering. `O` (oriented) shows only slot 3 (-Y = D face) — the sticker that reveals the OLL orientation pattern after z2.
 
-**cross** is the exception — cross is solved on the D layer, so `z2` puts the cross pieces back on U. The cross mask `EDGES:----IIIIIIII` hides D+middle edges and shows U edges, which after z2 is the cross layer. Consistent with the same convention.
+**Never skip z2**: without it, the case lands on U layer and the stickering masks target the wrong positions entirely.
+
+**The cross preset** is consistent: after z2, the cross pieces (solved on D) move to U. `cross: EDGES:----IIIIIIII` hides D+middle and shows U edges — correct for the cross display after z2.
