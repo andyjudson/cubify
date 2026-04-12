@@ -170,6 +170,7 @@
     <ul>
       <li id="tab-log" class="is-active"><a onclick="showTab('log')">Event log</a></li>
       <li id="tab-validator"><a onclick="showTab('validator')">Move validator</a></li>
+      <li id="tab-stickering"><a onclick="showTab('stickering')">Stickering</a></li>
       <li id="tab-faces"><a onclick="showTab('faces')">Face state</a></li>
       <li id="tab-kpattern"><a onclick="showTab('kpattern')">KPattern</a></li>
     </ul>
@@ -191,6 +192,19 @@
     <div id="move-status"></div>
   </div>
 
+  <!-- Stickering tab -->
+  <div id="tab-stickering-panel" style="display:none;padding:2px 0">
+    <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
+      <input id="orbit-input" class="input is-small" type="text"
+             value="EDGES:------------,CORNERS:--------,CENTERS:------"
+             style="font-family:monospace;font-size:0.75rem;background:#111827;border-color:#444;color:#ddf;flex:1;min-width:0;" />
+      <button id="btn-orbit-apply" class="button is-harness is-small">Apply</button>
+      <button id="btn-orbit-clear" class="button is-harness is-small">Clear</button>
+    </div>
+    <div class="btn-row" id="orbit-examples" style="margin-bottom:6px;flex-wrap:wrap"></div>
+    <div id="orbit-status" style="font-size:0.72rem;font-family:monospace;color:#666;"></div>
+  </div>
+
   <pre id="debug-pre"></pre>
   <pre id="face-state-pre" style="display:none"></pre>
   <pre id="kpattern-pre" style="display:none"></pre>
@@ -200,6 +214,7 @@
   import { CubeState } from './src/CubeState.js';
   import { AlgParser } from './src/AlgParser.js';
   import { CubeRenderer3D } from './src/CubeRenderer3D.js';
+  import { CubeStickering } from './src/CubeStickering.js';
 
   // Warm up kpuzzle early (cached after first call)
   const _solvedBase = await CubeState.solved();
@@ -241,10 +256,11 @@
   const kpatternPre = document.getElementById('kpattern-pre');
 
   function showTab(tab) {
-    ['validator','log','faces','kpattern'].forEach(t => {
+    ['validator','log','stickering','faces','kpattern'].forEach(t => {
       document.getElementById(`tab-${t}`)?.classList.toggle('is-active', t === tab);
     });
-    document.getElementById('tab-validator-panel').style.display = tab === 'validator' ? '' : 'none';
+    document.getElementById('tab-validator-panel').style.display  = tab === 'validator'  ? '' : 'none';
+    document.getElementById('tab-stickering-panel').style.display = tab === 'stickering' ? '' : 'none';
     debugPre.style.display     = tab === 'log'      ? '' : 'none';
     faceStatePre.style.display = tab === 'faces'    ? '' : 'none';
     kpatternPre.style.display  = tab === 'kpattern' ? '' : 'none';
@@ -450,6 +466,59 @@
       appendLog(`[demo] speed: ${btn.dataset.speed}ms`);
     };
   });
+
+  // ---- Stickering tab ----
+  const ORBIT_EXAMPLES = [
+    { label: 'Full',     str: 'EDGES:------------,CORNERS:--------,CENTERS:------' },
+    { label: 'Cross-W',  str: 'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------' },
+    { label: 'Cross-Y',  str: 'EDGES:IIIIOOOOIIII,CORNERS:IIIIIIII,CENTERS:------' },
+    { label: 'F2L',      str: 'EDGES:----IIII----,CORNERS:----IIII,CENTERS:-----I' },
+    { label: 'OLL-1L',   str: 'EDGES:----OOOO----,CORNERS:----OOOO,CENTERS:------' },
+    { label: 'OLL-2L',   str: 'EDGES:----OOOO----,CORNERS:----IIII,CENTERS:------' },
+    { label: 'PLL-1L',   str: 'EDGES:------------,CORNERS:--------,CENTERS:------' },
+    { label: 'PLL-2L',   str: 'EDGES:----OOOO----,CORNERS:--------,CENTERS:------' },
+  ];
+
+  const orbitInput  = document.getElementById('orbit-input');
+  const orbitStatus = document.getElementById('orbit-status');
+
+  // Example buttons — load string into input only (don't auto-apply)
+  const examplesContainer = document.getElementById('orbit-examples');
+  ORBIT_EXAMPLES.forEach(({ label, str }) => {
+    const btn = document.createElement('button');
+    btn.className = 'button is-harness is-small';
+    btn.style.fontFamily = 'monospace';
+    btn.textContent = label;
+    btn.title = str;
+    btn.onclick = () => { orbitInput.value = str; orbitStatus.textContent = `Loaded: ${label} — press Apply to render`; orbitStatus.style.color = '#888'; };
+    examplesContainer.appendChild(btn);
+  });
+
+  function applyOrbitString(str) {
+    if (!str.trim()) return;
+    try {
+      const map = CubeStickering.fromOrbitString(str.trim());
+      renderer.applyStickering(map);
+      const covered = [...map.values()].filter(v => v.some(Boolean)).length;
+      orbitStatus.textContent = `Applied — ${covered}/${map.size} cubelets with visible stickers`;
+      orbitStatus.style.color = '#7fc';
+      appendLog(`[stickering] applied: ${str.trim().slice(0, 60)}${str.length > 60 ? '…' : ''}`);
+    } catch (e) {
+      orbitStatus.textContent = `Error: ${e.message}`;
+      orbitStatus.style.color = '#f88';
+    }
+  }
+
+  document.getElementById('btn-orbit-apply').onclick = () => applyOrbitString(orbitInput.value);
+  orbitInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyOrbitString(orbitInput.value); });
+
+  document.getElementById('btn-orbit-clear').onclick = () => {
+    const full = 'EDGES:------------,CORNERS:--------,CENTERS:------';
+    orbitInput.value = full;
+    applyOrbitString(full);
+    orbitStatus.textContent = 'Cleared — all stickers visible';
+    orbitStatus.style.color = '#666';
+  };
 
   // ---- Move validator ----
   let liveState = _solvedBase;
