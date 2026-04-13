@@ -129,10 +129,6 @@ const EDGE_POSITIONS = [
   [[5,5],[4,3]],
 ];
 
-// Center positions: one per face, always centre slot (4).
-// Piece 0=U, 1=R, 2=F, 3=D, 4=L, 5=B (solved order, fixed on standard 3×3).
-const CENTER_FACES = ['U','R','F','D','L','B'];
-
 // Face name by index
 const FACE_NAMES = ['U','R','F','D','L','B'];
 
@@ -203,12 +199,14 @@ export class CubeState {
   toFaceArray() {
     const faces = Array.from({length: 6}, () => Array(9).fill('X'));
 
-    // Centers (always match face colour on standard 3×3)
+    const data = this._kPattern.patternData;
+
+    // Centers are fixed on a standard 3×3 — always show the home face colour.
+    // Whole-cube rotations (z2/x/y) in the KPattern don't affect center display here;
+    // case setup avoids applying puzzle-orientation moves to the state.
     for (let i = 0; i < 6; i++) {
       faces[i][4] = FACE_NAMES[i];
     }
-
-    const data = this._kPattern.patternData;
     const corners = data['CORNERS'];
     const edges = data['EDGES'];
 
@@ -291,6 +289,7 @@ export class CubeState {
    * @returns {boolean}
    */
   isSolved() {
-    return this._kPattern.experimentalIsSolved();
+    // ignorePuzzleOrientation: whole-cube rotations (z2, x, y) don't count as unsolved.
+    return this._kPattern.experimentalIsSolved({ ignorePuzzleOrientation: true });
   }
 }

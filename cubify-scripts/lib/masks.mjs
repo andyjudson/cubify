@@ -5,9 +5,9 @@ export const MASKS = {
   cross_yellow: 'EDGES:IIIIOOOOIIII,CORNERS:IIIIIIII,CENTERS:------',  // D-layer edge orientation stickers (O) only; all corners hidden
   f2l:          'EDGES:----IIII----,CORNERS:----IIII,CENTERS:-----I',  // U+middle edges + U corners shown; D edges+corners hidden; B center hidden
   oll_1look:    'EDGES:----OOOO----,CORNERS:----OOOO,CENTERS:------',  // D-layer edge+corner orientation (O); U+middle pieces fully shown
-  oll_2look:    'EDGES:----OOOO----,CORNERS:----IIII,CENTERS:------',  // EOLL: D-layer edge orientation only; D corners hidden
+  oll_2look:    'EDGES:----OOOO----,CORNERS:----IIII,CENTERS:------',  // D-layer edge orientation only; D corners hidden
   pll_1look:    'EDGES:------------,CORNERS:--------,CENTERS:------',  // all pieces visible — full colour for permutation recognition
-  pll_2look:    'EDGES:----OOOO----,CORNERS:--------,CENTERS:------',  // CPLL: D-layer edge orientation only; all corners fully shown
+  pll_2look:    'EDGES:----OOOO----,CORNERS:--------,CENTERS:------',  // D-layer edge orientation only; all corners fully shown
 };
 
 // Resolve orbit string from case method + explicit mask field value (from JSON)

@@ -194,7 +194,7 @@
 
   <!-- Stickering tab -->
   <div id="tab-stickering-panel" style="display:none;padding:2px 0">
-    <div style="display:inline-flex;flex-direction:column;gap:0">
+    <div style="display:flex;flex-direction:column;gap:0">
       <div class="validator-row" id="orbit-examples"></div>
       <div class="validator-input-row">
         <input id="orbit-input" class="input is-small" type="text"
@@ -238,6 +238,8 @@
   let currentMoves = [];
   let stepIndex = 0;
   let isPlaying = false;
+  let activeMask = null;        // Map<posKey, boolean[6]> or null for full (no mask)
+  let setupOrientation = null;  // e.g. 'z2' for OLL/PLL cases, null for plain algs
 
   // ---- Renderer ----
   const container = document.getElementById('cube-container');
@@ -305,9 +307,39 @@
     }
   }
 
+  // ---- Rebake state + reapply active mask ----
+  // Call this after any state change (instant snap or end of animated step).
+  // setState() resets quaternions and recomputes colors from the face array.
+  // applyStickering() then masks by current position — always a clean slate, no accumulation.
+  // z2 maps centers: U↔D (white↔yellow), R↔L (red↔orange), F+B unchanged.
+  // setState always hardcodes U=white, D=yellow etc. so we patch centers after setState.
+  const Z2_CENTER_PATCH = [
+    { key: '0,1,0',  slot: 2, color: 'D' },   // U center → show yellow
+    { key: '0,-1,0', slot: 3, color: 'U' },   // D center → show white
+    { key: '1,0,0',  slot: 0, color: 'L' },   // R center → show orange
+    { key: '-1,0,0', slot: 1, color: 'R' },   // L center → show red
+  ];
+
+  function fixCenters() {
+    if (setupOrientation !== 'z2') return;
+    // setState hardcodes centers by face name (U=white, D=yellow etc.).
+    // When z2 is baked into the KPattern state, yellow moved to U and white to D —
+    // patch the 4 affected centers to show the correct colour.
+    renderer.patchCenterSlot('0,1,0',  2, 'D');   // U center → yellow
+    renderer.patchCenterSlot('0,-1,0', 3, 'U');   // D center → white
+    renderer.patchCenterSlot('1,0,0',  0, 'L');   // R center → orange
+    renderer.patchCenterSlot('-1,0,0', 1, 'R');   // L center → red
+  }
+
+  function rebakeWithMask(state) {
+    renderer.setState(state);
+    fixCenters();
+    if (activeMask) renderer.applyStickering(activeMask);
+  }
+
   // ---- Apply state snapshot (no animation) ----
   function applyStateToRenderer(state) {
-    renderer.setState(state);
+    rebakeWithMask(state);
     updateDebugState(state);
     liveState = state;
     appliedMoves = [];
@@ -334,8 +366,13 @@
     currentAlgIndex = idx;
     const alg = ALGS[idx];
     currentMoves = alg.notation ? AlgParser.parse(alg.notation) : [];
+    // For case algs: bake z2 into the base state so yellow (D) is on U.
+    // currentMoves stays as the original alg moves — they operate on the yellow U layer
+    // after z2, which is correct for CFOP OLL/PLL convention.
+    // fixCenters() patches the 4 centres that setState hardcodes incorrectly after z2.
+    setupOrientation = (alg.caseAlg && currentMoves.length) ? 'z2' : null;
     currentCaseState = (alg.caseAlg && currentMoves.length)
-      ? _solvedBase.applyAlg(CubeState.invertAlg(currentMoves))
+      ? _solvedBase.applyAlg(['z2', ...CubeState.invertAlg(currentMoves)])
       : _solvedBase;
     stepIndex = 0;
     document.getElementById('alg-label').textContent = alg.notation || '(solved)';
@@ -362,6 +399,7 @@
     stepIndex++;
     renderer.animateMove(move, () => {
       const after = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex));
+      if (activeMask) rebakeWithMask(after);  // snap + remask so mask is always position-correct
       updateDebugState(after, prevFaces);
       updateStepLabel();
       onDone?.();
@@ -429,6 +467,7 @@
     stepIndex--;
     renderer.animateMove(inverseMove, () => {
       const state = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex));
+      if (activeMask) rebakeWithMask(state);  // snap + remask on step back too
       updateDebugState(state, prevFaces);
       updateStepLabel();
     });
@@ -470,15 +509,19 @@
   });
 
   // ---- Stickering tab ----
+  // Convention (matches masks.mjs / cfop-app image gen):
+  //   z2 is applied physically after setState, so the D layer is visually on top.
+  //   Orbit strings target D-layer slots (EDGES 4-7, CORNERS 4-7).
+  //   'O' = show primary sticker only (slot 3 = -Y for D-layer pieces after z2).
+  // z2 is baked into the KPattern state → case is on the U layer (orbit slots 0-3).
+  // EDGES: 0-3=U layer, 4-7=D layer, 8-11=middle.  CORNERS: 0-3=U layer, 4-7=D layer.
+  // '-' = show all outward stickers; 'O' = U/D-face sticker only; 'I' = hide all.
   const ORBIT_EXAMPLES = [
-    { label: 'Full',     str: 'EDGES:------------,CORNERS:--------,CENTERS:------' },
-    { label: 'Cross-W',  str: 'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------' },
-    { label: 'Cross-Y',  str: 'EDGES:IIIIOOOOIIII,CORNERS:IIIIIIII,CENTERS:------' },
-    { label: 'F2L',      str: 'EDGES:----IIII----,CORNERS:----IIII,CENTERS:-----I' },
-    { label: 'OLL-1L',   str: 'EDGES:----OOOO----,CORNERS:----OOOO,CENTERS:------' },
-    { label: 'OLL-2L',   str: 'EDGES:----OOOO----,CORNERS:----IIII,CENTERS:------' },
-    { label: 'PLL-1L',   str: 'EDGES:------------,CORNERS:--------,CENTERS:------' },
-    { label: 'PLL-2L',   str: 'EDGES:----OOOO----,CORNERS:--------,CENTERS:------' },
+    { label: 'Full',   str: 'EDGES:------------,CORNERS:--------,CENTERS:------' },
+    { label: 'OLL',    str: 'EDGES:----IIIIIIII,CORNERS:----IIII,CENTERS:------' },  // U-layer all visible
+    { label: 'OLL-2L', str: 'EDGES:OOOOIIIIIIII,CORNERS:OOOOIIII,CENTERS:------' },  // U-layer top-face only
+    { label: 'PLL',    str: 'EDGES:----IIIIIIII,CORNERS:----IIII,CENTERS:------' },  // same as OLL for sides
+    { label: 'F2L',    str: 'EDGES:IIII--------,CORNERS:IIII----,CENTERS:------' },  // D+middle visible
   ];
 
   const orbitInput  = document.getElementById('orbit-input');
@@ -500,8 +543,8 @@
     if (!str.trim()) return;
     try {
       const map = CubeStickering.fromOrbitString(str.trim());
-      renderer.setState(liveState);  // rebake colours before masking
-      renderer.applyStickering(map);
+      activeMask = map;
+      rebakeWithMask(liveState);  // full rebake — no accumulation possible
       const covered = [...map.values()].filter(v => v.some(Boolean)).length;
       orbitStatus.textContent = `Applied — ${covered}/${map.size} cubelets with visible stickers`;
       orbitStatus.style.color = '#7fc';
@@ -516,9 +559,9 @@
   orbitInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyOrbitString(orbitInput.value); });
 
   document.getElementById('btn-orbit-clear').onclick = () => {
-    const full = 'EDGES:------------,CORNERS:--------,CENTERS:------';
-    orbitInput.value = full;
-    applyOrbitString(full);
+    activeMask = null;
+    rebakeWithMask(liveState);  // restore full colors, no mask
+    orbitInput.value = 'EDGES:------------,CORNERS:--------,CENTERS:------';
     orbitStatus.textContent = 'Cleared — all stickers visible';
     orbitStatus.style.color = '#666';
   };
@@ -529,7 +572,7 @@
 
   function setLiveState(state, movesLabel) {
     liveState = state;
-    renderer.setState(state);
+    rebakeWithMask(state);
     updateDebugState(state);
     const solved = state.isSolved();
     document.getElementById('move-status').textContent =
@@ -563,6 +606,7 @@
     appliedMoves.push(mv);
     renderer.animateMove(mv, () => {
       liveState = nextState;
+      if (activeMask) rebakeWithMask(nextState);
       updateDebugState(nextState, prevFaces);
       const solved = nextState.isSolved();
       document.getElementById('move-status').textContent =
@@ -571,6 +615,7 @@
       onDone?.();
     });
   }
+
 
   document.getElementById('btn-move-apply').onclick = () => {
     const input = document.getElementById('move-input');

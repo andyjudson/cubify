@@ -81,7 +81,7 @@ export class CubeStickering {
    *   'O' → show D-face sticker only (slot 3, -Y — orientation after z2)
    *
    * @param {string} str  e.g. "EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------"
-   * @returns {Map<number, boolean[]>}  cubeletIndex → boolean[6] slot visibility
+   * @returns {Map<string, boolean[]>}  "x,y,z" grid position → boolean[6] slot visibility
    */
   static fromOrbitString(str) {
     const orbits = parseOrbitString(str);
@@ -98,13 +98,17 @@ export class CubeStickering {
       if (!chars) continue;
       for (let i = 0; i < table.length; i++) {
         const cubeletIdx = table[i];
-        const isOut = outwardSlots(CUBELET_POSITIONS[cubeletIdx]);
+        const pos = CUBELET_POSITIONS[cubeletIdx];
+        const isOut = outwardSlots(pos);
         const ch = chars[i];
-        // 'O' = IgnoreNonPrimary (cubing.js convention): show primary sticker only, grey others
-        // Primary slot: +Y (slot 2) for U-layer, -Y (slot 3) for D-layer, all for middle
-        const { y } = CUBELET_POSITIONS[cubeletIdx];
-        const primarySlot = y === 1 ? 2 : y === -1 ? 3 : -1;
-        map.set(cubeletIdx, isOut.map((outward, slot) => {
+        // 'O' = IgnoreNonPrimary: show primary sticker only, grey others.
+        // Primary slot is derived from the canonical orbit position (fixed by orbit definition):
+        //   +Y (slot 2) for U-layer positions, -Y (slot 3) for D-layer, all for middle.
+        const primarySlot = pos.y === 1 ? 2 : pos.y === -1 ? 3 : -1;
+        // Key by grid position string — position-based semantics:
+        // "show D-face only for whatever piece is currently at DRF" not "for piece #19".
+        const posKey = `${pos.x},${pos.y},${pos.z}`;
+        map.set(posKey, isOut.map((outward, slot) => {
           if (ch === '-') return outward;
           if (ch === 'I') return false;
           if (ch === 'O') return primarySlot === -1 ? outward : (outward && slot === primarySlot);
