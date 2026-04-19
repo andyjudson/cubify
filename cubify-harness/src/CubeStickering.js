@@ -94,18 +94,17 @@ export class CubeStickering {
   }
 
   /**
-   * Parse an orbit string with state-aware primary sticker placement.
+   * Parse an orbit string with piece-identity-based primary sticker placement.
    *
-   * For 'O' (IgnoreNonPrimary) pieces the primary face is determined by the CURRENT SLOT
-   * POSITION (where the piece physically is), not the piece's home position. The visMap
-   * values are world-face indexed booleans [R,L,U,D,F,B], and applyStickering() uses the
-   * mesh quaternion to map each physical slot to its current world face before greying.
-   * This correctly tracks stickers through moves (e.g. a D-layer piece rotated up to U-layer
-   * via R exposes its F-sticker on U, not its D-sticker).
+   * For 'O' (IgnoreNonPrimary), shows the piece's OWN primary sticker (facelet[0] in
+   * cubing.js terms) wherever it physically ends up — e.g. a yellow D-face sticker on a
+   * twisted OLL corner shows on a side face, matching TwistyPlayer behaviour. The visMap
+   * is keyed by homePos (piece identity) and values are slot-indexed booleans — because
+   * both keys and slot indices are mesh-local and never change through moves or rotations.
    *
    * @param {string} str          Orbit string, e.g. "EDGES:OOOO--------,CORNERS:OOOO----,CENTERS:------"
    * @param {Object|null} rawPattern  Result of CubeState.toRawPattern(), or null for solved identity.
-   * @returns {Map<string, boolean[]>}  homePos "x,y,z" → world-face boolean[6] (R,L,U,D,F,B)
+   * @returns {Map<string, boolean[]>}  homePos "x,y,z" → slot-indexed boolean[6]
    */
   static fromOrbitStringWithState(str, rawPattern) {
     const orbits = parseOrbitString(str);
@@ -129,30 +128,26 @@ export class CubeStickering {
         // j = piece currently in slot i; homePos = that piece's fixed home position in the scene.
         const j = pieces ? pieces[i] : i;
         const homePos = CUBELET_POSITIONS[table[j]];
+        const isOut = outwardSlots(homePos);
 
-        // currentSlotPos = world position this slot occupies (solved-state position for slot i).
-        // Used to determine which world face is "primary" for 'O' — must follow the slot
-        // position, not the piece's home, because the piece may have been moved out of its
-        // home layer (e.g. a D-layer piece rotated up to a U-layer slot via R).
-        const currentSlotPos = CUBELET_POSITIONS[table[i]];
+        // Primary slot for 'O' (IgnoreNonPrimary): the slot carrying the piece's OWN primary
+        // sticker — facelet[0] in cubing.js CubieDef terms. This is always the U-face slot
+        // for U-home pieces (slot2) and D-face slot for D-home pieces (slot3), regardless of
+        // where the piece currently is or which way it is twisted. When twisted, the yellow
+        // sticker travels to a side face but keeps its material — we grey the other slots and
+        // let the primary sticker show wherever the mesh quaternion places it.
+        // (Equatorial edges: F-side slot4 or B-side slot5.)
+        const primarySlot =
+          homePos.y ===  1 ? 2 :
+          homePos.y === -1 ? 3 :
+          homePos.z ===  1 ? 4 :
+          homePos.z === -1 ? 5 : -1;
 
-        // World-face index for 'O' primary face: 0=R,1=L,2=U,3=D,4=F,5=B
-        // (matches the SLOT_TO_FACE order in CubeRenderer3D so the same index works for both).
-        const primaryWorldFaceIdx =
-          currentSlotPos.y ===  1 ? 2 :   // U-layer slot → show U-facing sticker
-          currentSlotPos.y === -1 ? 3 :   // D-layer slot → show D-facing sticker
-          currentSlotPos.z ===  1 ? 4 :   // Equatorial F-side slot (FL/FR)
-          currentSlotPos.z === -1 ? 5 : -1; // Equatorial B-side slot (BL/BR)
-
-        // visMap value is world-face indexed booleans [R,L,U,D,F,B].
-        // applyStickering() uses the mesh quaternion to map each physical slot to its current
-        // world face, then looks up this array — so the mask follows the sticker wherever it
-        // physically ends up after animation, not just the home-slot direction.
         const posKey = `${homePos.x},${homePos.y},${homePos.z}`;
-        map.set(posKey, [0, 1, 2, 3, 4, 5].map(faceIdx => {
-          if (ch === '-') return true;
+        map.set(posKey, isOut.map((outward, slot) => {
+          if (ch === '-') return outward;
           if (ch === 'I') return false;
-          if (ch === 'O') return primaryWorldFaceIdx !== -1 && faceIdx === primaryWorldFaceIdx;
+          if (ch === 'O') return primarySlot === -1 ? outward : (outward && slot === primarySlot);
           return false;
         }));
       }

@@ -498,25 +498,19 @@ export class CubeRenderer3D {
    * @param {Map<string, boolean[]>} visibilityMap — "x,y,z" grid position → slot visibility[6]
    */
   applyStickering(visibilityMap) {
-    // visibilityMap values are world-face indexed booleans [R,L,U,D,F,B] (index 0–5).
-    // We use the mesh quaternion to find which world face each home-outward slot currently
-    // points toward, then grey it if the corresponding world-face flag is false.
-    // This correctly tracks stickers through moves — a piece rotated from D-layer to U-layer
-    // exposes its F-sticker on U, and the mask follows that sticker, not the home slot index.
+    // visibilityMap is keyed by homePos ("x,y,z") → slot-indexed boolean[6].
+    // vis[slot] is true if that mesh-local slot should show its sticker colour.
+    // Because the map is keyed by piece identity (homePos never changes) and the
+    // slot indices are mesh-local (also fixed), this works correctly after moves:
+    // the primary sticker (e.g. yellow slot3 for a DRF piece) stays grey or
+    // visible regardless of where the piece physically travelled to.
     this._cubelets.forEach(({ mesh, homePos }) => {
       const vis = visibilityMap.get(`${homePos.x},${homePos.y},${homePos.z}`);
       if (!vis) return;
       const homeOut = outwardSlots(homePos);
       for (let slot = 0; slot < 6; slot++) {
         if (!homeOut[slot]) continue;
-        // Rotate this slot's local direction into world space
-        _slotDir.copy(LOCAL_DIRS[slot]).applyQuaternion(mesh.quaternion);
-        const ax = Math.abs(_slotDir.x), ay = Math.abs(_slotDir.y), az = Math.abs(_slotDir.z);
-        let worldFaceIdx;
-        if      (ax >= ay && ax >= az) worldFaceIdx = _slotDir.x > 0 ? 0 : 1; // R or L
-        else if (ay >= ax && ay >= az) worldFaceIdx = _slotDir.y > 0 ? 2 : 3; // U or D
-        else                           worldFaceIdx = _slotDir.z > 0 ? 4 : 5; // F or B
-        if (!vis[worldFaceIdx]) {
+        if (!vis[slot]) {
           mesh.material[slot].map = makeStickerTexture(FACE_COLOURS_HEX.X);
           mesh.material[slot].needsUpdate = true;
         }
