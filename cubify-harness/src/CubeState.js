@@ -201,11 +201,23 @@ export class CubeState {
 
     const data = this._kPattern.patternData;
 
-    // Centers are fixed on a standard 3×3 — always show the home face colour.
-    // Whole-cube rotations (z2/x/y) in the KPattern don't affect center display here;
-    // case setup avoids applying puzzle-orientation moves to the state.
-    for (let i = 0; i < 6; i++) {
-      faces[i][4] = FACE_NAMES[i];
+    // Centers — read from CENTERS orbit when available.
+    // cubing.js CENTERS orbit slot ordering (verified by z2 analysis):
+    //   slot 0=U, 1=R, 2=F, 3=L, 4=B, 5=D  (NOT the standard face index order)
+    // Piece IDs follow the same home-slot ordering:
+    //   piece 0=U(white), 1=R(red), 2=F(green), 3=L(orange), 4=B(blue), 5=D(yellow)
+    const CENTER_SLOT_TO_FACE_IDX = [0, 1, 2, 4, 5, 3]; // slot → FACE_NAMES index
+    const CENTER_PIECE_TO_FACE    = ['U','R','F','L','B','D']; // piece → face name
+    if (data['CENTERS']) {
+      const c = data['CENTERS'];
+      for (let slot = 0; slot < 6; slot++) {
+        const faceIdx  = CENTER_SLOT_TO_FACE_IDX[slot];
+        const pieceId  = c.pieces[slot];
+        faces[faceIdx][4] = CENTER_PIECE_TO_FACE[pieceId] ?? FACE_NAMES[faceIdx];
+      }
+    } else {
+      // Fallback: hardcode solved orientation (no CENTERS orbit in this puzzle variant)
+      for (let i = 0; i < 6; i++) faces[i][4] = FACE_NAMES[i];
     }
     const corners = data['CORNERS'];
     const edges = data['EDGES'];
@@ -272,6 +284,7 @@ export class CubeState {
     return {
       corners: { pieces: [...d.CORNERS.pieces], orientation: [...d.CORNERS.orientation] },
       edges:   { pieces: [...d.EDGES.pieces],   orientation: [...d.EDGES.orientation]   },
+      centers: d.CENTERS ? { pieces: [...d.CENTERS.pieces], orientation: [...d.CENTERS.orientation] } : null,
     };
   }
 

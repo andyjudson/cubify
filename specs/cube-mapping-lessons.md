@@ -288,3 +288,21 @@ The U layer now holds the yellow OLL/PLL pieces. `currentMoves` (the alg) is unc
 **Problem**: `setState` only reset quaternion to identity but not mesh position. After animated moves, cubelet mesh positions drifted to post-animation grid positions. A subsequent `setState` for a new case still assigned colours correctly (via `cubelet.pos`), but `applyOrientation` would then stack on top of wherever cubelets currently were.
 
 **Fix**: `setState` resets each cubelet's mesh position to `homePos` (stored at build time) and resets `cubelet.pos` and `cubelet.isOutward` accordingly. `setState` is now fully idempotent — calling it twice with the same state gives the same result regardless of prior animation history.
+
+---
+
+## 16. Mask stickers travel with the cubelet — never reapplyMask after animation
+
+**Mental model**: `applyStickering` bakes grey textures directly into the Three.js mesh materials. The grey is a property of the *piece*, not the *position*. When `animateMove` physically moves the mesh, its materials travel with it — no extra work needed.
+
+**The bug**: calling `reapplyMask(newState)` inside every animation callback (which calls `restoreColours()` then re-applies the mask from the KPattern state) resets all stickers to home colours and then re-greys based on *current world positions*. This makes grey follow positions, not pieces — the opposite of correct behaviour.
+
+**The fix**: remove `reapplyMask` from all animation callbacks (`animateMove`, `animateAlg`, step-forward, step-back). The grey persists naturally through moves.
+
+**When to call `reapplyMask`** (the only valid sites):
+- New case loaded (`applyStateToRenderer` → `resetToSolved` + fresh `applyStickering`)
+- Mask string changed (`applyOrbitString`)
+- Reset to solved (`btn-reset-solved` → `resetToSolved` + `reapplyMask`)
+- Case selected from UI (`setLiveState` after visual reset)
+
+**Why `homePos` key still works**: `applyStickering` is keyed by `homePos` (piece identity). After a move the mesh is at a new world position but `homePos` is unchanged — so the correct mesh receives its correct vis entry. The quaternion-based world-face lookup in `applyStickering` then greys the right *physical slot* on that rotated mesh.
