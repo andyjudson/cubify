@@ -305,4 +305,20 @@ The U layer now holds the yellow OLL/PLL pieces. `currentMoves` (the alg) is unc
 - Reset to solved (`btn-reset-solved` → `resetToSolved` + `reapplyMask`)
 - Case selected from UI (`setLiveState` after visual reset)
 
-**Why `homePos` key still works**: `applyStickering` is keyed by `homePos` (piece identity). After a move the mesh is at a new world position but `homePos` is unchanged — so the correct mesh receives its correct vis entry. The quaternion-based world-face lookup in `applyStickering` then greys the right *physical slot* on that rotated mesh.
+**Why `homePos` key still works**: `applyStickering` is keyed by `homePos` (piece identity). After a move the mesh is at a new world position but `homePos` is unchanged — so the correct mesh receives its correct vis entry. The slot-indexed vis array is also mesh-local and never changes, so `vis[slot]` and `material[slot]` stay in sync through any rotation.
+
+---
+
+## 17. 'O' primary sticker = piece's own facelet[0], NOT the sticker currently facing the primary direction
+
+**The trap**: it's tempting to implement 'O' (IgnoreNonPrimary) as "show whichever sticker currently faces U (for U-layer positions)". This is wrong for twisted OLL corners — a twisted corner has its yellow sticker on a side face, but the wrong approach greys yellow and shows whatever non-yellow sticker happens to face up.
+
+**The correct semantics** (matching TwistyPlayer): show the piece's OWN primary sticker (facelet[0] in cubing.js CubieDef terms) wherever the mesh quaternion places it:
+- U-home pieces (y=1): primary = slot2 (U face at home) — white
+- D-home pieces (y=-1): primary = slot3 (D face at home) — yellow
+- Equatorial edges (y=0, z=1): primary = slot4 (F face)
+- Equatorial edges (y=0, z=-1): primary = slot5 (B face)
+
+This is determined purely from `homePos` — no quaternion lookup needed in the visMap. The mesh quaternion does the work automatically: greyeing slot0 and slot4 on a DRF piece means those slots travel grey wherever they go, and slot3 (yellow) shows on whatever world face the rotation places it.
+
+**Implementation**: `fromOrbitStringWithState` outputs slot-indexed booleans keyed by homePos; `applyStickering` uses `vis[slot]` directly. No world-face index conversion needed.
