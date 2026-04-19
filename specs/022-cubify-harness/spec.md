@@ -51,7 +51,7 @@ This feature delivers a working proof of concept, not a complete library. Specif
 5. `CubeStickering` — named CFOP presets (`full`, `oll`, `pll`, `f2l`, `cross`)
 6. Static export PoC — PNG/SVG generation path, headless-capable
 
-Full animation engine, player controls, and scramble generator integration are **out of scope for 020** — covered in subsequent features once the PoC validates the core rendering approach.
+Full animation engine, player controls, and scramble generator integration are **out of scope for 022** — covered in subsequent features once the PoC validates the core rendering approach.
 
 ---
 
@@ -126,7 +126,7 @@ cube.on('move', ({ index, move, notation }) => { ... });
 cube.on('complete', () => { ... });
 ```
 
-### CFOP Stickering Presets
+### CFOP Stickering Presets (deferred)
 
 | Preset | Description |
 |--------|-------------|
@@ -150,11 +150,11 @@ Options in priority order:
 
 The cube geometry is simple (26 cubelets, 54 stickers) — Three.js is not overkill here.
 
-### 2D (SVG)
+### 2D (deferred)
 
 Pure SVG generation — no canvas, no WebGL. Isometric projection or flat net. This is the reliable headless export path and a fast fallback for low-power devices.
 
-### Headless Export
+### Headless Export (deferred)
 
 - PNG: `OffscreenCanvas` + WebGL (supported in Node.js via `gl` package or in Worker threads in browser)
 - SVG: pure string generation, zero browser dependency
@@ -204,21 +204,3 @@ Everything else — rendering, animation, stickering, export — is built fresh.
 - `cfop-app` and `cubify-scripts` migrate to use `cubify-harness` in place of `cubing.js`/TwistyPlayer in a subsequent feature
 
 ---
-
-## Future / Advanced Features (out of scope for 020)
-
-- **Solver integration** — feed a cube state to a Kociemba-based solver, enumerate alternative solutions up to N moves. Foundation for programmatic alt alg generation for all OLL/PLL cases.
-- **COLL/ZBLL alg sets** — solver-generated, not hand-curated
-- **Full animation engine** — easing, sticker colour transitions, slow-motion replay
-- **Scramble generator** — migrate from `cubingjs`-dependent implementation
-- **npm package** — publish as `cubify-harness` once API is stable
-
----
-
-## Acceptance Criteria (PoC)
-
-- [ ] A 3D cube mounts and renders correctly in a zero-height container (no IntersectionObserver constraint)
-- [ ] CFOP stickering presets produce correct visual output for OLL and PLL cases
-- [ ] Static PNG export works without a headed browser
-- [ ] Public API surface documented and validated against the three integration points: VisualizerModal, PracticeSessionModal, cubify agent skill
-- [ ] Architecture decision record written for rendering approach (Three.js vs raw WebGL)

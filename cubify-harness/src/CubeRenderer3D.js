@@ -25,15 +25,21 @@ const FACE_COLOURS_HEX = {
   D: '#ffd000',
   L: '#e06000',
   B: '#0f4fad',
-  X: '#2a2a2a',  // dark grey — hidden/masked stickers (distinct from black plastic body)
+  X: '#2a2a2a',  // dark grey — hidden/masked stickers (near-black, blends with plastic body by design)
 };
-const FACE_COLOURS = Object.fromEntries(
-  Object.entries(FACE_COLOURS_HEX).map(([k, v]) => [k, parseInt(v.slice(1), 16)])
-);
-
-// Three.js slot → WCA face name
+// Three.js slot → WCA face name (slot 0=+X=R, 1=-X=L, 2=+Y=U, 3=-Y=D, 4=+Z=F, 5=-Z=B)
 const SLOT_TO_FACE = ['R', 'L', 'U', 'D', 'F', 'B'];
-const FACE_TO_IDX  = { U: 0, R: 1, F: 2, D: 3, L: 4, B: 5 };
+
+// Dim variants: each face colour blended 50% toward mid-grey (160) — for F2L context display
+const FACE_DIM_COLOURS_HEX = Object.fromEntries(
+  Object.entries(FACE_COLOURS_HEX).map(([face, hex]) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const mix = (c) => Math.round(c * 0.5 + 160 * 0.5).toString(16).padStart(2, '0');
+    return [face, `#${mix(r)}${mix(g)}${mix(b)}`];
+  })
+);
 
 // ---- Sticker texture factory ----
 // Returns a CanvasTexture with a rounded-rect sticker on a black background.
@@ -80,6 +86,17 @@ function makeStickerTexture(colourHex) {
   return tex;
 }
 
+// Local slot direction vectors — slot 0=+X(R), 1=-X(L), 2=+Y(U), 3=-Y(D), 4=+Z(F), 5=-Z(B)
+const LOCAL_DIRS = [
+  new THREE.Vector3( 1, 0, 0),
+  new THREE.Vector3(-1, 0, 0),
+  new THREE.Vector3( 0, 1, 0),
+  new THREE.Vector3( 0,-1, 0),
+  new THREE.Vector3( 0, 0, 1),
+  new THREE.Vector3( 0, 0,-1),
+];
+const _slotDir = new THREE.Vector3(); // reusable scratch vector for quaternion rotation
+
 // Shared solid-black material for all inner (non-outward) faces — no texture, no sticker shape
 const BLACK_MATERIAL = new THREE.MeshStandardMaterial({
   color: 0x141414,
@@ -101,23 +118,6 @@ function buildCubeletPositions() {
 
 function outwardSlots({ x, y, z }) {
   return [x===1, x===-1, y===1, y===-1, z===1, z===-1];
-}
-
-// ---- Sticker index mapping ----
-// Maps cubelet grid position + material slot → sticker index (0-8) on the WCA face array.
-// Face sticker layout (reading order):  0 1 2 / 3 4 5 / 6 7 8
-function stickerIndex(pos, slot) {
-  const { x, y, z } = pos;
-  const idx = (col, row) => (row + 1) * 3 + (col + 1);
-  switch (slot) {
-    case 0: return idx(-z, -y); // +X = R
-    case 1: return idx( z, -y); // -X = L
-    case 2: return idx( x,  z); // +Y = U
-    case 3: return idx( x, -z); // -Y = D
-    case 4: return idx( x, -y); // +Z = F
-    case 5: return idx(-x, -y); // -Z = B
-    default: return 4;
-  }
 }
 
 // ---- Face rotation axis/filter for animation ----
@@ -292,7 +292,8 @@ export class CubeRenderer3D {
       const mesh = new THREE.Mesh(geo, materials);
       mesh.position.set(pos.x, pos.y, pos.z);
       this._scene.add(mesh);
-      this._cubelets.push({ mesh, pos, isOutward });
+      // homePos: the original grid position — used by setState to reset before repainting
+      this._cubelets.push({ mesh, pos: { ...pos }, homePos: { ...pos }, isOutward });
     }
     this._log(`built ${this._cubelets.length} cubelets`);
   }
@@ -300,42 +301,99 @@ export class CubeRenderer3D {
   // ---- State ----
 
   /**
-   * Instantly apply a CubeState (no animation).
-   * Updates each outward face's texture to the correct sticker colour.
-   * @param {import('./CubeState.js').CubeState} state
+   * Reset every cubelet to its home position with identity quaternion and home colours.
+   * Call before applyMovesInstant() to establish a known visual baseline.
    */
-  setState(state) {
-    const faces = state.toFaceArray();
+  resetToSolved() {
     for (const cubelet of this._cubelets) {
-      const { mesh, pos, isOutward } = cubelet;
-      // Reset orientation — setState reconstructs colors from the face array,
-      // which assumes identity quaternion (slot directions aligned with world axes).
-      mesh.quaternion.set(0, 0, 0, 1);
+      const { mesh, homePos } = cubelet;
+      mesh.position.set(homePos.x, homePos.y, homePos.z);
+      mesh.quaternion.identity();
+      cubelet.pos      = { ...homePos };
+      cubelet.isOutward = outwardSlots(homePos);
+    }
+    this.restoreColours();
+    this._log('resetToSolved');
+  }
+
+  /**
+   * Restore every outward sticker slot to its home colour.
+   * Undoes any grey applied by applyStickering without moving pieces.
+   * Call after animation completes, before applying a new stickering mask.
+   */
+  restoreColours() {
+    for (const { mesh, homePos } of this._cubelets) {
+      const homeOut = outwardSlots(homePos);
       for (let slot = 0; slot < 6; slot++) {
-        if (!isOutward[slot]) {
-          // Ensure inner slot always has the shared black material
-          if (mesh.material[slot] !== BLACK_MATERIAL) {
-            mesh.material[slot] = BLACK_MATERIAL;
-          }
-          continue;
-        }
-        const faceIdx = FACE_TO_IDX[SLOT_TO_FACE[slot]];
-        const si = stickerIndex(pos, slot);
-        const colourKey = faces[faceIdx][si];
-        const colourHex = FACE_COLOURS_HEX[colourKey] ?? FACE_COLOURS_HEX.X;
-        const tex = makeStickerTexture(colourHex);
-        // Replace material if it's the shared black one (slot became outward after a move)
-        if (mesh.material[slot] === BLACK_MATERIAL) {
-          mesh.material[slot] = new THREE.MeshBasicMaterial({
-            map: tex,
-          });
-        } else {
+        if (!homeOut[slot]) continue;
+        const tex = makeStickerTexture(FACE_COLOURS_HEX[SLOT_TO_FACE[slot]]);
+        if (mesh.material[slot].map !== tex) {
           mesh.material[slot].map = tex;
           mesh.material[slot].needsUpdate = true;
         }
       }
     }
-    this._log('setState');
+  }
+
+  /**
+   * Apply moves synchronously using the same physics as animateMove, but with no
+   * visual transition. Quaternions and positions are set exactly as they would be
+   * after animation completes. Call after resetToSolved() to reach a target state.
+   * @param {string[]} moves
+   */
+  applyMovesInstant(moves) {
+    for (const move of moves) {
+      const base = move.replace(/'|2/g, '');
+      const mod  = move.endsWith("'") ? -1 : move.endsWith('2') ? 2 : 1;
+      const def  = MOVE_AXIS[base.toUpperCase()];
+      if (!def) continue;
+
+      const totalAngle = (Math.PI / 2) * def.dir * mod;
+      const axis = def.axis.clone().normalize();
+      const quat = new THREE.Quaternion().setFromAxisAngle(axis, totalAngle);
+      const mat4 = new THREE.Matrix4().makeRotationFromQuaternion(quat);
+
+      // Filter on current positions before applying — same logic as animateMove
+      const moving = this._cubelets.filter(c => def.filter(c.pos));
+      for (const { mesh } of moving) {
+        mesh.applyMatrix4(mat4);
+        mesh.position.x = Math.round(mesh.position.x);
+        mesh.position.y = Math.round(mesh.position.y);
+        mesh.position.z = Math.round(mesh.position.z);
+      }
+      this._updateCubeletMetadata();
+    }
+    this._log(`applyMovesInstant: ${moves.length} moves`);
+  }
+
+  // ---- Orientation ----
+
+  /**
+   * Instantly apply a whole-cube rotation (e.g. 'z2', 'x', "y'").
+   * Physically moves all cubelets — no animation. Updates metadata so position-based
+   * stickering works correctly after the rotation.
+   * Call after setState() to set a display orientation (e.g. z2 for yellow-on-top).
+   * @param {string} move  e.g. 'z2', 'x', "y'"
+   */
+  applyOrientation(move) {
+    const base = move.replace(/'|2/g, '');
+    const mod  = move.endsWith("'") ? -1 : move.endsWith('2') ? 2 : 1;
+    const def  = MOVE_AXIS[base.toUpperCase()];
+    if (!def) return;
+
+    const angle = (Math.PI / 2) * def.dir * mod;
+    const quat  = new THREE.Quaternion().setFromAxisAngle(def.axis, angle);
+    const mat4  = new THREE.Matrix4().makeRotationFromQuaternion(quat);
+
+    for (const cubelet of this._cubelets) {
+      cubelet.mesh.position.applyMatrix4(mat4);
+      cubelet.mesh.position.x = Math.round(cubelet.mesh.position.x);
+      cubelet.mesh.position.y = Math.round(cubelet.mesh.position.y);
+      cubelet.mesh.position.z = Math.round(cubelet.mesh.position.z);
+      cubelet.mesh.quaternion.premultiply(quat);
+    }
+    this._updateCubeletMetadata();
+    this._log(`applyOrientation: ${move}`);
   }
 
   // ---- Animated move ----
@@ -445,22 +503,81 @@ export class CubeRenderer3D {
   // ---- Stickering ----
 
   /**
-   * Apply a stickering mask. Hidden slots get the black plastic texture.
-   * @param {Map<number, boolean[]>} visibilityMap — cubelet index → slot visibility[6]
+   * Apply a stickering mask. Hidden slots get the grey plastic texture.
+   * Looks up each cubelet by its current grid position — position-based semantics.
+   * Call setState() first to rebake colors if the cube has been animated since the last setState.
+   * @param {Map<string, boolean[]>} visibilityMap — "x,y,z" grid position → slot visibility[6]
    */
   applyStickering(visibilityMap) {
-    this._cubelets.forEach(({ mesh, isOutward }, i) => {
-      const vis = visibilityMap.get(i);
+    // visibilityMap: homePos "x,y,z" → number[6] where 0=hidden, 1=dim, 2=full.
+    // restoreColours() has already set all slots to full, so we only need to act
+    // on slots that are dim (1) or hidden (0).
+    this._cubelets.forEach(({ mesh, homePos }) => {
+      const vis = visibilityMap.get(`${homePos.x},${homePos.y},${homePos.z}`);
       if (!vis) return;
+      const homeOut = outwardSlots(homePos);
       for (let slot = 0; slot < 6; slot++) {
-        if (!isOutward[slot]) continue;
-        if (!vis[slot]) {
-          mesh.material[slot].map = makeStickerTexture(FACE_COLOURS_HEX.X);
+        if (!homeOut[slot]) continue;
+        const level = vis[slot];
+        if (level === 2) continue; // full — already restored
+        const face = SLOT_TO_FACE[slot];
+        const hex = level === 1 ? FACE_DIM_COLOURS_HEX[face] : FACE_COLOURS_HEX.X;
+        const tex = makeStickerTexture(hex);
+        if (mesh.material[slot].map !== tex) {
+          mesh.material[slot].map = tex;
           mesh.material[slot].needsUpdate = true;
         }
       }
     });
     this._log('applyStickering');
+  }
+
+  /**
+   * Returns a world-face color map for diagnostic comparison.
+   * For each outward face of each cubelet's current world position, resolves which
+   * local slot faces that direction (via mesh quaternion) and what color it carries.
+   *
+   * @returns {Map<string, string>}  "wx,wy,wz:FACE" → color tag (face letter, 'grey', or 'plastic')
+   */
+  getWorldFaceMap() {
+    const FACE_BY_HEX = Object.fromEntries(
+      Object.entries(FACE_COLOURS_HEX).map(([f, h]) => [h, f])
+    );
+    const result = new Map();
+    for (const { mesh } of this._cubelets) {
+      const wx = Math.round(mesh.position.x);
+      const wy = Math.round(mesh.position.y);
+      const wz = Math.round(mesh.position.z);
+      // Outward world faces at this world position
+      const outward = [];
+      if (wx ===  1) outward.push('R');
+      if (wx === -1) outward.push('L');
+      if (wy ===  1) outward.push('U');
+      if (wy === -1) outward.push('D');
+      if (wz ===  1) outward.push('F');
+      if (wz === -1) outward.push('B');
+
+      for (let slot = 0; slot < 6; slot++) {
+        _slotDir.copy(LOCAL_DIRS[slot]).applyQuaternion(mesh.quaternion);
+        const ax = Math.abs(_slotDir.x), ay = Math.abs(_slotDir.y), az = Math.abs(_slotDir.z);
+        let face;
+        if (ax >= ay && ax >= az) face = _slotDir.x > 0 ? 'R' : 'L';
+        else if (ay >= ax && ay >= az) face = _slotDir.y > 0 ? 'U' : 'D';
+        else                           face = _slotDir.z > 0 ? 'F' : 'B';
+        if (!outward.includes(face)) continue;  // faces inward, skip
+
+        const mat = mesh.material[slot];
+        let color;
+        if (mat === BLACK_MATERIAL) {
+          color = 'plastic';
+        } else {
+          const hex = [..._textureCache.entries()].find(([,t]) => t === mat.map)?.[0];
+          color = hex ? (FACE_BY_HEX[hex] ?? hex) : 'unknown';
+        }
+        result.set(`${wx},${wy},${wz}:${face}`, color);
+      }
+    }
+    return result;
   }
 
   // ---- Camera ----

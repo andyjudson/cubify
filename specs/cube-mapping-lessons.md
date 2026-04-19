@@ -214,3 +214,111 @@ When running a cycle-based sticker permutation model (WCA convention) against `C
 - **Multi-move algs with U/D**: don't cross-check. Alg `R U R' U'` in WCA ≠ `R U R' U'` in cubing.js (U goes opposite way). The states they produce are fundamentally different. Only cross-check multi-move algs using R, F, L, B exclusively.
 
 **T-perm order in a flat 54-sticker model**: T-perm has order 2 on a physical cube (piece-based). But in a flat 54-sticker permutation model, the order depends on the combination of face-rotation direction and cross-face cycle direction. Don't use T-perm order as a regression test for the sticker model — it is not a reliable indicator of correctness.
+
+---
+
+## 11. Case setup convention — z2 + optional y rotation
+
+**All CFOP case rendering applies a `setup` move before the inverse case alg.** The setup value comes from the `setup` field in the alg JSON (defaults to `z2` if absent):
+
+```
+setup state = applyAlg([...setup_moves, ...invertAlg(caseAlg)]) on solved cube
+```
+
+The setup always begins with `z2`, which swaps U↔D. This positions the case on the **D layer** (y = -1 in Three.js):
+- Cross solved on top (U layer, y=1) — already done
+- Case pattern on the bottom layer (D layer, y=-1) — to be solved
+
+Some cases add a `y`, `y'`, or `y2` after the z2 to rotate the cube azimuthally, so a specific face appears front-on in the image (e.g. for asymmetric PLL patterns). The y rotation doesn't change which layer holds the case — only its facing direction.
+
+**Why this matters for stickering**: `masks.mjs` orbit strings always target D-layer slots (4–7) because of z2. The optional y component doesn't affect which slots need stickering. `O` (orient) maps to cubing.js `IgnoreNonPrimary`: show the primary sticker only, grey all others. Primary slot = +Y (slot 2) for U-layer pieces, -Y (slot 3) for D-layer pieces. Middle-layer pieces have no primary face so all outward stickers show. Do not lock to slot 3 for all pieces — derive primary slot from `y` position.
+
+**Never skip z2**: without it, the case lands on U layer and the stickering masks target the wrong positions entirely.
+
+**The cross preset** is consistent: after z2, the cross pieces (solved on D) move to U. `cross: EDGES:----IIIIIIII` hides D+middle and shows U edges — correct for the cross display after z2.
+
+---
+
+## 12. Stickering accumulation bug and the rebakeWithMask pattern
+
+**Symptom**: applying a mask, stepping through animated moves, re-applying the same mask leaves stickers permanently grey — only a page reload resets them.
+
+**Cause**: `applyStickering` only greyed stickers, never restored them. Grey textures accumulated across mask applications because no clean-slate reset happened.
+
+**Fix**: `rebakeWithMask(state)` always calls `setState(state)` first (full colour rebuild from face array), then `applyStickering(mask)`. Clear button sets `activeMask = null` and calls `rebakeWithMask` — same pattern, no special case.
+
+**Key rule**: `applyStickering` is always destructive (greying only). It must always be preceded by `setState` to restore a clean slate.
+
+---
+
+## 13. Stickering position semantics — homePos vs currentPos
+
+**The bug**: after animated moves, the mask (keyed by cubelet array index) was applied to the original piece positions, not the current positions. An OLL mask greyed the DRF corner even after it had animated to URF.
+
+**The fix**: key the visibility map by grid position string `"x,y,z"` so the mask always applies to *whoever is currently at each position*, not a specific piece.
+
+**Subsequent issue with whole-cube orientation**: when `applyOrientation('z2')` physically rotates all cubelets, `cubelet.pos` changes but the mesh material indices (0–5) are local to the mesh and do not change with rotation. After z2, the D-layer cubelets are at y=+1 but their slot 3 (-Y local) is now the top face. Using current `pos` for the vis lookup and `isOutward` for slot iteration would mismatch.
+
+**Resolution**: `applyStickering` uses `homePos` for the vis map lookup and `outwardSlots(homePos)` for the slot iteration. The vis array and mesh material slots are both indexed in the mesh's home/local frame, so they stay in sync regardless of orientation rotation.
+
+---
+
+## 14. z2 for yellow-on-top: state-level vs physical rotation
+
+**Goal**: display OLL/PLL cases with yellow on top (CFOP convention).
+
+**Physical rotation approach (abandoned)**: call `applyOrientation('z2')` after `setState`. Fails for animated step-through because `MOVE_AXIS` filters by current `pos` — after physical z2, the cubelets at `pos.x === 1` are the ones that came from x=-1 (L face). Animating 'R' moves the visual-left face. State and animation diverge.
+
+**State-level z2 approach (used)**: bake z2 into the KPattern state:
+```js
+currentCaseState = _solvedBase.applyAlg(['z2', ...invertAlg(caseAlg)])
+```
+The U layer now holds the yellow OLL/PLL pieces. `currentMoves` (the alg) is unchanged — it operates on the U layer, which is now yellow. Steps animate correctly.
+
+**Centre colour conflict**: `toFaceArray` hardcodes centre colours (`faces[i][4] = FACE_NAMES[i]`), so the U centre always shows white even though the yellow piece is now at U in the state. Fix: `patchCenterSlot` on `CubeRenderer3D` directly sets a centre cubelet's material slot to the correct colour after `setState`. For z2: U↔D (white↔yellow), R↔L (red↔orange), F and B unchanged.
+
+**Why centres are hardcoded**: the cubing.js `CENTERS` orbit piece values after a whole-cube rotation gave unexpected results during development (wrong colour shown). Hardcoding is correct for standard orientation and simpler than reading the orbit; the z2 patch is the minimal correction for the case display context.
+
+**Verified**: `isSolved()` must pass `{ ignorePuzzleOrientation: true }` — the z2-rotated solved state is `isSolved()` only with this flag; without it cubing.js throws `Cannot read properties of undefined`.
+
+---
+
+## 15. setState idempotency — reset to homePos
+
+**Problem**: `setState` only reset quaternion to identity but not mesh position. After animated moves, cubelet mesh positions drifted to post-animation grid positions. A subsequent `setState` for a new case still assigned colours correctly (via `cubelet.pos`), but `applyOrientation` would then stack on top of wherever cubelets currently were.
+
+**Fix**: `setState` resets each cubelet's mesh position to `homePos` (stored at build time) and resets `cubelet.pos` and `cubelet.isOutward` accordingly. `setState` is now fully idempotent — calling it twice with the same state gives the same result regardless of prior animation history.
+
+---
+
+## 16. Mask stickers travel with the cubelet — never reapplyMask after animation
+
+**Mental model**: `applyStickering` bakes grey textures directly into the Three.js mesh materials. The grey is a property of the *piece*, not the *position*. When `animateMove` physically moves the mesh, its materials travel with it — no extra work needed.
+
+**The bug**: calling `reapplyMask(newState)` inside every animation callback (which calls `restoreColours()` then re-applies the mask from the KPattern state) resets all stickers to home colours and then re-greys based on *current world positions*. This makes grey follow positions, not pieces — the opposite of correct behaviour.
+
+**The fix**: remove `reapplyMask` from all animation callbacks (`animateMove`, `animateAlg`, step-forward, step-back). The grey persists naturally through moves.
+
+**When to call `reapplyMask`** (the only valid sites):
+- New case loaded (`applyStateToRenderer` → `resetToSolved` + fresh `applyStickering`)
+- Mask string changed (`applyOrbitString`)
+- Reset to solved (`btn-reset-solved` → `resetToSolved` + `reapplyMask`)
+- Case selected from UI (`setLiveState` after visual reset)
+
+**Why `homePos` key still works**: `applyStickering` is keyed by `homePos` (piece identity). After a move the mesh is at a new world position but `homePos` is unchanged — so the correct mesh receives its correct vis entry. The slot-indexed vis array is also mesh-local and never changes, so `vis[slot]` and `material[slot]` stay in sync through any rotation.
+
+---
+
+## 17. 'O' primary sticker = piece's own facelet[0], NOT the sticker currently facing the primary direction
+
+**The trap**: it's tempting to implement 'O' (IgnoreNonPrimary) as "show whichever sticker currently faces U (for U-layer positions)". This is wrong for twisted OLL corners — a twisted corner has its yellow sticker on a side face, but the wrong approach greys yellow and shows whatever non-yellow sticker happens to face up.
+
+**The correct semantics** (matching TwistyPlayer): show the piece's OWN primary sticker (facelet[0] in cubing.js CubieDef terms) wherever the mesh quaternion places it:
+- U-home pieces (y=1): primary = slot2 (U face at home) — white
+- D-home pieces (y=-1): primary = slot3 (D face at home) — yellow
+- Equatorial edges (y=0, z=1): primary = slot4 (F face)
+- Equatorial edges (y=0, z=-1): primary = slot5 (B face)
+
+This is determined purely from `homePos` — no quaternion lookup needed in the visMap. The mesh quaternion does the work automatically: greyeing slot0 and slot4 on a DRF piece means those slots travel grey wherever they go, and slot3 (yellow) shows on whatever world face the rotation places it.
+
+**Implementation**: `fromOrbitStringWithState` outputs slot-indexed booleans keyed by homePos; `applyStickering` uses `vis[slot]` directly. No world-face index conversion needed.

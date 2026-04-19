@@ -158,6 +158,7 @@
         <button id="btn-reset" class="button is-harness is-small">Reset case</button>
         <button id="btn-solved" class="button is-harness is-small">Solved</button>
         <button id="btn-cam-reset" class="button is-harness is-small">Reset view</button>
+        <a id="btn-download-log" class="button is-harness is-small" download="cubify-debug.json" href="#">↓ Log</a>
       </div>
     </div>
 
@@ -170,6 +171,7 @@
     <ul>
       <li id="tab-log" class="is-active"><a onclick="showTab('log')">Event log</a></li>
       <li id="tab-validator"><a onclick="showTab('validator')">Move validator</a></li>
+      <li id="tab-stickering"><a onclick="showTab('stickering')">Stickering</a></li>
       <li id="tab-faces"><a onclick="showTab('faces')">Face state</a></li>
       <li id="tab-kpattern"><a onclick="showTab('kpattern')">KPattern</a></li>
     </ul>
@@ -191,6 +193,21 @@
     <div id="move-status"></div>
   </div>
 
+  <!-- Stickering tab -->
+  <div id="tab-stickering-panel" style="display:none;padding:2px 0">
+    <div style="display:flex;flex-direction:column;gap:0">
+      <div class="validator-row" id="orbit-examples"></div>
+      <div class="validator-input-row">
+        <input id="orbit-input" class="input is-small" type="text"
+               value="EDGES:------------,CORNERS:--------,CENTERS:------"
+               style="font-family:monospace;font-size:0.75rem;background:#111827;border-color:#444;color:#ddf;flex:1;min-width:0;" />
+        <button id="btn-orbit-apply" class="button is-harness is-small">Apply</button>
+        <button id="btn-orbit-clear" class="button is-harness is-small">Clear</button>
+      </div>
+    </div>
+    <div id="orbit-status" style="font-size:0.72rem;font-family:monospace;color:#666;margin-top:4px"></div>
+  </div>
+
   <pre id="debug-pre"></pre>
   <pre id="face-state-pre" style="display:none"></pre>
   <pre id="kpattern-pre" style="display:none"></pre>
@@ -200,6 +217,7 @@
   import { CubeState } from './src/CubeState.js';
   import { AlgParser } from './src/AlgParser.js';
   import { CubeRenderer3D } from './src/CubeRenderer3D.js';
+  import { CubeStickering } from './src/CubeStickering.js';
 
   // Warm up kpuzzle early (cached after first call)
   const _solvedBase = await CubeState.solved();
@@ -221,6 +239,24 @@
   let currentMoves = [];
   let stepIndex = 0;
   let isPlaying = false;
+  let activeMask = null;        // orbit string or null
+  let currentSetupMoves = [];   // moves from solved → currentCaseState (for instant reloads)
+
+  // ---- Structured debug log ----
+  const _stateLog = [];
+  function _logEvent(type, data) {
+    _stateLog.push({ seq: _stateLog.length, type, ...data });
+    const link = document.getElementById('btn-download-log');
+    if (link) {
+      const blob = new Blob([JSON.stringify(_stateLog, null, 2)], { type: 'application/json' });
+      link.href = URL.createObjectURL(blob);
+    }
+  }
+  function _serializeVisMap(map) {
+    const out = {};
+    map.forEach((vis, key) => { out[key] = vis; });
+    return out;
+  }
 
   // ---- Renderer ----
   const container = document.getElementById('cube-container');
@@ -241,10 +277,11 @@
   const kpatternPre = document.getElementById('kpattern-pre');
 
   function showTab(tab) {
-    ['validator','log','faces','kpattern'].forEach(t => {
+    ['validator','log','stickering','faces','kpattern'].forEach(t => {
       document.getElementById(`tab-${t}`)?.classList.toggle('is-active', t === tab);
     });
-    document.getElementById('tab-validator-panel').style.display = tab === 'validator' ? '' : 'none';
+    document.getElementById('tab-validator-panel').style.display  = tab === 'validator'  ? '' : 'none';
+    document.getElementById('tab-stickering-panel').style.display = tab === 'stickering' ? '' : 'none';
     debugPre.style.display     = tab === 'log'      ? '' : 'none';
     faceStatePre.style.display = tab === 'faces'    ? '' : 'none';
     kpatternPre.style.display  = tab === 'kpattern' ? '' : 'none';
@@ -254,8 +291,10 @@
   const CORNER_NAMES = ['URF','URB','ULB','ULF','DRF','DLF','DLB','DRB'];
   const EDGE_NAMES   = ['UF','UR','UB','UL','DF','DR','DB','DL','FR','FL','BR','BL'];
 
+  const CENTER_NAMES = ['U','R','F','L','B','D']; // cubing.js CENTERS orbit slot order (not URFDLB)
+
   function formatKPattern(state) {
-    const { corners, edges } = state.toRawPattern();
+    const { corners, edges, centers } = state.toRawPattern();
     const lines = ['CORNERS  slot  piece  orient  (piece name → slot name)'];
     for (let i = 0; i < 8; i++) {
       const moved = corners.pieces[i] !== i || corners.orientation[i] !== 0;
@@ -268,6 +307,15 @@
       const moved = edges.pieces[i] !== i || edges.orientation[i] !== 0;
       const flag  = moved ? ' ←' : '';
       lines.push(`         [${i.toString().padStart(2)}]  ${edges.pieces[i].toString().padStart(2)}      ${edges.orientation[i]}       ${EDGE_NAMES[edges.pieces[i]].padEnd(2)} → ${EDGE_NAMES[i]}${flag}`);
+    }
+    if (centers) {
+      lines.push('');
+      lines.push('CENTERS  slot  piece  orient');
+      for (let i = 0; i < 6; i++) {
+        const moved = centers.pieces[i] !== i || centers.orientation[i] !== 0;
+        const flag  = moved ? ' ←' : '';
+        lines.push(`         [${i}]   ${centers.pieces[i]}      ${centers.orientation[i]}       (slot=${CENTER_NAMES[i]})${flag}`);
+      }
     }
     return lines.join('\n');
   }
@@ -287,9 +335,32 @@
     }
   }
 
+  // ---- Mask helpers ----
+
+  // After animation: restore colours (undo previous grey) then reapply active mask.
+  // Does NOT move pieces — preserves the animation-derived positions and quaternions.
+  function reapplyMask(state) {
+    renderer.restoreColours();
+    if (activeMask) {
+      const raw = state.toRawPattern();
+      const visMap = CubeStickering.fromOrbitStringWithState(activeMask, raw);
+      renderer.applyStickering(visMap);
+      const worldFaceMap = renderer.getWorldFaceMap();
+      const wfObj = Object.fromEntries(worldFaceMap);
+      _logEvent('reapplyMask', { activeMask, raw, visMap: _serializeVisMap(visMap), worldFaceMap: wfObj });
+    } else {
+      _logEvent('reapplyMask', { activeMask: null });
+    }
+  }
+
   // ---- Apply state snapshot (no animation) ----
-  function applyStateToRenderer(state) {
-    renderer.setState(state);
+  // Resets the visual cube to solved then instantly animates setupMoves to reach
+  // the target state. Quaternions are set by the same physics as animated moves.
+  function applyStateToRenderer(state, setupMoves = []) {
+    _logEvent('applyStateToRenderer', { setupMoves, raw: state.toRawPattern() });
+    renderer.resetToSolved();
+    renderer.applyMovesInstant(setupMoves);
+    reapplyMask(state);
     updateDebugState(state);
     liveState = state;
     appliedMoves = [];
@@ -316,13 +387,14 @@
     currentAlgIndex = idx;
     const alg = ALGS[idx];
     currentMoves = alg.notation ? AlgParser.parse(alg.notation) : [];
-    currentCaseState = (alg.caseAlg && currentMoves.length)
-      ? _solvedBase.applyAlg(CubeState.invertAlg(currentMoves))
-      : _solvedBase;
+    currentSetupMoves = (alg.caseAlg && currentMoves.length)
+      ? ['z2', ...CubeState.invertAlg(currentMoves)]
+      : [];
+    currentCaseState = _solvedBase.applyAlg(currentSetupMoves);
     stepIndex = 0;
     document.getElementById('alg-label').textContent = alg.notation || '(solved)';
     updateAlgButtons();
-    applyStateToRenderer(currentCaseState);
+    applyStateToRenderer(currentCaseState, currentSetupMoves);
     updateStepLabel();
     appendLog(`[demo] loaded: ${alg.label} (${currentMoves.length} moves)`);
   }
@@ -330,8 +402,9 @@
   // ---- Snap step (no animation) ----
   function snapToStep(idx) {
     stepIndex = Math.max(0, Math.min(idx, currentMoves.length));
-    const state = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex));
-    applyStateToRenderer(state);
+    const stepMoves = currentMoves.slice(0, stepIndex);
+    const state = _solvedBase.applyAlg([...currentSetupMoves, ...stepMoves]);
+    applyStateToRenderer(state, [...currentSetupMoves, ...stepMoves]);
     updateStepLabel();
     appendLog(`[demo] step ${stepIndex}/${currentMoves.length}`);
   }
@@ -340,8 +413,10 @@
   function animateStepForward(onDone) {
     if (stepIndex >= currentMoves.length) { onDone?.(); return; }
     const move = currentMoves[stepIndex];
-    const prevFaces = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex)).toFaceArray();
+    const stateBefore = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex));
+    const prevFaces = stateBefore.toFaceArray();
     stepIndex++;
+    _logEvent('animateMove', { move, stepIndex });
     renderer.animateMove(move, () => {
       const after = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex));
       updateDebugState(after, prevFaces);
@@ -355,7 +430,7 @@
     if (isPlaying || currentMoves.length === 0) return;
     if (stepIndex >= currentMoves.length) {
       stepIndex = 0;
-      applyStateToRenderer(currentCaseState);
+      applyStateToRenderer(currentCaseState, currentSetupMoves);
     }
     isPlaying = true;
     document.getElementById('btn-play').disabled = true;
@@ -406,7 +481,8 @@
     stopPlay();
     if (stepIndex <= 0 || renderer.isAnimating) return;
     const lastMove = currentMoves[stepIndex - 1];
-    const prevFaces = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex)).toFaceArray();
+    const stateBefore = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex));
+    const prevFaces = stateBefore.toFaceArray();
     const inverseMove = CubeState.invertAlg([lastMove])[0];
     stepIndex--;
     renderer.animateMove(inverseMove, () => {
@@ -434,9 +510,10 @@
   // ---- Solved ----
   document.getElementById('btn-solved').onclick = () => {
     stopPlay();
-    applyStateToRenderer(_solvedBase);
+    currentSetupMoves = [];
     currentMoves = [];
     stepIndex = 0;
+    applyStateToRenderer(_solvedBase, []);
     updateStepLabel();
     appendLog('[demo] jumped to solved');
   };
@@ -451,13 +528,88 @@
     };
   });
 
+  // ---- Stickering tab ----
+  // Convention (matches masks.mjs / cfop-app image gen):
+  //   z2 is baked into currentSetupMoves, so the D layer is visually on top.
+  //   Orbit strings target D-layer slots (EDGES 4-7, CORNERS 4-7).
+  //   'O' = show primary sticker only (slot 3 = -Y for D-layer pieces after z2).
+  // z2 is baked into the KPattern state → case is on the U layer (orbit slots 0-3).
+  // EDGES: 0-3=U layer, 4-7=D layer, 8-11=middle.  CORNERS: 0-3=U layer, 4-7=D layer.
+  // '-'=full, 'I'=hidden, 'D'=dim/faded, 'O'=primary-full+sides-hidden, 'P'=primary-dim+sides-full
+  const ORBIT_EXAMPLES = [
+    // Full: all stickers visible
+    { label: 'Full',          str: 'EDGES:------------,CORNERS:--------,CENTERS:------' },
+    // Cross (white-U, no z2): D edges + D center only
+    { label: 'Cross',         str: 'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------' },
+    // F2L: D+middle layer fully visible; U-layer hidden
+    { label: 'F2L',           str: 'EDGES:IIII--------,CORNERS:IIII----,CENTERS:------' },
+    // OLL-face: F2L fully visible; U-layer shows yellow sticker wherever it is
+    { label: 'OLL-face',      str: 'EDGES:OOOO--------,CORNERS:OOOO----,CENTERS:------' },
+    // OLL-face+dim: same but F2L faded — closer to TwistyPlayer OLL preset
+    { label: 'OLL-face-dim',  str: 'EDGES:OOOODDDDDDDD,CORNERS:OOOODDDD,CENTERS:-DDDDD' },
+    // OLL-cross: orient edges — U edges yellow, U corners hidden, F2L full
+    { label: 'OLL-cross',     str: 'EDGES:OOOO--------,CORNERS:IIII----,CENTERS:------' },
+    // OLL-cross+dim: same but F2L faded
+    { label: 'OLL-cross-dim', str: 'EDGES:OOOODDDDDDDD,CORNERS:IIIIDDDD,CENTERS:-DDDDD' },
+    // PLL-corn-dim: all corners full, U edges yellow, F2L faded
+    { label: 'PLL-corn-dim',  str: 'EDGES:OOOODDDDDDDD,CORNERS:----DDDD,CENTERS:-DDDDD' },
+    // PLL-corn (2-look look-1): all corners fully visible; U edges yellow-only
+    { label: 'PLL-corn',      str: 'EDGES:OOOO--------,CORNERS:--------,CENTERS:------' },
+    // PLL-face: all U-face stickers fully visible (yellow + sides), F2L faded
+    { label: 'PLL-face',      str: 'EDGES:----DDDDDDDD,CORNERS:----DDDD,CENTERS:-DDDDD' },
+    // PLL-face-dim: U-layer sides full, yellow faint, F2L faded — TwistyPlayer PLL
+    { label: 'PLL-face-dim',  str: 'EDGES:PPPPDDDDDDDD,CORNERS:PPPPDDDD,CENTERS:DDDDDD' },
+  ];
+
+  const orbitInput  = document.getElementById('orbit-input');
+  const orbitStatus = document.getElementById('orbit-status');
+
+  // Example buttons — load string into input only (don't auto-apply)
+  const examplesContainer = document.getElementById('orbit-examples');
+  ORBIT_EXAMPLES.forEach(({ label, str }) => {
+    const btn = document.createElement('button');
+    btn.className = 'button is-harness is-small';
+    btn.style.fontFamily = 'monospace';
+    btn.textContent = label;
+    btn.title = str;
+    btn.onclick = () => { orbitInput.value = str; orbitStatus.textContent = `Loaded: ${label} — press Apply to render`; orbitStatus.style.color = '#888'; };
+    examplesContainer.appendChild(btn);
+  });
+
+  function applyOrbitString(str) {
+    if (!str.trim()) return;
+    try {
+      activeMask = str.trim();
+      reapplyMask(liveState);
+      const map = CubeStickering.fromOrbitStringWithState(str.trim(), liveState.toRawPattern());
+      const covered = [...map.values()].filter(v => v.some(Boolean)).length;
+      orbitStatus.textContent = `Applied — ${covered}/${map.size} cubelets with visible stickers`;
+      orbitStatus.style.color = '#7fc';
+      appendLog(`[stickering] applied: ${str.trim().slice(0, 60)}${str.length > 60 ? '…' : ''}`);
+    } catch (e) {
+      orbitStatus.textContent = `Error: ${e.message}`;
+      orbitStatus.style.color = '#f88';
+    }
+  }
+
+  document.getElementById('btn-orbit-apply').onclick = () => applyOrbitString(orbitInput.value);
+  orbitInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyOrbitString(orbitInput.value); });
+
+  document.getElementById('btn-orbit-clear').onclick = () => {
+    activeMask = null;
+    reapplyMask(liveState);
+    orbitInput.value = 'EDGES:------------,CORNERS:--------,CENTERS:------';
+    orbitStatus.textContent = 'Cleared — all stickers visible';
+    orbitStatus.style.color = '#666';
+  };
+
   // ---- Move validator ----
   let liveState = _solvedBase;
   let appliedMoves = [];
 
   function setLiveState(state, movesLabel) {
     liveState = state;
-    renderer.setState(state);
+    reapplyMask(state);
     updateDebugState(state);
     const solved = state.isSolved();
     document.getElementById('move-status').textContent =
@@ -500,6 +652,7 @@
     });
   }
 
+
   document.getElementById('btn-move-apply').onclick = () => {
     const input = document.getElementById('move-input');
     const notation = input.value.trim();
@@ -525,12 +678,14 @@
   document.getElementById('btn-move-reset').onclick = () => {
     stopPlay();
     appliedMoves = [];
+    renderer.resetToSolved();
     setLiveState(_solvedBase, '(none)');
     appendLog('[validator] reset to solved');
   };
 
-  // ---- Initial load ----
-  loadAlg(0);
+  // ---- Initial state: solved ----
+  applyStateToRenderer(_solvedBase);
+  updateStepLabel();
   showTab('log');
 </script>
 
