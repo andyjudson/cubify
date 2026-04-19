@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>cubify-harness</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
   <link rel="stylesheet" href="./css/cubify.css" />
   <style>
     * { box-sizing: border-box; }
@@ -59,16 +60,12 @@
     #cube-container canvas { display: block; width: 100% !important; height: 100% !important; }
 
     #cube-2d {
-      width: 100%;
+      width: 75%;
       aspect-ratio: 1;
-      background: #111;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #555;
-      font-size: 0.8rem;
-      font-family: monospace;
+      background: #000;
+      margin: 0 auto;
     }
+    #cube-2d canvas { display: block; width: 100% !important; height: 100% !important; }
 
     /* Right panel: tabbed (Simulation | Moves | Stickering) */
     .right-panel {
@@ -112,7 +109,7 @@
 
     /* ---- Debug panel — flex child at bottom ---- */
     .debug-panel {
-      height: 25vh;
+      height: 160px;
       flex-shrink: 0;
       background: #0d0d1a;
       border-top: 1px solid #333;
@@ -136,7 +133,7 @@
       flex: 1; overflow-y: auto; min-height: 0;
       background: #222; border: 1px solid #444; border-radius: 4px; padding: 6px 8px;
     }
-    #debug-pre            { font-family: monospace; font-size: 0.75rem; color: #7fc; white-space: pre-wrap; line-height: 1.5; }
+    #debug-pre            { font-family: monospace; font-size: 0.75rem; color: #7fc; white-space: pre; overflow-x: auto; line-height: 1.5; }
     #face-state-pre       { font-family: monospace; font-size: 0.75rem; color: #adf; white-space: pre;      line-height: 1.5; }
     #kpattern-corners-pre { font-family: monospace; font-size: 0.75rem; color: #fc9; white-space: pre;      line-height: 1.5; }
     #kpattern-edges-pre   { font-family: monospace; font-size: 0.75rem; color: #fc9; white-space: pre;      line-height: 1.5; }
@@ -153,6 +150,12 @@
     .button.is-harness.is-active,
     .button.is-harness.is-info { background: #2d5af5; border-color: #2d5af5; color: #fff; }
     .button.is-harness:disabled { opacity: 0.35; }
+    .button.is-harness .material-icons { font-size: 1rem; vertical-align: middle; line-height: 1; margin-right: 3px; }
+    #move-tape { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 3px; margin-top: 4px; padding-bottom: 2px; min-height: 0; }
+    #move-tape:empty { display: none; }
+    .move-chip { flex-shrink: 0; font-family: monospace; font-size: 0.72rem; padding: 1px 5px; border-radius: 3px; background: #222; border: 1px solid #444; color: #888; }
+    .move-chip.is-active { background: #2d5af5; border-color: #2d5af5; color: #fff; }
+    .move-chip.is-done   { color: #ccc; border-color: #555; }
   </style>
 </head>
 <body>
@@ -173,7 +176,7 @@
       <div id="cube-container"></div>
     </div>
     <div id="cube-2d-panel" class="cube-tab-panel">
-      <div id="cube-2d">2D view coming soon</div>
+      <div id="cube-2d"></div>
     </div>
   </div>
 
@@ -193,7 +196,12 @@
       <div class="control-group">
         <span class="control-label">Algorithm</span>
         <div class="btn-row" id="alg-buttons"></div>
-        <div class="alg-label" id="alg-label"></div>
+        <span class="control-label" style="margin-top:4px">Move tape</span>
+        <div class="btn-row">
+          <button id="btn-prev" class="button is-harness is-small"><span class="material-icons">navigate_before</span>Prev</button>
+          <button id="btn-next" class="button is-harness is-small"><span class="material-icons">navigate_next</span>Next</button>
+        </div>
+        <div id="move-tape"></div>
       </div>
 
       <div class="control-group">
@@ -205,30 +213,23 @@
       </div>
 
       <div class="control-group">
-        <span class="control-label">Step</span>
-        <div class="btn-row">
-          <button id="btn-prev" class="button is-harness is-small">&#8592; Prev</button>
-          <button id="btn-next" class="button is-harness is-small">Next &#8594;</button>
-        </div>
-        <div class="alg-label" id="step-label">—</div>
-      </div>
-
-      <div class="control-group">
         <span class="control-label">Speed</span>
         <div class="btn-row">
-          <button class="button is-harness is-small" data-speed="500">Slow</button>
-          <button class="button is-harness is-small is-active" data-speed="300">Normal</button>
-          <button class="button is-harness is-small" data-speed="120">Fast</button>
+          <button class="button is-harness is-small" data-speed="500"><span class="material-icons">remove_circle</span>Slow</button>
+          <button class="button is-harness is-small is-active" data-speed="300"><span class="material-icons">slow_motion_video</span>Normal</button>
+          <button class="button is-harness is-small" data-speed="120"><span class="material-icons">add_circle</span>Fast</button>
         </div>
       </div>
 
       <div class="control-group">
-        <span class="control-label">Reset</span>
+        <span class="control-label">Actions</span>
         <div class="btn-row">
-          <button id="btn-reset" class="button is-harness is-small">Reset case</button>
-          <button id="btn-solved" class="button is-harness is-small">Solved</button>
-          <button id="btn-cam-reset" class="button is-harness is-small">Reset view</button>
-          <a id="btn-download-log" class="button is-harness is-small" download="cubify-debug.json" href="#">↓ Log</a>
+          <button id="btn-reset" class="button is-harness is-small"><span class="material-icons">restart_alt</span>Reset case</button>
+          <button id="btn-solved" class="button is-harness is-small"><span class="material-icons">grid_on</span>Solved</button>
+          <button id="btn-cam-reset" class="button is-harness is-small"><span class="material-icons">filter_center_focus</span>Reset view</button>
+          <button id="btn-export-2d" class="button is-harness is-small"><span class="material-icons">download</span>Export 2D</button>
+          <button id="btn-export-3d" class="button is-harness is-small"><span class="material-icons">download</span>Export 3D</button>
+          <a id="btn-download-log" class="button is-harness is-small" download="cubify-debug.json" href="#"><span class="material-icons">download</span>Log</a>
         </div>
       </div>
 
@@ -292,7 +293,8 @@
   import { CubeState } from './src/CubeState.js';
   import { AlgParser } from './src/AlgParser.js';
   import { CubeRenderer3D } from './src/CubeRenderer3D.js';
-  import { CubeStickering } from './src/CubeStickering.js';
+  import { CubeRenderer2D } from './src/CubeRenderer2D.js';
+  import { CubeStickering, MASK_PRESETS } from './src/CubeStickering.js';
 
   // Warm up kpuzzle early (cached after first call)
   const _solvedBase = await CubeState.solved();
@@ -339,6 +341,8 @@
   const renderer = new CubeRenderer3D({ debug: true, animSpeed: 300 });
   renderer.mount(container);
 
+  const renderer2d = new CubeRenderer2D(document.getElementById('cube-2d'), { size: 400 });
+
   // ---- Debug log ----
   const debugPre = document.getElementById('debug-pre');
   const faceStatePre = document.getElementById('face-state-pre');
@@ -348,7 +352,7 @@
   }
 
   window.addEventListener('cubify:log', e => appendLog(e.detail));
-  appendLog('[demo] page loaded');
+  appendLog('[sim] page loaded');
 
   const kpatternCornersPre = document.getElementById('kpattern-corners-pre');
   const kpatternEdgesPre   = document.getElementById('kpattern-edges-pre');
@@ -425,11 +429,19 @@
         for (let s = 0; s < 9; s++)
           if (faces[f][s] !== prevFaces[f][s])
             diffs.push(`${faceNames[f]}[${s}] ${prevFaces[f][s]}→${faces[f][s]}`);
-      appendLog(`[step] ${diffs.length} sticker${diffs.length !== 1 ? 's' : ''} changed: ${diffs.join('  ') || '—'}`);
+      appendLog(`[cubify] ${diffs.length} sticker${diffs.length !== 1 ? 's' : ''} changed: ${diffs.join('  ') || '—'}`);
     }
   }
 
   // ---- Mask helpers ----
+
+  // Lightweight 2D-only update after animated moves — no 3D stickering side effects.
+  function update2D(state) {
+    const visMap = activeMask
+      ? CubeStickering.fromOrbitStringWithState(activeMask, state.toRawPattern())
+      : new Map();
+    renderer2d.update(state, visMap);
+  }
 
   // After animation: restore colours (undo previous grey) then reapply active mask.
   // Does NOT move pieces — preserves the animation-derived positions and quaternions.
@@ -439,10 +451,12 @@
       const raw = state.toRawPattern();
       const visMap = CubeStickering.fromOrbitStringWithState(activeMask, raw);
       renderer.applyStickering(visMap);
+      renderer2d.update(state, visMap);
       const worldFaceMap = renderer.getWorldFaceMap();
       const wfObj = Object.fromEntries(worldFaceMap);
       _logEvent('reapplyMask', { activeMask, raw, visMap: _serializeVisMap(visMap), worldFaceMap: wfObj });
     } else {
+      renderer2d.update(state, new Map());
       _logEvent('reapplyMask', { activeMask: null });
     }
   }
@@ -467,10 +481,21 @@
   }
 
   function updateStepLabel() {
-    const total = currentMoves.length;
-    if (total === 0) { document.getElementById('step-label').textContent = '(no moves)'; return; }
-    const move = currentMoves[stepIndex - 1] ?? '—';
-    document.getElementById('step-label').textContent = `Step ${stepIndex}/${total} — last: ${move}`;
+    document.getElementById('move-tape').querySelectorAll('.move-chip').forEach((chip, i) => {
+      chip.className = 'move-chip' +
+        (i === stepIndex - 1 ? ' is-active' : i < stepIndex - 1 ? ' is-done' : '');
+    });
+  }
+
+  function buildMoveTape() {
+    const tape = document.getElementById('move-tape');
+    tape.innerHTML = '';
+    currentMoves.forEach(mv => {
+      const chip = document.createElement('span');
+      chip.className = 'move-chip';
+      chip.textContent = mv;
+      tape.appendChild(chip);
+    });
   }
 
   let currentCaseState = _solvedBase;
@@ -486,11 +511,11 @@
       : [];
     currentCaseState = _solvedBase.applyAlg(currentSetupMoves);
     stepIndex = 0;
-    document.getElementById('alg-label').textContent = alg.notation || '(solved)';
     updateAlgButtons();
     applyStateToRenderer(currentCaseState, currentSetupMoves);
+    buildMoveTape();
     updateStepLabel();
-    appendLog(`[demo] loaded: ${alg.label} (${currentMoves.length} moves)`);
+    appendLog(`[sim] loaded: ${alg.label} (${currentMoves.length} moves)`);
   }
 
   // ---- Snap step (no animation) ----
@@ -500,7 +525,7 @@
     const state = _solvedBase.applyAlg([...currentSetupMoves, ...stepMoves]);
     applyStateToRenderer(state, [...currentSetupMoves, ...stepMoves]);
     updateStepLabel();
-    appendLog(`[demo] step ${stepIndex}/${currentMoves.length}`);
+    appendLog(`[sim] step ${stepIndex}/${currentMoves.length}`);
   }
 
   // ---- Animated step forward ----
@@ -513,6 +538,7 @@
     _logEvent('animateMove', { move, stepIndex });
     renderer.animateMove(move, () => {
       const after = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex));
+      update2D(after);
       updateDebugState(after, prevFaces);
       updateStepLabel();
       onDone?.();
@@ -533,14 +559,14 @@
     const playNext = () => {
       if (!isPlaying || stepIndex >= currentMoves.length) {
         stopPlay();
-        appendLog('[demo] playback complete');
+        appendLog('[sim] playback complete');
         return;
       }
       animateStepForward(() => {
         if (isPlaying) setTimeout(playNext, 80);
       });
     };
-    appendLog('[demo] play started');
+    appendLog('[sim] play started');
     playNext();
   }
 
@@ -568,7 +594,7 @@
 
   // ---- Playback controls ----
   document.getElementById('btn-play').onclick = startPlay;
-  document.getElementById('btn-stop').onclick = () => { stopPlay(); appendLog('[demo] stopped'); };
+  document.getElementById('btn-stop').onclick = () => { stopPlay(); appendLog('[sim] stopped'); };
 
   // ---- Step controls ----
   document.getElementById('btn-prev').onclick = () => {
@@ -581,6 +607,7 @@
     stepIndex--;
     renderer.animateMove(inverseMove, () => {
       const state = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex));
+      update2D(state);
       updateDebugState(state, prevFaces);
       updateStepLabel();
     });
@@ -592,13 +619,46 @@
   document.getElementById('btn-reset').onclick = () => {
     stopPlay();
     snapToStep(0);
-    appendLog('[demo] reset to case state');
+    appendLog('[sim] reset to case state');
   };
 
   // ---- Camera ----
   document.getElementById('btn-cam-reset').onclick = () => {
     renderer.resetCamera();
-    appendLog('[demo] camera reset');
+    appendLog('[sim] camera reset');
+  };
+
+  // ---- Export ----
+  const EXPORT_SIZE = 288;
+  const dl = (url, name) => { const a = document.createElement('a'); a.download = name; a.href = url; a.click(); };
+
+  document.getElementById('btn-export-2d').onclick = () => {
+    const raw = currentCaseState.toRawPattern();
+    const vis = activeMask ? CubeStickering.fromOrbitStringWithState(activeMask, raw) : new Map();
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width  = EXPORT_SIZE;
+    tmpCanvas.height = EXPORT_SIZE;
+    const tmp2d = new CubeRenderer2D(null, { size: EXPORT_SIZE, canvas: tmpCanvas, transparent: true });
+    tmp2d.update(currentCaseState, vis);
+    dl(tmpCanvas.toDataURL('image/png'), 'cubify-2d.png');
+    appendLog(`[export] cubify-2d.png (${EXPORT_SIZE}px)`);
+  };
+
+  document.getElementById('btn-export-3d').onclick = () => {
+    const gl = renderer._renderer;
+    const origRatio = gl.getPixelRatio();
+    const origCssW  = gl.domElement.clientWidth  || gl.domElement.width  / origRatio;
+    const origCssH  = gl.domElement.clientHeight || gl.domElement.height / origRatio;
+    const origBg    = renderer._scene.background;
+    renderer._scene.background = null;
+    gl.setPixelRatio(1);
+    gl.setSize(EXPORT_SIZE, EXPORT_SIZE, false);
+    gl.render(renderer._scene, renderer._camera);
+    dl(gl.domElement.toDataURL('image/png'), 'cubify-3d.png');
+    renderer._scene.background = origBg;
+    gl.setPixelRatio(origRatio);
+    gl.setSize(origCssW, origCssH, false);
+    appendLog(`[export] cubify-3d.png (${EXPORT_SIZE}px)`);
   };
 
   // ---- Solved ----
@@ -609,7 +669,7 @@
     stepIndex = 0;
     applyStateToRenderer(_solvedBase, []);
     updateStepLabel();
-    appendLog('[demo] jumped to solved');
+    appendLog('[sim] jumped to solved');
   };
 
   // ---- Speed ----
@@ -618,38 +678,15 @@
       renderer.setSpeed(parseInt(btn.dataset.speed));
       document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('is-active'));
       btn.classList.add('is-active');
-      appendLog(`[demo] speed: ${btn.dataset.speed}ms`);
+      appendLog(`[sim] speed: ${btn.dataset.speed}ms`);
     };
   });
 
   // ---- Stickering tab ----
-  // Convention (matches masks.mjs / cfop-app image gen):
-  //   z2 is baked into currentSetupMoves, so the D layer is visually on top.
-  //   Orbit strings target D-layer slots (EDGES 4-7, CORNERS 4-7).
-  //   'O' = show primary sticker only (slot 3 = -Y for D-layer pieces after z2).
-  // z2 is baked into the KPattern state → case is on the U layer (orbit slots 0-3).
-  // EDGES: 0-3=U layer, 4-7=D layer, 8-11=middle.  CORNERS: 0-3=U layer, 4-7=D layer.
-  // '-'=full, 'I'=hidden, 'D'=dim/faded, 'O'=primary-full+sides-hidden, 'S'=primary-full+sides-dim, 'P'=primary-dim+sides-full
-  const ORBIT_EXAMPLES = [
-    { group: 'basic', label: 'Full',          str: 'EDGES:------------,CORNERS:--------,CENTERS:------' },
-    { group: 'basic', label: 'Cross',         str: 'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------' },
-    { group: 'basic', label: 'F2L',           str: 'EDGES:IIII--------,CORNERS:IIII----,CENTERS:------' },
-    { group: 'oll',   label: 'OLL-face',      str: 'EDGES:OOOO--------,CORNERS:OOOO----,CENTERS:------' },
-    { group: 'oll',   label: 'OLL-face-dim-f2l', str: 'EDGES:OOOODDDDDDDD,CORNERS:OOOODDDD,CENTERS:-DDDDD' },
-    { group: 'oll',   label: 'OLL-face-dim-all', str: 'EDGES:SSSSDDDDDDDD,CORNERS:SSSSDDDD,CENTERS:-DDDDD' },
-    { group: 'oll',   label: 'OLL-cross',     str: 'EDGES:OOOO--------,CORNERS:IIII----,CENTERS:------' },
-    { group: 'oll',   label: 'OLL-cross-dim', str: 'EDGES:OOOODDDDDDDD,CORNERS:IIIIDDDD,CENTERS:-DDDDD' },
-    { group: 'pll',   label: 'PLL-corn',      str: 'EDGES:OOOO--------,CORNERS:--------,CENTERS:------' },
-    { group: 'pll',   label: 'PLL-corn-dim',  str: 'EDGES:DDDDDDDDDDDD,CORNERS:----DDDD,CENTERS:DDDDDD' },
-    { group: 'pll',   label: 'PLL-edge-dim',  str: 'EDGES:----DDDDDDDD,CORNERS:DDDDDDDD,CENTERS:-DDDDD' },
-    { group: 'pll',   label: 'PLL-face',      str: 'EDGES:----DDDDDDDD,CORNERS:----DDDD,CENTERS:-DDDDD' },
-    { group: 'pll',   label: 'PLL-face-dim',  str: 'EDGES:PPPPDDDDDDDD,CORNERS:PPPPDDDD,CENTERS:DDDDDD' },
-  ];
-
   const orbitInput  = document.getElementById('orbit-input');
   const orbitStatus = document.getElementById('orbit-status');
 
-  ORBIT_EXAMPLES.forEach(({ group, label, str }) => {
+  MASK_PRESETS.forEach(({ group, label, str }) => {
     const btn = document.createElement('button');
     btn.className = 'button is-harness is-small';
     btn.style.fontFamily = 'monospace';
@@ -665,10 +702,17 @@
       activeMask = str.trim();
       reapplyMask(liveState);
       const map = CubeStickering.fromOrbitStringWithState(str.trim(), liveState.toRawPattern());
-      const covered = [...map.values()].filter(v => v.some(Boolean)).length;
-      orbitStatus.textContent = `Applied — ${covered}/${map.size} cubelets with visible stickers`;
+      let active = 0, dimmed = 0, masked = 0;
+      for (const slots of map.values()) {
+        const max = Math.max(...slots);
+        if (max === 2) active++;
+        else if (max === 1) dimmed++;
+        else masked++;
+      }
+      const label = MASK_PRESETS.find(p => p.str === str.trim())?.label ?? str.trim().slice(0, 40);
+      orbitStatus.textContent = `Applied: ${active} active / ${dimmed} dimmed / ${masked} masked`;
       orbitStatus.style.color = '#7fc';
-      appendLog(`[stickering] applied: ${str.trim().slice(0, 60)}${str.length > 60 ? '…' : ''}`);
+      appendLog(`[stickering] Applied: ${label} — ${active} active / ${dimmed} dimmed / ${masked} masked`);
     } catch (e) {
       orbitStatus.textContent = `Error: ${e.message}`;
       orbitStatus.style.color = '#f88';
@@ -684,6 +728,7 @@
     orbitInput.value = '';
     orbitStatus.textContent = 'Cleared — all stickers visible';
     orbitStatus.style.color = '#666';
+    appendLog('[stickering] Cleared — all stickers visible');
   };
 
   // ---- Move validator ----
@@ -718,13 +763,14 @@
   buildMoveButtons(MOVE_BUTTONS_OTHER, 'move-buttons-other');
 
   function applyLiveMove(mv, onDone) {
-    if (renderer.isAnimating) { appendLog(`[validator] skip (animating): ${mv}`); onDone?.(); return; }
-    appendLog(`[validator] move: ${mv}`);
+    if (renderer.isAnimating) { appendLog(`[move] skip (animating): ${mv}`); onDone?.(); return; }
+    appendLog(`[move] move: ${mv}`);
     const prevFaces = liveState.toFaceArray();
     const nextState = liveState.applyMove(mv);
     appliedMoves.push(mv);
     renderer.animateMove(mv, () => {
       liveState = nextState;
+      update2D(nextState);
       updateDebugState(nextState, prevFaces);
       const solved = nextState.isSolved();
       document.getElementById('move-status').textContent =
@@ -740,20 +786,21 @@
     const notation = input.value.trim();
     if (!notation) return;
     const moves = AlgParser.parse(notation);
-    appendLog(`[validator] parsed ${moves.length} moves: ${moves.join(' ')}`);
+    appendLog(`[move] parsed ${moves.length} moves: ${moves.join(' ')}`);
     if (!moves.length) return;
     const endState = moves.reduce((s, m) => s.applyMove(m), liveState);
     renderer.animateAlg(moves, (idx) => {
-      appendLog(`[validator] move: ${moves[idx]}`);
+      appendLog(`[move] move: ${moves[idx]}`);
     }, () => {
       liveState = endState;
       appliedMoves.push(...moves);
+      update2D(endState);
       updateDebugState(endState);
       const solved = endState.isSolved();
       document.getElementById('move-status').textContent =
         `Applied: ${appliedMoves.join(' ')}${solved ? '  ✓ SOLVED' : ''}`;
       document.getElementById('move-status').style.color = solved ? '#7fc' : '#666';
-      appendLog('[validator] done');
+      appendLog('[move] done');
     });
   };
 
@@ -762,12 +809,11 @@
     appliedMoves = [];
     renderer.resetToSolved();
     setLiveState(_solvedBase, '(none)');
-    appendLog('[validator] reset to solved');
+    appendLog('[move] reset to solved');
   };
 
-  // ---- Initial state: solved ----
-  applyStateToRenderer(_solvedBase);
-  updateStepLabel();
+  // ---- Initial state: Sune selected ----
+  loadAlg(2);
   showTab('log');
 </script>
 

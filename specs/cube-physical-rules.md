@@ -181,26 +181,58 @@ Masking grey-plastics pieces not relevant to the current solving step:
 - Directs attention to the pieces that matter.
 - Consistent with how printed CFOP resources show cases.
 
-### 5.2 Mask Levels
+### 5.2 Visibility Levels
 
-| Preset  | What's visible                                           | Orbit string pattern                                        |
-|---------|----------------------------------------------------------|-------------------------------------------------------------|
-| Full    | Everything                                               | `EDGES:------------,CORNERS:--------,CENTERS:------`        |
-| F2L     | D layer + middle layer (cross + F2L slots)               | `EDGES:IIII--------,CORNERS:IIII----,CENTERS:------`        |
-| OLL     | F2L fully + U-layer U-face only (yellow top pattern)     | `EDGES:OOOO--------,CORNERS:OOOO----,CENTERS:------`        |
-| OLL-2L  | U-layer edges U-face only (corner blind, edge orient)    | `EDGES:OOOOIIIIIIII,CORNERS:IIIIIIII,CENTERS:------`        |
-| PLL     | U layer fully + F2L hidden                               | `EDGES:----IIIIIIII,CORNERS:----IIII,CENTERS:------`        |
+Each sticker slot has a vis level applied by the mask:
 
-### 5.3 Orbit String Format
+| Level | Name   | Rendering                                |
+|-------|--------|------------------------------------------|
+| 0     | Hidden | Grey plastic — piece is invisible        |
+| 1     | Dim    | Faded colour (~50% blend toward grey)    |
+| 2     | Full   | Saturated sticker colour                 |
+
+### 5.3 Mask Levels
+
+| Preset       | What's visible                                              | Orbit string pattern                                              |
+|--------------|-------------------------------------------------------------|-------------------------------------------------------------------|
+| Full         | Everything at full colour                                   | `EDGES:------------,CORNERS:--------,CENTERS:------`              |
+| Cross        | U edges + U centre; rest hidden                             | `EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------`              |
+| Cross-dim    | Cross full + rest dimmed                                    | `EDGES:----DDDDDDDD,CORNERS:DDDDDDDD,CENTERS:------`              |
+| F2L          | D layer + middle layer; U layer hidden                      | `EDGES:IIII--------,CORNERS:IIII----,CENTERS:------`              |
+| F2L-dim      | F2L full + U layer dimmed                                   | `EDGES:DDDD--------,CORNERS:DDDD----,CENTERS:------`              |
+| OLL-face     | F2L full + U-layer primary sticker only (yellow pattern)    | `EDGES:OOOO--------,CORNERS:OOOO----,CENTERS:------`              |
+| OLL-face-dim | OLL-face + F2L dimmed                                       | `EDGES:OOOODDDDDDDD,CORNERS:OOOODDDD,CENTERS:-DDDDD`              |
+| OLL-face-dim-all | OLL with S on U + F2L dimmed                            | `EDGES:SSSSDDDDDDDD,CORNERS:SSSSDDDD,CENTERS:-DDDDD`              |
+| OLL-cross    | U edges primary only; U corners hidden; F2L full            | `EDGES:OOOO--------,CORNERS:IIII----,CENTERS:------`              |
+| PLL-face     | U layer full + F2L dimmed                                   | `EDGES:----DDDDDDDD,CORNERS:----DDDD,CENTERS:-DDDDD`              |
+| PLL-face-dim | U sides full, yellow dim (P); F2L dimmed                    | `EDGES:PPPPDDDDDDDD,CORNERS:PPPPDDDD,CENTERS:DDDDDD`              |
+
+### 5.4 Orbit String Format
 
 `EDGES:12chars,CORNERS:8chars,CENTERS:6chars`
 
-- Char position = orbit slot index (see cubing.js architecture doc for exact ordering).
-- `-` = show all outward stickers on this piece.
-- `I` = hide all stickers (grey plastic).
-- `O` = show primary sticker only (U-face for U-layer pieces, D-face for D-layer pieces).
-- EDGES chars 0–3 = U-layer edges (UF, UR, UB, UL), 4–7 = D-layer, 8–11 = middle.
+Char position = orbit slot index (see cubing.js architecture doc for exact ordering).
+
+| Char | Name                | Primary slot | Other outward slots |
+|------|---------------------|--------------|---------------------|
+| `-`  | Full                | Full (2)     | Full (2)            |
+| `I`  | Hidden              | Hidden (0)   | Hidden (0)          |
+| `D`  | Dim                 | Dim (1)      | Dim (1)             |
+| `O`  | IgnoreNonPrimary    | Full (2)     | Hidden (0)          |
+| `S`  | ShowPrimary         | Full (2)     | Dim (1)             |
+| `P`  | PermuteNonPrimary   | Dim (1)      | Full (2)            |
+
+- EDGES chars 0–3 = U-layer edges (UF, UR, UB, UL), 4–7 = D-layer, 8–11 = equatorial.
 - CORNERS chars 0–3 = U-layer corners (URF, URB, ULB, ULF), 4–7 = D-layer.
+- CENTERS order: U, R, F, L, B, D (verified from cubing.js observation — not standard URFDLB).
+
+**Primary slot** = the piece's own home-face sticker (slot 2 = U for U-home pieces, slot 3 = D for D-home pieces, slot 4/5 for equatorial edges). Derived from `homePos`, not current world position — so a twisted OLL corner correctly shows its yellow sticker on the side face it has rotated to.
+
+### 5.5 Mask Rendering Rules
+
+- **Mask travels with the cubelet.** Grey sticker materials are baked into Three.js mesh materials at `applyStickering()`. When a move animates the mesh, materials travel with it — no reapplication needed.
+- **Never reapply mask in animation callbacks.** Call `applyStickering()` only on case load, mask change, or state reset.
+- **Identity-based rendering.** The vis map is keyed by `homePos` (piece identity, never changes through moves). Slot indices in `vis[slot]` are mesh-local. Both stay in sync through any rotation.
 
 ---
 

@@ -140,11 +140,12 @@ const MOVE_AXIS = {
 export class CubeRenderer3D {
   /**
    * @param {object} [options]
-   * @param {number}  [options.gap=0.06]        — gap between cubelets (Three.js units)
+   * @param {number}  [options.gap=0.02]        — gap between cubelets (Three.js units)
    * @param {number}  [options.animSpeed=300]   — ms per quarter-turn animation
    * @param {boolean} [options.debug=false]
+   * @param {HTMLCanvasElement} [options.canvas] — pre-existing canvas (skips DOM append in mount)
    */
-  constructor({ gap = 0.02, animSpeed = 300, debug = false } = {}) {
+  constructor({ gap = 0.02, animSpeed = 300, debug = false, canvas = null } = {}) {
     this._gap = gap;
     this._animSpeed = animSpeed;
     this._debug = debug;
@@ -160,6 +161,7 @@ export class CubeRenderer3D {
     this._animTick  = null;
     this._animating = false;
     this._debugLog  = [];
+    this._offscreenCanvas = canvas ?? null;  // pre-existing canvas for off-DOM export use
   }
 
   // ---- Logging ----
@@ -193,10 +195,12 @@ export class CubeRenderer3D {
     fill.position.set(-5, -2, -4);
     this._scene.add(fill);
 
-    this._renderer = new THREE.WebGLRenderer({ antialias: true });
+    const rendererOpts = { antialias: true, alpha: true, preserveDrawingBuffer: true };
+    if (this._offscreenCanvas) rendererOpts.canvas = this._offscreenCanvas;
+    this._renderer = new THREE.WebGLRenderer(rendererOpts);
     this._renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     _maxAnisotropy = this._renderer.capabilities.getMaxAnisotropy();
-    container.appendChild(this._renderer.domElement);
+    if (!this._offscreenCanvas) container.appendChild(this._renderer.domElement);
 
     this._controls = new OrbitControls(this._camera, this._renderer.domElement);
     this._controls.enableDamping = true;
