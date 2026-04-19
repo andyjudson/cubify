@@ -535,22 +535,30 @@
   //   'O' = show primary sticker only (slot 3 = -Y for D-layer pieces after z2).
   // z2 is baked into the KPattern state → case is on the U layer (orbit slots 0-3).
   // EDGES: 0-3=U layer, 4-7=D layer, 8-11=middle.  CORNERS: 0-3=U layer, 4-7=D layer.
-  // '-' = show all outward stickers; 'O' = U/D-face sticker only; 'I' = hide all.
+  // '-'=full, 'I'=hidden, 'D'=dim/faded, 'O'=primary-full+sides-hidden, 'P'=primary-dim+sides-full
   const ORBIT_EXAMPLES = [
     // Full: all stickers visible
-    { label: 'Full',      str: 'EDGES:------------,CORNERS:--------,CENTERS:------' },
+    { label: 'Full',          str: 'EDGES:------------,CORNERS:--------,CENTERS:------' },
     // Cross (white-U, no z2): D edges + D center only
-    { label: 'Cross',     str: 'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------' },
-    // F2L: D+middle layer fully visible (yellow center shows); U-layer hidden
-    { label: 'F2L',       str: 'EDGES:IIII--------,CORNERS:IIII----,CENTERS:------' },
-    // OLL-face: F2L fully visible; U-layer shows yellow sticker wherever it is (state-aware)
-    { label: 'OLL-face',  str: 'EDGES:OOOO--------,CORNERS:OOOO----,CENTERS:------' },
-    // OLL-cross (2-look look-1): orient edges — F2L + U corners visible; U edges yellow-only
-    { label: 'OLL-cross', str: 'EDGES:OOOO--------,CORNERS:IIII----,CENTERS:------' },
+    { label: 'Cross',         str: 'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------' },
+    // F2L: D+middle layer fully visible; U-layer hidden
+    { label: 'F2L',           str: 'EDGES:IIII--------,CORNERS:IIII----,CENTERS:------' },
+    // OLL-face: F2L fully visible; U-layer shows yellow sticker wherever it is
+    { label: 'OLL-face',      str: 'EDGES:OOOO--------,CORNERS:OOOO----,CENTERS:------' },
+    // OLL-face+dim: same but F2L faded — closer to TwistyPlayer OLL preset
+    { label: 'OLL-face-dim',  str: 'EDGES:OOOODDDDDDDD,CORNERS:OOOODDDD,CENTERS:-DDDDD' },
+    // OLL-cross: orient edges — U edges yellow, U corners hidden, F2L full
+    { label: 'OLL-cross',     str: 'EDGES:OOOO--------,CORNERS:IIII----,CENTERS:------' },
+    // OLL-cross+dim: same but F2L faded
+    { label: 'OLL-cross-dim', str: 'EDGES:OOOODDDDDDDD,CORNERS:IIIIDDDD,CENTERS:-DDDDD' },
+    // OLL-corn+dim: U corners yellow, U edges hidden, F2L faded
+    { label: 'OLL-corn-dim',  str: 'EDGES:IIIIDDDDDDDD,CORNERS:OOOODDDD,CENTERS:-DDDDD' },
     // PLL-corn (2-look look-1): all corners fully visible; U edges yellow-only
-    { label: 'PLL-corn',  str: 'EDGES:OOOO--------,CORNERS:--------,CENTERS:------' },
-    // PLL-edge: same as Full (all stickers visible — explicit for PLL edge step)
-    { label: 'PLL-edge',  str: 'EDGES:------------,CORNERS:--------,CENTERS:------' },
+    { label: 'PLL-corn',      str: 'EDGES:OOOO--------,CORNERS:--------,CENTERS:------' },
+    // PLL-face: side colours full, yellow faint — F2L fully visible
+    { label: 'PLL-face',      str: 'EDGES:PPPP--------,CORNERS:PPPP----,CENTERS:------' },
+    // PLL-face+dim: same but F2L faded — closer to TwistyPlayer PLL preset
+    { label: 'PLL-face-dim',  str: 'EDGES:PPPPDDDDDDDD,CORNERS:PPPPDDDD,CENTERS:DDDDDD' },
   ];
 
   const orbitInput  = document.getElementById('orbit-input');

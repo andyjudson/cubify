@@ -10,7 +10,7 @@
  *   for x of [-1,0,1] / for y of [-1,0,1] / for z of [-1,0,1], skip core (0,0,0).
  *
  * Three.js slot order: [0=+X=R, 1=-X=L, 2=+Y=U, 3=-Y=D, 4=+Z=F, 5=-Z=B]
- * visMap values use this same index as world-face booleans: vis[2]=true means show U-facing sticker.
+ * visMap values are number[6]: 0=hidden (grey), 1=dim (faded colour), 2=full colour.
  */
 
 // -- Static orbit-to-cubelet lookup tables ---------------------------------
@@ -81,10 +81,12 @@ export class CubeStickering {
    * regardless of the piece's actual orientation. Use fromOrbitStringWithState() to
    * correctly show the primary sticker wherever it physically is on twisted pieces.
    *
-   * Char semantics:
-   *   '-' → show all outward-facing slots on this piece
-   *   'I' → hide all slots (grey plastic)
-   *   'O' → show U/D-face sticker only (slot 2 for U-layer, slot 3 for D-layer)
+   * Char semantics (vis level: 0=hidden, 1=dim, 2=full):
+   *   '-' → all outward slots full (2)
+   *   'I' → all slots hidden (0)
+   *   'D' → all outward slots dim/faded (1)
+   *   'O' → primary full (2), others hidden (0)
+   *   'P' → primary dim (1), others full (2)
    *
    * @param {string} str  e.g. "EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------"
    * @returns {Map<string, boolean[]>}  "x,y,z" grid position → boolean[6] slot visibility
@@ -143,12 +145,16 @@ export class CubeStickering {
           homePos.z ===  1 ? 4 :
           homePos.z === -1 ? 5 : -1;
 
+        // vis values: 0=hidden (grey plastic), 1=dim (faded colour), 2=full colour
         const posKey = `${homePos.x},${homePos.y},${homePos.z}`;
         map.set(posKey, isOut.map((outward, slot) => {
-          if (ch === '-') return outward;
-          if (ch === 'I') return false;
-          if (ch === 'O') return primarySlot === -1 ? outward : (outward && slot === primarySlot);
-          return false;
+          if (!outward) return 0;
+          if (ch === '-') return 2;
+          if (ch === 'I') return 0;
+          if (ch === 'D') return 1;
+          if (ch === 'O') return (primarySlot === -1 || slot === primarySlot) ? 2 : 0;
+          if (ch === 'P') return (primarySlot === -1 || slot !== primarySlot) ? 2 : 1;
+          return 0;
         }));
       }
     }

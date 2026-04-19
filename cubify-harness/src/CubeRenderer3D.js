@@ -30,6 +30,17 @@ const FACE_COLOURS_HEX = {
 // Three.js slot → WCA face name (slot 0=+X=R, 1=-X=L, 2=+Y=U, 3=-Y=D, 4=+Z=F, 5=-Z=B)
 const SLOT_TO_FACE = ['R', 'L', 'U', 'D', 'F', 'B'];
 
+// Dim variants: each face colour blended 50% toward mid-grey (160) — for F2L context display
+const FACE_DIM_COLOURS_HEX = Object.fromEntries(
+  Object.entries(FACE_COLOURS_HEX).map(([face, hex]) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const mix = (c) => Math.round(c * 0.5 + 160 * 0.5).toString(16).padStart(2, '0');
+    return [face, `#${mix(r)}${mix(g)}${mix(b)}`];
+  })
+);
+
 // ---- Sticker texture factory ----
 // Returns a CanvasTexture with a rounded-rect sticker on a black background.
 // Cached by colour string so we share textures across cubelets.
@@ -498,20 +509,22 @@ export class CubeRenderer3D {
    * @param {Map<string, boolean[]>} visibilityMap — "x,y,z" grid position → slot visibility[6]
    */
   applyStickering(visibilityMap) {
-    // visibilityMap is keyed by homePos ("x,y,z") → slot-indexed boolean[6].
-    // vis[slot] is true if that mesh-local slot should show its sticker colour.
-    // Because the map is keyed by piece identity (homePos never changes) and the
-    // slot indices are mesh-local (also fixed), this works correctly after moves:
-    // the primary sticker (e.g. yellow slot3 for a DRF piece) stays grey or
-    // visible regardless of where the piece physically travelled to.
+    // visibilityMap: homePos "x,y,z" → number[6] where 0=hidden, 1=dim, 2=full.
+    // restoreColours() has already set all slots to full, so we only need to act
+    // on slots that are dim (1) or hidden (0).
     this._cubelets.forEach(({ mesh, homePos }) => {
       const vis = visibilityMap.get(`${homePos.x},${homePos.y},${homePos.z}`);
       if (!vis) return;
       const homeOut = outwardSlots(homePos);
       for (let slot = 0; slot < 6; slot++) {
         if (!homeOut[slot]) continue;
-        if (!vis[slot]) {
-          mesh.material[slot].map = makeStickerTexture(FACE_COLOURS_HEX.X);
+        const level = vis[slot];
+        if (level === 2) continue; // full — already restored
+        const face = SLOT_TO_FACE[slot];
+        const hex = level === 1 ? FACE_DIM_COLOURS_HEX[face] : FACE_COLOURS_HEX.X;
+        const tex = makeStickerTexture(hex);
+        if (mesh.material[slot].map !== tex) {
+          mesh.material[slot].map = tex;
           mesh.material[slot].needsUpdate = true;
         }
       }
