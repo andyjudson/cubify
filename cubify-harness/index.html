@@ -12,44 +12,84 @@
     body {
       background: #1a1a2e;
       color: #e0e0e0;
-      padding: 12px 16px 226px;
+      padding: 12px 16px 0;
       display: flex;
       flex-direction: column;
       height: 100vh;
       overflow: hidden;
+      gap: 8px;
     }
 
-    /* ---- Top area: cube + controls side by side ---- */
-    .top {
-      display: flex;
-      gap: 20px;
-      align-items: flex-start;
+    /* ---- Main area: cube + tabbed panel ---- */
+    .main-area {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: start;
+      gap: 16px;
       flex: 1;
       min-height: 0;
     }
 
-    #cube-container {
-      height: 100%;
-      aspect-ratio: 1;
-      background: #000;
-      border-radius: 8px;
-      border: 1px solid #333;
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-    #cube-container canvas { display: block; }
-
-    /* ---- Controls column ---- */
-    .controls {
+    /* Cube column */
+    .cube-col {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      flex: 1;
-      min-width: 260px;
-      align-content: start;
+      width: 400px;
+      flex-shrink: 0;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #0d0d1a;
+      overflow: hidden;
     }
-    .control-group { display: flex; flex-direction: column; gap: 4px; }
 
+    .cube-col .tabs { flex-shrink: 0; margin: 0; padding: 6px 8px 0; }
+    .cube-col .tabs ul { border-bottom-color: #333; }
+    .cube-col .tabs li a { color: #888; border-bottom-color: #333; padding: 2px 10px; font-size: 0.72rem; }
+    .cube-col .tabs li.is-active a { color: #fff; border-bottom-color: #4a90d9; }
+
+    .cube-tab-panel { display: none; }
+    .cube-tab-panel.is-active { display: block; }
+
+    #cube-container {
+      width: 100%;
+      aspect-ratio: 1;
+      background: #000;
+      overflow: hidden;
+    }
+    #cube-container canvas { display: block; width: 100% !important; height: 100% !important; }
+
+    #cube-2d {
+      width: 100%;
+      aspect-ratio: 1;
+      background: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #555;
+      font-size: 0.8rem;
+      font-family: monospace;
+    }
+
+    /* Right panel: tabbed (Simulation | Moves | Stickering) */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #0d0d1a;
+      overflow: hidden;
+    }
+
+    .right-panel .tabs { flex-shrink: 0; margin: 0; padding: 6px 8px 0; }
+    .right-panel .tabs ul { border-bottom-color: #333; }
+    .right-panel .tabs li a { color: #888; border-bottom-color: #333; padding: 2px 10px; font-size: 0.72rem; }
+    .right-panel .tabs li.is-active a { color: #fff; border-bottom-color: #4a90d9; }
+
+    .tools-panel { display: none; flex: 1; flex-direction: column; padding: 8px; overflow-y: auto; gap: 8px; }
+    .tools-panel.is-active { display: flex; }
+
+    .control-group { display: flex; flex-direction: column; gap: 4px; }
     .control-label {
       font-size: 0.65rem;
       text-transform: uppercase;
@@ -57,7 +97,6 @@
       color: #666;
     }
     .btn-row { display: flex; gap: 4px; flex-wrap: wrap; }
-
     .alg-label {
       font-size: 0.72rem;
       color: #888;
@@ -65,15 +104,20 @@
       min-height: 1.1em;
     }
 
-    /* ---- Debug panel — fixed to bottom ---- */
+    .validator-row { flex-shrink: 0; display: flex; gap: 4px; }
+    .validator-row .button { flex: 1; min-width: 0; }
+    .validator-input-row { flex-shrink: 0; display: flex; gap: 6px; }
+    #move-status { flex-shrink: 0; font-size: 0.72rem; font-family: monospace; color: #666; }
+    #orbit-status { font-size: 0.72rem; font-family: monospace; color: #666; }
+
+    /* ---- Debug panel — flex child at bottom ---- */
     .debug-panel {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 210px;
+      height: 25vh;
+      flex-shrink: 0;
       background: #0d0d1a;
       border-top: 1px solid #333;
-      padding: 8px 16px 8px;
-      z-index: 10;
+      margin: 0 -16px;
+      padding: 8px 16px;
       display: flex;
       flex-direction: column;
     }
@@ -84,18 +128,19 @@
     .debug-panel .tabs li a { color: #888; border-bottom-color: #333; padding: 2px 10px; font-size: 0.72rem; }
     .debug-panel .tabs li.is-active a { color: #fff; border-bottom-color: #4a90d9; }
 
-    .validator-row { flex-shrink: 0; display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
-    .validator-input-row { flex-shrink: 0; display: flex; gap: 6px; margin-bottom: 4px; }
-    #move-status { flex-shrink: 0; font-size: 0.72rem; font-family: monospace; color: #666; margin-bottom: 4px; }
-    #tab-validator-panel { overflow-y: auto; flex: 1; }
+    .debug-tab-panel { display: none; min-height: 0; }
+    #debug-log-panel.is-active   { display: flex; flex-direction: column; }
+    #debug-state-panel.is-active { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 
-    #debug-pre, #face-state-pre, #kpattern-pre {
-      flex: 1; overflow-y: auto; max-height: none;
+    #debug-pre, #face-state-pre, #kpattern-corners-pre, #kpattern-edges-pre, #kpattern-centers-pre {
+      flex: 1; overflow-y: auto; min-height: 0;
       background: #222; border: 1px solid #444; border-radius: 4px; padding: 6px 8px;
     }
-    #debug-pre    { font-family: monospace; font-size: 0.75rem; color: #7fc; white-space: pre-wrap; line-height: 1.5; }
-    #face-state-pre { font-family: monospace; font-size: 0.82rem; color: #adf; white-space: pre; line-height: 1.6; }
-    #kpattern-pre { font-family: monospace; font-size: 0.75rem; color: #fc9; white-space: pre; line-height: 1.5; }
+    #debug-pre            { font-family: monospace; font-size: 0.75rem; color: #7fc; white-space: pre-wrap; line-height: 1.5; }
+    #face-state-pre       { font-family: monospace; font-size: 0.75rem; color: #adf; white-space: pre;      line-height: 1.5; }
+    #kpattern-corners-pre { font-family: monospace; font-size: 0.75rem; color: #fc9; white-space: pre;      line-height: 1.5; }
+    #kpattern-edges-pre   { font-family: monospace; font-size: 0.75rem; color: #fc9; white-space: pre;      line-height: 1.5; }
+    #kpattern-centers-pre { font-family: monospace; font-size: 0.75rem; color: #fc9; white-space: pre;      line-height: 1.5; }
 
     /* Bulma button size/colour tweaks for dark bg */
     .button.is-harness {
@@ -112,74 +157,85 @@
 </head>
 <body>
 
-<p class="has-text-weight-semibold mb-2" style="font-size:1rem;color:#fff;flex-shrink:0">cubify-harness</p>
+<p class="has-text-weight-semibold" style="font-size:1rem;color:#fff;flex-shrink:0;margin:0">cubify-harness</p>
 
-<div class="top">
+<div class="main-area">
 
-  <div id="cube-container"></div>
-
-  <div class="controls">
-
-    <div class="control-group">
-      <span class="control-label">Algorithm</span>
-      <div class="btn-row" id="alg-buttons"></div>
-      <div class="alg-label" id="alg-label"></div>
+  <!-- Cube panel -->
+  <div class="cube-col">
+    <div class="tabs">
+      <ul>
+        <li id="cube-tab-3d" class="is-active"><a onclick="showCubeTab('3d')">3D</a></li>
+        <li id="cube-tab-2d"><a onclick="showCubeTab('2d')">2D</a></li>
+      </ul>
     </div>
-
-    <div class="control-group">
-      <span class="control-label">Playback</span>
-      <div class="btn-row">
-        <button id="btn-play" class="button is-harness is-small">&#9654; Play</button>
-        <button id="btn-stop" class="button is-harness is-small" disabled>&#9632; Stop</button>
-      </div>
+    <div id="cube-3d-panel" class="cube-tab-panel is-active">
+      <div id="cube-container"></div>
     </div>
-
-    <div class="control-group">
-      <span class="control-label">Step</span>
-      <div class="btn-row">
-        <button id="btn-prev" class="button is-harness is-small">&#8592; Prev</button>
-        <button id="btn-next" class="button is-harness is-small">Next &#8594;</button>
-      </div>
-      <div class="alg-label" id="step-label">—</div>
+    <div id="cube-2d-panel" class="cube-tab-panel">
+      <div id="cube-2d">2D view coming soon</div>
     </div>
-
-    <div class="control-group">
-      <span class="control-label">Speed</span>
-      <div class="btn-row">
-        <button class="button is-harness is-small" data-speed="500">Slow</button>
-        <button class="button is-harness is-small is-active" data-speed="300">Normal</button>
-        <button class="button is-harness is-small" data-speed="120">Fast</button>
-      </div>
-    </div>
-
-    <div class="control-group">
-      <span class="control-label">Reset</span>
-      <div class="btn-row">
-        <button id="btn-reset" class="button is-harness is-small">Reset case</button>
-        <button id="btn-solved" class="button is-harness is-small">Solved</button>
-        <button id="btn-cam-reset" class="button is-harness is-small">Reset view</button>
-        <a id="btn-download-log" class="button is-harness is-small" download="cubify-debug.json" href="#">↓ Log</a>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- Debug panel -->
-<div class="debug-panel">
-  <div class="tabs">
-    <ul>
-      <li id="tab-log" class="is-active"><a onclick="showTab('log')">Event log</a></li>
-      <li id="tab-validator"><a onclick="showTab('validator')">Move validator</a></li>
-      <li id="tab-stickering"><a onclick="showTab('stickering')">Stickering</a></li>
-      <li id="tab-faces"><a onclick="showTab('faces')">Face state</a></li>
-      <li id="tab-kpattern"><a onclick="showTab('kpattern')">KPattern</a></li>
-    </ul>
   </div>
 
-  <!-- Move validator tab -->
-  <div id="tab-validator-panel" style="display:none">
-    <div style="display:inline-flex;flex-direction:column;gap:0">
+  <!-- Right panel: Simulation | Moves | Stickering -->
+  <div class="right-panel">
+    <div class="tabs">
+      <ul>
+        <li id="tool-tab-simulation" class="is-active"><a onclick="showToolsTab('simulation')">Simulation</a></li>
+        <li id="tool-tab-moves"><a onclick="showToolsTab('moves')">Moves</a></li>
+        <li id="tool-tab-stickering"><a onclick="showToolsTab('stickering')">Stickering</a></li>
+      </ul>
+    </div>
+
+    <!-- Simulation panel -->
+    <div id="tools-simulation-panel" class="tools-panel is-active">
+
+      <div class="control-group">
+        <span class="control-label">Algorithm</span>
+        <div class="btn-row" id="alg-buttons"></div>
+        <div class="alg-label" id="alg-label"></div>
+      </div>
+
+      <div class="control-group">
+        <span class="control-label">Playback</span>
+        <div class="btn-row">
+          <button id="btn-play" class="button is-harness is-small">&#9654; Play</button>
+          <button id="btn-stop" class="button is-harness is-small" disabled>&#9632; Stop</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <span class="control-label">Step</span>
+        <div class="btn-row">
+          <button id="btn-prev" class="button is-harness is-small">&#8592; Prev</button>
+          <button id="btn-next" class="button is-harness is-small">Next &#8594;</button>
+        </div>
+        <div class="alg-label" id="step-label">—</div>
+      </div>
+
+      <div class="control-group">
+        <span class="control-label">Speed</span>
+        <div class="btn-row">
+          <button class="button is-harness is-small" data-speed="500">Slow</button>
+          <button class="button is-harness is-small is-active" data-speed="300">Normal</button>
+          <button class="button is-harness is-small" data-speed="120">Fast</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <span class="control-label">Reset</span>
+        <div class="btn-row">
+          <button id="btn-reset" class="button is-harness is-small">Reset case</button>
+          <button id="btn-solved" class="button is-harness is-small">Solved</button>
+          <button id="btn-cam-reset" class="button is-harness is-small">Reset view</button>
+          <a id="btn-download-log" class="button is-harness is-small" download="cubify-debug.json" href="#">↓ Log</a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Moves panel -->
+    <div id="tools-moves-panel" class="tools-panel">
       <div class="validator-row" id="move-buttons-face"></div>
       <div class="validator-row" id="move-buttons-other"></div>
       <div class="validator-input-row">
@@ -189,28 +245,47 @@
         <button id="btn-move-apply" class="button is-harness is-small">Apply</button>
         <button id="btn-move-reset" class="button is-harness is-small">Reset</button>
       </div>
+      <div id="move-status"></div>
     </div>
-    <div id="move-status"></div>
-  </div>
 
-  <!-- Stickering tab -->
-  <div id="tab-stickering-panel" style="display:none;padding:2px 0">
-    <div style="display:flex;flex-direction:column;gap:0">
-      <div class="validator-row" id="orbit-examples"></div>
+    <!-- Stickering panel -->
+    <div id="tools-stickering-panel" class="tools-panel">
+      <div class="validator-row" id="orbit-examples-basic"></div>
+      <div class="validator-row" id="orbit-examples-oll"></div>
+      <div class="validator-row" id="orbit-examples-pll"></div>
       <div class="validator-input-row">
         <input id="orbit-input" class="input is-small" type="text"
-               value="EDGES:------------,CORNERS:--------,CENTERS:------"
+               placeholder="e.g. EDGES:------------,CORNERS:--------,CENTERS:------"
                style="font-family:monospace;font-size:0.75rem;background:#111827;border-color:#444;color:#ddf;flex:1;min-width:0;" />
         <button id="btn-orbit-apply" class="button is-harness is-small">Apply</button>
-        <button id="btn-orbit-clear" class="button is-harness is-small">Clear</button>
+        <button id="btn-orbit-clear" class="button is-harness is-small">Reset</button>
       </div>
+      <div id="orbit-status"></div>
     </div>
-    <div id="orbit-status" style="font-size:0.72rem;font-family:monospace;color:#666;margin-top:4px"></div>
+
   </div>
 
-  <pre id="debug-pre"></pre>
-  <pre id="face-state-pre" style="display:none"></pre>
-  <pre id="kpattern-pre" style="display:none"></pre>
+</div>
+
+<!-- Debug panel -->
+<div class="debug-panel">
+  <div class="tabs">
+    <ul>
+      <li id="tab-log" class="is-active"><a onclick="showTab('log')">Event log</a></li>
+      <li id="tab-state"><a onclick="showTab('state')">State</a></li>
+    </ul>
+  </div>
+
+  <div id="debug-log-panel" class="debug-tab-panel is-active">
+    <pre id="debug-pre"></pre>
+  </div>
+
+  <div id="debug-state-panel" class="debug-tab-panel">
+    <pre id="face-state-pre"></pre>
+    <pre id="kpattern-corners-pre"></pre>
+    <pre id="kpattern-edges-pre"></pre>
+    <pre id="kpattern-centers-pre"></pre>
+  </div>
 </div>
 
 <script type="module">
@@ -226,12 +301,13 @@
   // caseAlg: true  → start from case state (inverse alg applied to solved), stepping solves it
   // caseAlg: false → start from solved, stepping executes the alg
   const ALGS = [
+    { label: 'Sexy ×6',    notation: "R U R' U' R U R' U' R U R' U' R U R' U' R U R' U' R U R' U'",          caseAlg: false },
+    { label: 'Sledge ×6',  notation: "R' F R F' R' F R F' R' F R F' R' F R F' R' F R F' R' F R F'",          caseAlg: false },
     { label: 'Sune',       notation: "R U R' U R U2 R'",                                                      caseAlg: true  },
+    { label: 'Anti-Sune',  notation: "R U2 R' U' R U' R'",                                                    caseAlg: true  },
     { label: 'T-Perm',     notation: "R U R' U' R' F R2 U' R' U' R U R' F'",                                  caseAlg: true  },
     { label: 'Ua-Perm',    notation: "R U' R U R U R U' R' U' R2",                                            caseAlg: true  },
     { label: 'H-Perm',     notation: "M2 U M2 U2 M2 U M2",                                                    caseAlg: true  },
-    { label: 'Sexy ×6',    notation: "R U R' U' R U R' U' R U R' U' R U R' U' R U R' U' R U R' U'",          caseAlg: false },
-    { label: 'Sledge ×6',  notation: "R' F R F' R' F R F' R' F R F' R' F R F' R' F R F' R' F R F'",          caseAlg: false },
   ];
 
   // ---- State ----
@@ -274,55 +350,73 @@
   window.addEventListener('cubify:log', e => appendLog(e.detail));
   appendLog('[demo] page loaded');
 
-  const kpatternPre = document.getElementById('kpattern-pre');
+  const kpatternCornersPre = document.getElementById('kpattern-corners-pre');
+  const kpatternEdgesPre   = document.getElementById('kpattern-edges-pre');
+  const kpatternCentersPre = document.getElementById('kpattern-centers-pre');
 
   function showTab(tab) {
-    ['validator','log','stickering','faces','kpattern'].forEach(t => {
+    ['log','state'].forEach(t => {
       document.getElementById(`tab-${t}`)?.classList.toggle('is-active', t === tab);
+      document.getElementById(`debug-${t}-panel`)?.classList.toggle('is-active', t === tab);
     });
-    document.getElementById('tab-validator-panel').style.display  = tab === 'validator'  ? '' : 'none';
-    document.getElementById('tab-stickering-panel').style.display = tab === 'stickering' ? '' : 'none';
-    debugPre.style.display     = tab === 'log'      ? '' : 'none';
-    faceStatePre.style.display = tab === 'faces'    ? '' : 'none';
-    kpatternPre.style.display  = tab === 'kpattern' ? '' : 'none';
   }
   window.showTab = showTab;
+
+  function showCubeTab(tab) {
+    ['3d','2d'].forEach(t => {
+      document.getElementById(`cube-tab-${t}`)?.classList.toggle('is-active', t === tab);
+      document.getElementById(`cube-${t}-panel`)?.classList.toggle('is-active', t === tab);
+    });
+  }
+  window.showCubeTab = showCubeTab;
+
+  function showToolsTab(tab) {
+    ['simulation','moves','stickering'].forEach(t => {
+      document.getElementById(`tool-tab-${t}`)?.classList.toggle('is-active', t === tab);
+      document.getElementById(`tools-${t}-panel`)?.classList.toggle('is-active', t === tab);
+    });
+  }
+  window.showToolsTab = showToolsTab;
 
   const CORNER_NAMES = ['URF','URB','ULB','ULF','DRF','DLF','DLB','DRB'];
   const EDGE_NAMES   = ['UF','UR','UB','UL','DF','DR','DB','DL','FR','FL','BR','BL'];
 
   const CENTER_NAMES = ['U','R','F','L','B','D']; // cubing.js CENTERS orbit slot order (not URFDLB)
 
-  function formatKPattern(state) {
-    const { corners, edges, centers } = state.toRawPattern();
-    const lines = ['CORNERS  slot  piece  orient  (piece name → slot name)'];
+  function formatKPatternCorners(corners) {
+    const lines = ['CORNERS  slot  piece  orient  (piece → slot)'];
     for (let i = 0; i < 8; i++) {
       const moved = corners.pieces[i] !== i || corners.orientation[i] !== 0;
-      const flag  = moved ? ' ←' : '';
-      lines.push(`         [${i}]   ${corners.pieces[i]}      ${corners.orientation[i]}       ${CORNER_NAMES[corners.pieces[i]]} → ${CORNER_NAMES[i]}${flag}`);
+      lines.push(`  [${i}]   ${corners.pieces[i]}      ${corners.orientation[i]}       ${CORNER_NAMES[corners.pieces[i]]} → ${CORNER_NAMES[i]}${moved ? ' ←' : ''}`);
     }
-    lines.push('');
-    lines.push('EDGES    slot  piece  orient  (piece name → slot name)');
+    return lines.join('\n');
+  }
+
+  function formatKPatternEdges(edges) {
+    const lines = ['EDGES   slot  piece  orient  (piece → slot)'];
     for (let i = 0; i < 12; i++) {
       const moved = edges.pieces[i] !== i || edges.orientation[i] !== 0;
-      const flag  = moved ? ' ←' : '';
-      lines.push(`         [${i.toString().padStart(2)}]  ${edges.pieces[i].toString().padStart(2)}      ${edges.orientation[i]}       ${EDGE_NAMES[edges.pieces[i]].padEnd(2)} → ${EDGE_NAMES[i]}${flag}`);
+      lines.push(`  [${i.toString().padStart(2)}]  ${edges.pieces[i].toString().padStart(2)}      ${edges.orientation[i]}       ${EDGE_NAMES[edges.pieces[i]].padEnd(2)} → ${EDGE_NAMES[i]}${moved ? ' ←' : ''}`);
     }
-    if (centers) {
-      lines.push('');
-      lines.push('CENTERS  slot  piece  orient');
-      for (let i = 0; i < 6; i++) {
-        const moved = centers.pieces[i] !== i || centers.orientation[i] !== 0;
-        const flag  = moved ? ' ←' : '';
-        lines.push(`         [${i}]   ${centers.pieces[i]}      ${centers.orientation[i]}       (slot=${CENTER_NAMES[i]})${flag}`);
-      }
+    return lines.join('\n');
+  }
+
+  function formatKPatternCenters(centers) {
+    if (!centers) return 'CENTERS  (none)';
+    const lines = ['CENTERS  slot  piece  orient'];
+    for (let i = 0; i < 6; i++) {
+      const moved = centers.pieces[i] !== i || centers.orientation[i] !== 0;
+      lines.push(`  [${i}]   ${centers.pieces[i]}      ${centers.orientation[i]}       ${CENTER_NAMES[i]}${moved ? ' ←' : ''}`);
     }
     return lines.join('\n');
   }
 
   function updateDebugState(state, prevFaces = null) {
-    faceStatePre.textContent = state.toString();
-    kpatternPre.textContent  = formatKPattern(state);
+    const { corners, edges, centers } = state.toRawPattern();
+    faceStatePre.textContent          = state.toString();
+    kpatternCornersPre.textContent    = formatKPatternCorners(corners);
+    kpatternEdgesPre.textContent      = formatKPatternEdges(edges);
+    kpatternCentersPre.textContent    = formatKPatternCenters(centers);
     if (prevFaces) {
       const faces = state.toFaceArray();
       const diffs = [];
@@ -537,46 +631,32 @@
   // EDGES: 0-3=U layer, 4-7=D layer, 8-11=middle.  CORNERS: 0-3=U layer, 4-7=D layer.
   // '-'=full, 'I'=hidden, 'D'=dim/faded, 'O'=primary-full+sides-hidden, 'S'=primary-full+sides-dim, 'P'=primary-dim+sides-full
   const ORBIT_EXAMPLES = [
-    // Full: all stickers visible
-    { label: 'Full',          str: 'EDGES:------------,CORNERS:--------,CENTERS:------' },
-    // Cross (white-U, no z2): D edges + D center only
-    { label: 'Cross',         str: 'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------' },
-    // F2L: D+middle layer fully visible; U-layer hidden
-    { label: 'F2L',           str: 'EDGES:IIII--------,CORNERS:IIII----,CENTERS:------' },
-    // OLL-face: F2L fully visible; U-layer shows yellow sticker wherever it is
-    { label: 'OLL-face',      str: 'EDGES:OOOO--------,CORNERS:OOOO----,CENTERS:------' },
-    // OLL-face-dim2: yellow full, U-layer sides hidden, F2L faded
-    { label: 'OLL-face-dim2', str: 'EDGES:OOOODDDDDDDD,CORNERS:OOOODDDD,CENTERS:-DDDDD' },
-    // OLL-face-dim3: yellow full, U-layer sides dim, F2L dim
-    { label: 'OLL-face-dim3', str: 'EDGES:SSSSDDDDDDDD,CORNERS:SSSSDDDD,CENTERS:-DDDDD' },
-    // OLL-cross: orient edges — U edges yellow, U corners hidden, F2L full
-    { label: 'OLL-cross',     str: 'EDGES:OOOO--------,CORNERS:IIII----,CENTERS:------' },
-    // OLL-cross+dim: same but F2L faded
-    { label: 'OLL-cross-dim', str: 'EDGES:OOOODDDDDDDD,CORNERS:IIIIDDDD,CENTERS:-DDDDD' },
-    // PLL-corn-dim: all corners full, all edges dim, F2L dim
-    { label: 'PLL-corn-dim',  str: 'EDGES:DDDDDDDDDDDD,CORNERS:----DDDD,CENTERS:DDDDDD' },
-    // PLL-corn (2-look look-1): all corners fully visible; U edges yellow-only
-    { label: 'PLL-corn',      str: 'EDGES:OOOO--------,CORNERS:--------,CENTERS:------' },
-    // PLL-edge-dim: U edges full, all corners dim, F2L dim
-    { label: 'PLL-edge-dim',  str: 'EDGES:----DDDDDDDD,CORNERS:DDDDDDDD,CENTERS:-DDDDD' },
-    // PLL-face: all U-face stickers fully visible (yellow + sides), F2L faded
-    { label: 'PLL-face',      str: 'EDGES:----DDDDDDDD,CORNERS:----DDDD,CENTERS:-DDDDD' },
-    // PLL-face-dim: U-layer sides full, yellow faint, F2L faded — TwistyPlayer PLL
-    { label: 'PLL-face-dim',  str: 'EDGES:PPPPDDDDDDDD,CORNERS:PPPPDDDD,CENTERS:DDDDDD' },
+    { group: 'basic', label: 'Full',          str: 'EDGES:------------,CORNERS:--------,CENTERS:------' },
+    { group: 'basic', label: 'Cross',         str: 'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------' },
+    { group: 'basic', label: 'F2L',           str: 'EDGES:IIII--------,CORNERS:IIII----,CENTERS:------' },
+    { group: 'oll',   label: 'OLL-face',      str: 'EDGES:OOOO--------,CORNERS:OOOO----,CENTERS:------' },
+    { group: 'oll',   label: 'OLL-face-dim-f2l', str: 'EDGES:OOOODDDDDDDD,CORNERS:OOOODDDD,CENTERS:-DDDDD' },
+    { group: 'oll',   label: 'OLL-face-dim-all', str: 'EDGES:SSSSDDDDDDDD,CORNERS:SSSSDDDD,CENTERS:-DDDDD' },
+    { group: 'oll',   label: 'OLL-cross',     str: 'EDGES:OOOO--------,CORNERS:IIII----,CENTERS:------' },
+    { group: 'oll',   label: 'OLL-cross-dim', str: 'EDGES:OOOODDDDDDDD,CORNERS:IIIIDDDD,CENTERS:-DDDDD' },
+    { group: 'pll',   label: 'PLL-corn',      str: 'EDGES:OOOO--------,CORNERS:--------,CENTERS:------' },
+    { group: 'pll',   label: 'PLL-corn-dim',  str: 'EDGES:DDDDDDDDDDDD,CORNERS:----DDDD,CENTERS:DDDDDD' },
+    { group: 'pll',   label: 'PLL-edge-dim',  str: 'EDGES:----DDDDDDDD,CORNERS:DDDDDDDD,CENTERS:-DDDDD' },
+    { group: 'pll',   label: 'PLL-face',      str: 'EDGES:----DDDDDDDD,CORNERS:----DDDD,CENTERS:-DDDDD' },
+    { group: 'pll',   label: 'PLL-face-dim',  str: 'EDGES:PPPPDDDDDDDD,CORNERS:PPPPDDDD,CENTERS:DDDDDD' },
   ];
 
   const orbitInput  = document.getElementById('orbit-input');
   const orbitStatus = document.getElementById('orbit-status');
 
-  const examplesContainer = document.getElementById('orbit-examples');
-  ORBIT_EXAMPLES.forEach(({ label, str }) => {
+  ORBIT_EXAMPLES.forEach(({ group, label, str }) => {
     const btn = document.createElement('button');
     btn.className = 'button is-harness is-small';
     btn.style.fontFamily = 'monospace';
     btn.textContent = label;
     btn.title = str;
     btn.onclick = () => { orbitInput.value = str; applyOrbitString(str); };
-    examplesContainer.appendChild(btn);
+    document.getElementById(`orbit-examples-${group}`).appendChild(btn);
   });
 
   function applyOrbitString(str) {
@@ -601,7 +681,7 @@
   document.getElementById('btn-orbit-clear').onclick = () => {
     activeMask = null;
     reapplyMask(liveState);
-    orbitInput.value = 'EDGES:------------,CORNERS:--------,CENTERS:------';
+    orbitInput.value = '';
     orbitStatus.textContent = 'Cleared — all stickers visible';
     orbitStatus.style.color = '#666';
   };
@@ -629,7 +709,6 @@
       const btn = document.createElement('button');
       btn.className = 'button is-harness is-small';
       btn.style.fontFamily = 'monospace';
-      btn.style.minWidth = '38px';
       btn.textContent = mv;
       btn.onclick = () => applyLiveMove(mv);
       container.appendChild(btn);
