@@ -86,6 +86,7 @@ export class CubeStickering {
    *   'I' → all slots hidden (0)
    *   'D' → all outward slots dim/faded (1)
    *   'O' → primary full (2), others hidden (0)
+   *   'S' → primary full (2), others dim (1)
    *   'P' → primary dim (1), others full (2)
    *
    * @param {string} str  e.g. "EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------"
@@ -153,6 +154,7 @@ export class CubeStickering {
           if (ch === 'I') return 0;
           if (ch === 'D') return 1;
           if (ch === 'O') return (primarySlot === -1 || slot === primarySlot) ? 2 : 0;
+          if (ch === 'S') return (primarySlot === -1 || slot === primarySlot) ? 2 : 1;
           if (ch === 'P') return (primarySlot === -1 || slot !== primarySlot) ? 2 : 1;
           return 0;
         }));

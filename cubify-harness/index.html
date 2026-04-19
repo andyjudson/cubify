@@ -535,7 +535,7 @@
   //   'O' = show primary sticker only (slot 3 = -Y for D-layer pieces after z2).
   // z2 is baked into the KPattern state → case is on the U layer (orbit slots 0-3).
   // EDGES: 0-3=U layer, 4-7=D layer, 8-11=middle.  CORNERS: 0-3=U layer, 4-7=D layer.
-  // '-'=full, 'I'=hidden, 'D'=dim/faded, 'O'=primary-full+sides-hidden, 'P'=primary-dim+sides-full
+  // '-'=full, 'I'=hidden, 'D'=dim/faded, 'O'=primary-full+sides-hidden, 'S'=primary-full+sides-dim, 'P'=primary-dim+sides-full
   const ORBIT_EXAMPLES = [
     // Full: all stickers visible
     { label: 'Full',          str: 'EDGES:------------,CORNERS:--------,CENTERS:------' },
@@ -545,16 +545,20 @@
     { label: 'F2L',           str: 'EDGES:IIII--------,CORNERS:IIII----,CENTERS:------' },
     // OLL-face: F2L fully visible; U-layer shows yellow sticker wherever it is
     { label: 'OLL-face',      str: 'EDGES:OOOO--------,CORNERS:OOOO----,CENTERS:------' },
-    // OLL-face+dim: same but F2L faded — closer to TwistyPlayer OLL preset
-    { label: 'OLL-face-dim',  str: 'EDGES:OOOODDDDDDDD,CORNERS:OOOODDDD,CENTERS:-DDDDD' },
+    // OLL-face-dim2: yellow full, U-layer sides hidden, F2L faded
+    { label: 'OLL-face-dim2', str: 'EDGES:OOOODDDDDDDD,CORNERS:OOOODDDD,CENTERS:-DDDDD' },
+    // OLL-face-dim3: yellow full, U-layer sides dim, F2L dim
+    { label: 'OLL-face-dim3', str: 'EDGES:SSSSDDDDDDDD,CORNERS:SSSSDDDD,CENTERS:-DDDDD' },
     // OLL-cross: orient edges — U edges yellow, U corners hidden, F2L full
     { label: 'OLL-cross',     str: 'EDGES:OOOO--------,CORNERS:IIII----,CENTERS:------' },
     // OLL-cross+dim: same but F2L faded
     { label: 'OLL-cross-dim', str: 'EDGES:OOOODDDDDDDD,CORNERS:IIIIDDDD,CENTERS:-DDDDD' },
-    // PLL-corn-dim: all corners full, U edges yellow, F2L faded
-    { label: 'PLL-corn-dim',  str: 'EDGES:OOOODDDDDDDD,CORNERS:----DDDD,CENTERS:-DDDDD' },
+    // PLL-corn-dim: all corners full, all edges dim, F2L dim
+    { label: 'PLL-corn-dim',  str: 'EDGES:DDDDDDDDDDDD,CORNERS:----DDDD,CENTERS:DDDDDD' },
     // PLL-corn (2-look look-1): all corners fully visible; U edges yellow-only
     { label: 'PLL-corn',      str: 'EDGES:OOOO--------,CORNERS:--------,CENTERS:------' },
+    // PLL-edge-dim: U edges full, all corners dim, F2L dim
+    { label: 'PLL-edge-dim',  str: 'EDGES:----DDDDDDDD,CORNERS:DDDDDDDD,CENTERS:-DDDDD' },
     // PLL-face: all U-face stickers fully visible (yellow + sides), F2L faded
     { label: 'PLL-face',      str: 'EDGES:----DDDDDDDD,CORNERS:----DDDD,CENTERS:-DDDDD' },
     // PLL-face-dim: U-layer sides full, yellow faint, F2L faded — TwistyPlayer PLL
@@ -564,7 +568,6 @@
   const orbitInput  = document.getElementById('orbit-input');
   const orbitStatus = document.getElementById('orbit-status');
 
-  // Example buttons — load string into input only (don't auto-apply)
   const examplesContainer = document.getElementById('orbit-examples');
   ORBIT_EXAMPLES.forEach(({ label, str }) => {
     const btn = document.createElement('button');
@@ -572,7 +575,7 @@
     btn.style.fontFamily = 'monospace';
     btn.textContent = label;
     btn.title = str;
-    btn.onclick = () => { orbitInput.value = str; orbitStatus.textContent = `Loaded: ${label} — press Apply to render`; orbitStatus.style.color = '#888'; };
+    btn.onclick = () => { orbitInput.value = str; applyOrbitString(str); };
     examplesContainer.appendChild(btn);
   });
 
