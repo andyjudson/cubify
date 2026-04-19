@@ -231,3 +231,26 @@ export class CubeStickering {
     return ['full', 'cross', 'f2l', 'oll', 'oll-2look', 'pll', 'pll-2look'];
   }
 }
+
+// ---- Named mask presets for the harness stickering panel ----
+// Grouped by CFOP stage. Lowercase labels, reusable across harness and export scripts.
+// z2 is baked into setup moves — orbit slots 0-3 target the U layer (case on top).
+// Char key: -=full  I=hidden  D=dim  O=primary-full+sides-hidden
+//           S=primary-full+sides-dim  P=primary-dim+sides-full
+export const MASK_PRESETS = [
+  { group: 'basic', label: 'full',              str: 'EDGES:------------,CORNERS:--------,CENTERS:------' },
+  { group: 'basic', label: 'cross',             str: 'EDGES:----IIIIIIII,CORNERS:IIIIIIII,CENTERS:------' },
+  { group: 'basic', label: 'cross-dim',         str: 'EDGES:----DDDDDDDD,CORNERS:DDDDDDDD,CENTERS:------' },
+  { group: 'basic', label: 'f2l',               str: 'EDGES:IIII--------,CORNERS:IIII----,CENTERS:------' },
+  { group: 'basic', label: 'f2l-dim',           str: 'EDGES:DDDD--------,CORNERS:DDDD----,CENTERS:------' },
+  { group: 'oll',   label: 'oll-face',          str: 'EDGES:OOOO--------,CORNERS:OOOO----,CENTERS:------' },
+  { group: 'oll',   label: 'oll-face-dim-f2l',  str: 'EDGES:OOOODDDDDDDD,CORNERS:OOOODDDD,CENTERS:-DDDDD' },
+  { group: 'oll',   label: 'oll-face-dim-all',  str: 'EDGES:SSSSDDDDDDDD,CORNERS:SSSSDDDD,CENTERS:-DDDDD' },
+  { group: 'oll',   label: 'oll-cross',         str: 'EDGES:OOOO--------,CORNERS:IIII----,CENTERS:------' },
+  { group: 'oll',   label: 'oll-cross-dim',     str: 'EDGES:OOOODDDDDDDD,CORNERS:IIIIDDDD,CENTERS:-DDDDD' },
+  { group: 'pll',   label: 'pll-corn',          str: 'EDGES:OOOO--------,CORNERS:--------,CENTERS:------' },
+  { group: 'pll',   label: 'pll-corn-dim',      str: 'EDGES:DDDDDDDDDDDD,CORNERS:----DDDD,CENTERS:DDDDDD' },
+  { group: 'pll',   label: 'pll-edge-dim',      str: 'EDGES:----DDDDDDDD,CORNERS:DDDDDDDD,CENTERS:-DDDDD' },
+  { group: 'pll',   label: 'pll-face',          str: 'EDGES:----DDDDDDDD,CORNERS:----DDDD,CENTERS:-DDDDD' },
+  { group: 'pll',   label: 'pll-face-dim',      str: 'EDGES:PPPPDDDDDDDD,CORNERS:PPPPDDDD,CENTERS:DDDDDD' },
+];
