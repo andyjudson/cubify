@@ -1,9 +1,13 @@
-import { resolve, basename } from 'path';
+import { resolve, basename, dirname } from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { readFileSync } from 'fs';
 import { ensureOutputDir } from './lib/output.mjs';
 import { renderCube } from './lib/renderer.mjs';
 import { lookupCase } from './lib/lookup.mjs';
 import { maskForCase } from './lib/masks.mjs';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const CFOP_APP_DIR = process.env.CFOP_APP_DIR || resolve(__dirname, '../../cfop/cfop-app');
 
 // --- Setup derivation ---
 // For OLL/PLL: experimentalSetupAnchor='end' means the player shows the START of the alg
@@ -12,7 +16,8 @@ import { maskForCase } from './lib/masks.mjs';
 // An explicit --setup flag always overrides this.
 
 async function getAlg() {
-  const mod = await import('../cfop-app/node_modules/cubing/dist/lib/cubing/alg/index.js');
+  const algPath = pathToFileURL(resolve(CFOP_APP_DIR, 'node_modules/cubing/dist/lib/cubing/alg/index.js')).href;
+  const mod = await import(algPath);
   return mod.Alg;
 }
 
@@ -150,7 +155,7 @@ if (mode === 'alg') {
   // Resolve path — bare filenames default to cfop-app/public/data/; paths with slashes resolve from cwd
   const resolvedPath = (filePath.startsWith('/') || filePath.includes('/'))
     ? resolve(filePath)
-    : resolve('cfop-app/public/data', filePath);
+    : resolve(CFOP_APP_DIR, 'public/data', filePath);
 
   let cases;
   try {

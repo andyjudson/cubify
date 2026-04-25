@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const CFOP_APP_DIR = resolve(__dirname, '../../cfop-app');
+const CFOP_APP_DIR = process.env.CFOP_APP_DIR || resolve(__dirname, '../../../cfop/cfop-app');
 const ESBUILD = resolve(CFOP_APP_DIR, 'node_modules/.bin/esbuild');
 const BUNDLE_PATH = '/tmp/cubify-twisty-bundle.js';
 
@@ -144,7 +144,7 @@ export async function renderCube(config) {
     }
   } catch (err) {
     if (err.message.includes("Executable doesn't exist") || err.message.includes('chromium')) {
-      throw new Error('Chromium not found. Run: cd cfop-app && npx playwright install chromium');
+      throw new Error('Chromium not found. Run: cd $CFOP_APP_DIR && npx playwright install chromium');
     }
     throw err;
   } finally {
