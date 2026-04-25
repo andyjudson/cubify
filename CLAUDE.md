@@ -102,11 +102,23 @@ node cubify-scripts/cubify.mjs --file algs-cfop-oll.json
 - `specs/<NNN>-<kebab-name>/` = per-feature lifecycle artifacts
 - Features numbered starting at 022; next must follow spec.md sequence
 
+## Local Dev Server (cubify-harness)
+
+```bash
+cd cubify-harness
+# Check for existing Vite processes first:
+ps aux | grep -i vite
+npm run dev -- --host 127.0.0.1 --port 5174
+# URL: http://127.0.0.1:5174/
+```
+
+- Bare specifiers (`cubing/alg`, `three`) require Vite — `index.html` cannot be opened directly in a browser
+- Kill existing Vite processes before starting to avoid port conflicts
+
 ## Working Style
 
 - Iterate in small steps
 - Before any merge/push: run `verify-perms.mjs` cross-check suite
-- No build step for harness — test in browser directly
 
 ## Playwright / Web Component Automation
 

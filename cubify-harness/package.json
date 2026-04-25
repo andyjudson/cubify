@@ -11,13 +11,10 @@
     "demo": "node demo/export-test.mjs"
   },
   "dependencies": {
+    "cubing": "^0.63.3",
     "three": "^0.170.0"
   },
-  "peerDependencies": {
-    "cubing": "^0.63.3"
-  },
   "devDependencies": {
-    "node-canvas": "^2.9.0",
     "sharp": "^0.34.5",
     "vite": "^8.0.8"
   },
