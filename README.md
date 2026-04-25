@@ -1,6 +1,6 @@
 # cubify
 
-Clean-room 3×3 cube rendering and logic library. Built to understand and eventually replace cubing.js TwistyPlayer in my Learning CFOP app with a dependency-free renderer — no IntersectionObserver constraints, no shadow DOM, no baked-in controls.
+Clean-room 3×3 cube rendering and logic library. Built to understand and eventually replace cubing.js TwistyPlayer in the Learning CFOP app with a dependency-free renderer — no IntersectionObserver constraints, no shadow DOM, no baked-in controls.
 
 ## What's Built
 

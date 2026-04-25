@@ -103,13 +103,14 @@
 
     .validator-row { flex-shrink: 0; display: flex; gap: 4px; }
     .validator-row .button { flex: 1; min-width: 0; }
+    #alg-buttons .button { min-width: 5.5rem; }
     .validator-input-row { flex-shrink: 0; display: flex; gap: 6px; }
     #move-status { flex-shrink: 0; font-size: 0.72rem; font-family: monospace; color: #666; }
     #orbit-status { font-size: 0.72rem; font-family: monospace; color: #666; }
 
     /* ---- Debug panel — flex child at bottom ---- */
     .debug-panel {
-      height: 160px;
+      height: 200px;
       flex-shrink: 0;
       background: #0d0d1a;
       border-top: 1px solid #333;
@@ -153,7 +154,7 @@
     .button.is-harness .material-icons { font-size: 1rem; vertical-align: middle; line-height: 1; margin-right: 3px; }
     #move-tape { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 3px; margin-top: 4px; padding-bottom: 2px; min-height: 0; }
     #move-tape:empty { display: none; }
-    .move-chip { flex-shrink: 0; font-family: monospace; font-size: 0.72rem; padding: 1px 5px; border-radius: 3px; background: #222; border: 1px solid #444; color: #888; }
+    .move-chip { flex-shrink: 0; font-family: monospace; font-size: 0.72rem; padding: 1px 0; min-width: 2rem; text-align: center; border-radius: 3px; background: #222; border: 1px solid #444; color: #888; }
     .move-chip.is-active { background: #2d5af5; border-color: #2d5af5; color: #fff; }
     .move-chip.is-done   { color: #ccc; border-color: #555; }
   </style>
