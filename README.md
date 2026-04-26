@@ -8,6 +8,8 @@ Clean-room 3×3 cube rendering and logic library. Built to understand and eventu
 
 Browser test harness and library implementation. Open `cubify-harness/index.html` directly — no build step.
 
+<img src="screenshot.png" width="900" alt="cubify-harness" />
+
 | Module | Description |
 |--------|-------------|
 | `CubeState` | cubing.js KPattern wrapper — `applyMove/applyAlg`, `toFaceArray()`, `invertAlg()` |

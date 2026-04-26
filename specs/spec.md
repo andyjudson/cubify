@@ -87,16 +87,21 @@ PNG export from both the 2D canvas renderer and the 3D WebGL renderer, at exact 
 
 ## Feature 027: cubify-tests
 
-### Status: Planned 📋
+### Status: Complete ✅
 
 ### Scope
 Vitest unit suite covering the core library without a headed browser.
 
-### Goals
-- CubeState unit tests: all cube-mapping-lessons verification tests
-- CubeStickering orbit string parsing tests
-- stickerIndex formula and MOVE_AXIS direction tests
-- Runs in CI, no headed browser required
+### Completed
+- `test/cube-state.test.js` — 32 tests: toFaceArray ground truth, slot ordering, orientation formula, isSolved, U/D direction, invertAlg round-trip
+- `test/cube-stickering.test.js` — 20 tests: all 15 MASK_PRESETS parse, 'O'/'D'/'S'/'P'/'I' char semantics, homePos keying, idempotency
+- `test/cube-player.test.js` — 40 tests: full play/pause/jumpTo/reset sequence with mock renderer, event emission, setSpeed, setStickering, mask travel invariant
+- `test/cube-exporter.test.js` — 11 tests: `_resolve` pure state computation, alg inversion, CubeState passthrough, setupAlg ordering
+- `test/cube-renderer-2d-svg.test.js` — 15 tests: migrated from `demo/export-test.mjs`; SVG structure invariants (13 rects + 8 corner quads), colour rendering, idempotency
+- `test/cube-renderer-3d.test.js` — 20 tests (4 skipped): MOVE_AXIS directions and axis assignments; WebGL-dependent tests `.skip`
+- `test/cube-renderer-2d.test.js` — canvas tests (all `.skip`; enable with `CUBIFY_CANVAS_TESTS=1` + `npm install canvas`)
+- `npm test` runs 138 tests, 0 failures, no headed browser required
+- `MOVE_AXIS` exported from CubeRenderer3D.js for testability
 
 ---
 
@@ -170,7 +175,7 @@ Replace TwistyPlayer in cfop-app with cubify React components.
 | 024 | cubify-animation | Complete ✅ |
 | 025 | cubify-theming | Planned 📋 |
 | 026 | cubify-image-export | Complete ✅ |
-| 027 | cubify-tests | Planned 📋 |
+| 027 | cubify-tests | Complete ✅ |
 | 028 | cubify.js Library API | Planned 📋 |
 | 029 | cubify-react | Planned 📋 |
 | 030 | cubify-decouple | Planned 📋 |

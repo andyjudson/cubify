@@ -121,7 +121,8 @@ function outwardSlots({ x, y, z }) {
 }
 
 // ---- Face rotation axis/filter for animation ----
-const MOVE_AXIS = {
+// Exported for unit tests (lessons §5, cube-physical-rules §3.4)
+export const MOVE_AXIS = {
   U: { axis: new THREE.Vector3(0,  1, 0), dir: -1, filter: p => p.y ===  1 },
   D: { axis: new THREE.Vector3(0,  1, 0), dir:  1, filter: p => p.y === -1 },
   R: { axis: new THREE.Vector3(1,  0, 0), dir: -1, filter: p => p.x ===  1 },

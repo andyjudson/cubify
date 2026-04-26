@@ -230,7 +230,8 @@
           <button id="btn-cam-reset" class="button is-harness is-small"><span class="material-icons">filter_center_focus</span>Reset view</button>
           <button id="btn-export-2d" class="button is-harness is-small"><span class="material-icons">download</span>Export 2D</button>
           <button id="btn-export-3d" class="button is-harness is-small"><span class="material-icons">download</span>Export 3D</button>
-          <a id="btn-download-log" class="button is-harness is-small" download="cubify-debug.json" href="#"><span class="material-icons">download</span>Log</a>
+          <a id="btn-download-log" class="button is-harness is-small" download="cubify-debug.json" href="#" disabled><span class="material-icons">download</span>Log</a>
+          <button id="btn-telemetry" class="button is-harness is-small"><span class="material-icons">bug_report</span>Telemetry</button>
         </div>
       </div>
 
@@ -314,6 +315,7 @@
   ];
 
   // ---- Player & 2D renderer ----
+  let TELEMETRY = false;
   const player = new CubePlayer(document.getElementById('cube-container'), { animSpeed: 300, debug: true });
   const renderer2d = new CubeRenderer2D(document.getElementById('cube-2d'), { size: 400 });
 
@@ -323,8 +325,21 @@
   let liveState = _solvedBase;
   let appliedMoves = [];
 
-  // ---- Structured debug log ----
+  // ---- Debug log ----
+  const debugPre = document.getElementById('debug-pre');
+  const faceStatePre = document.getElementById('face-state-pre');
+
+  function appendLog(msg) {
+    debugPre.textContent = msg + '\n' + debugPre.textContent;
+  }
+
+  // ---- Structured telemetry (debug mode only) ----
   const _stateLog = [];
+  function _serializeVisMap(map) {
+    const out = {};
+    map.forEach((vis, key) => { out[key] = vis; });
+    return out;
+  }
   function _logEvent(type, data) {
     _stateLog.push({ seq: _stateLog.length, type, ...data });
     const link = document.getElementById('btn-download-log');
@@ -332,14 +347,6 @@
       const blob = new Blob([JSON.stringify(_stateLog, null, 2)], { type: 'application/json' });
       link.href = URL.createObjectURL(blob);
     }
-  }
-
-  // ---- Debug log ----
-  const debugPre = document.getElementById('debug-pre');
-  const faceStatePre = document.getElementById('face-state-pre');
-
-  function appendLog(msg) {
-    debugPre.textContent = msg + '\n' + debugPre.textContent;
   }
 
   window.addEventListener('cubify:log', e => appendLog(e.detail));
@@ -460,6 +467,7 @@
     updateStepLabel();
     updateDebugState(player.state);
     update2D(player.state);
+    if (TELEMETRY) _logEvent('applyStateToRenderer', { setupMoves: player._setupMoves, raw: player.state.toRawPattern() });
   });
 
   player.on('move', ({ index, move, state }) => {
@@ -467,6 +475,7 @@
     updateDebugState(state);
     update2D(state);
     appendLog(`[sim] move: ${move} (${index}/${player.moveCount})`);
+    if (TELEMETRY) _logEvent('animateMove', { move, stepIndex: index, raw: state.toRawPattern() });
   });
 
   player.on('complete', () => {
@@ -548,6 +557,14 @@
   document.getElementById('btn-cam-reset').onclick = () => {
     player.renderer.resetCamera();
     appendLog('[sim] camera reset');
+  };
+
+  // ---- Telemetry toggle ----
+  document.getElementById('btn-telemetry').onclick = () => {
+    TELEMETRY = !TELEMETRY;
+    document.getElementById('btn-telemetry').classList.toggle('is-info', TELEMETRY);
+    document.getElementById('btn-download-log').toggleAttribute('disabled', !TELEMETRY);
+    appendLog(`[telemetry] ${TELEMETRY ? 'on' : 'off'}`);
   };
 
   // ---- Export ----
@@ -635,6 +652,11 @@
       orbitStatus.textContent = `Applied: ${active} active / ${dimmed} dimmed / ${masked} masked`;
       orbitStatus.style.color = '#7fc';
       appendLog(`[stickering] Applied: ${label} — ${active} active / ${dimmed} dimmed / ${masked} masked`);
+      if (TELEMETRY) {
+        const raw = state.toRawPattern();
+        const worldFaceMap = Object.fromEntries(player.renderer.getWorldFaceMap());
+        _logEvent('reapplyMask', { activeMask, raw, visMap: _serializeVisMap(map), worldFaceMap });
+      }
     } catch (e) {
       orbitStatus.textContent = `Error: ${e.message}`;
       orbitStatus.style.color = '#f88';
@@ -652,6 +674,7 @@
     orbitStatus.textContent = 'Cleared — all stickers visible';
     orbitStatus.style.color = '#666';
     appendLog('[stickering] Cleared — all stickers visible');
+    if (TELEMETRY) _logEvent('reapplyMask', { activeMask: null });
   };
 
   // ---- Moves tab ----
