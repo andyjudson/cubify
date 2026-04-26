@@ -42,16 +42,16 @@ Extend stickering to support the full orbit string format used by cubing.js `exp
 
 ## Feature 024: cubify-animation / CubePlayer Engine
 
-### Status: Planned 📋
+### Status: Complete ✅
 
 ### Scope
 Extract the move sequencing and playback control into a dedicated `CubePlayer` engine that can be driven as a component from outside.
 
-### Goals
-- Full move timeline: play, pause, jumpTo, setSpeed, reset
-- Event emitter: move `{ index, move, state }`, complete, reset
-- Configurable inter-move gap; correct onDone callback chaining (no setTimeout racing)
-- Harness demo rewired to CubePlayer
+### Completed
+- `CubePlayer` — animation engine owning `CubeRenderer3D`; `loadAlg(notation, setup, {anchor})`, `play/pause/jumpTo/reset`, `setSpeed(scale)`, `setStickering(str)`, event emitter (`move`, `complete`, `reset`)
+- Full move timeline with configurable inter-move gap; onDone callback chaining (no setTimeout racing)
+- Harness fully rewired to CubePlayer events; `liveState` (Moves tab) remains harness-local
+- Stickering not reapplied during animated play — only on jumpTo/reset/loadAlg (mask travels with mesh)
 
 ---
 
@@ -79,8 +79,8 @@ PNG export from both the 2D canvas renderer and the 3D WebGL renderer, at exact 
 ### Completed
 - `CubeRenderer2D` — top-down canvas/SVG view: U face + 4 side strips + corner quads; `transparent` option for PNG export
 - `CubeExporter.toPNG(alg, { style: '2d'|'3d' })` — 2D via canvas, 3D via CubeRenderer3D with alpha+preserveDrawingBuffer
-- `demo/export-test.mjs` — Node.js sharp-based validation (3/3 cases: Sune OLL, T-Perm PLL, solved)
 - Harness Export 2D / Export 3D buttons (288px, transparent background, stickering-aware)
+- SVG export validation migrated to `test/cube-renderer-2d-svg.test.js` (spec 027); `demo/` directory removed
 - cubify-scripts Playwright migration deferred (requires Node.js WebGL path) ⏳
 
 ---

@@ -16,10 +16,11 @@ Browser test harness and library implementation. Open `cubify-harness/index.html
 | `CubeRenderer3D` | Three.js 3D renderer — `setState()`, `animateMove()`, `animateAlg()`, `setSpeed()`; alpha + preserveDrawingBuffer for PNG export |
 | `CubeRenderer2D` | Canvas 2D top-down view (U face + side strips + corner quads); SVG for Node.js; transparent background option |
 | `CubeStickering` | CFOP orbit-string masking — `fromOrbitStringWithState()` with full char set (-/I/D/O/S/P); `MASK_PRESETS` (15 presets) |
+| `CubePlayer` | Animation engine — `loadAlg()`, `play/pause/jumpTo/reset`, `setSpeed()`, `setStickering()`; event emitter (`move`, `complete`, `reset`) |
 | `CubeExporter` | `toPNG(alg, { style: '2d'\|'3d' })` — 288px transparent PNG export |
 | `AlgParser` | WCA notation parser (face turns, wide moves, slice moves, rotations) |
 | `verify-perms.mjs` | 18-test permutation cross-check suite against cubing.js ground truth |
-| `demo/export-test.mjs` | Node.js sharp-based PNG validation |
+| `test/` | Vitest suite — 138 tests, no headed browser (`npm test`) |
 
 **Design goals:** Clean public API, CSS custom property theming, no hidden dependencies, MIT licensed.
 
@@ -66,4 +67,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Status**: Features 022–023, 026 complete • 024–031 planned
+**Status**: Features 022–024, 026–027 complete • 025, 028–031 planned
