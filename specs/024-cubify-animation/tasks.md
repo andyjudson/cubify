@@ -15,8 +15,8 @@
 
 **Purpose**: File scaffold and dev environment check
 
-- [ ] T001 Confirm Vite dev server is running on port 5174 (`cd cubify-harness && npm run dev -- --host 127.0.0.1 --port 5174`); kill any stale process first
-- [ ] T002 Create empty `cubify-harness/src/CubePlayer.js` with ES module export scaffold (class stub, constructor signature)
+- [X] T001 Confirm Vite dev server is running on port 5174 (`cd cubify-harness && npm run dev -- --host 127.0.0.1 --port 5174`); kill any stale process first
+- [X] T002 Create empty `cubify-harness/src/CubePlayer.js` with ES module export scaffold (class stub, constructor signature)
 
 ---
 
@@ -26,8 +26,8 @@
 
 ⚠️ CRITICAL: US1 and US2 both depend on this phase completing first
 
-- [ ] T003 Implement event emitter in `cubify-harness/src/CubePlayer.js`: `_listeners: Map`, `on(event, cb)`, `off(event, cb)`, `emit(event, data)` — simple synchronous emitter, no third-party library
-- [ ] T004 Implement `_stateAt(n)` private method in `cubify-harness/src/CubePlayer.js`: returns `CubeState` computed as `_baseState.applyAlg([..._setupMoves, ..._moves.slice(0, n)])`; used by play, jumpTo, getters
+- [X] T003 Implement event emitter in `cubify-harness/src/CubePlayer.js`: `_listeners: Map`, `on(event, cb)`, `off(event, cb)`, `emit(event, data)` — simple synchronous emitter, no third-party library
+- [X] T004 Implement `_stateAt(n)` private method in `cubify-harness/src/CubePlayer.js`: returns `CubeState` computed as `_baseState.applyAlg([..._setupMoves, ..._moves.slice(0, n)])`; used by play, jumpTo, getters
 
 **Checkpoint**: Emitter and state computation ready — US1 implementation can begin
 
@@ -41,18 +41,18 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Implement constructor in `cubify-harness/src/CubePlayer.js`: accept `(container, options)`, create and mount `CubeRenderer3D`, store `_baseSpeedMs=300`, `_speedScale=1.0`, `_gapMs=60`, `_stickering=null`, `_stepIndex=0`, `_isPlaying=false`, `_moves=[]`, `_setupMoves=[]`, `_anchor='start'`
-- [ ] T006 [US1] Implement `async loadAlg(notation, setup, {anchor='start'}={})` in `cubify-harness/src/CubePlayer.js`: stop playback, parse notation via `AlgParser.parse()`, parse setup string if provided, compute `_baseState` via `CubeState.solved()`, set `_stepIndex=0`, call `_applyState(0)`, emit `reset`
-- [ ] T007 [US1] Implement `_applyState(n)` private method in `cubify-harness/src/CubePlayer.js`: `renderer.resetToSolved()`, `renderer.applyMovesInstant([..._setupMoves, ..._moves.slice(0,n)])`, `_reapplyStickering()` — used by loadAlg, jumpTo, reset
-- [ ] T008 [US1] Implement `play()` in `cubify-harness/src/CubePlayer.js`: guard if already playing or no moves; if `_stepIndex >= _moves.length` reset to 0; set `_isPlaying=true`; start `_playNext()` chain
-- [ ] T009 [US1] Implement `_playNext()` private method in `cubify-harness/src/CubePlayer.js`: if `!_isPlaying || _stepIndex >= _moves.length` → stop and emit `complete`; else call `renderer.animateMove(move, onDone)` where onDone increments `_stepIndex`, emits `move {index, move, state: _stateAt(_stepIndex)}`, then `setTimeout(_playNext, _gapMs)`
-- [ ] T010 [US1] Implement `pause()` in `cubify-harness/src/CubePlayer.js`: set `_isPlaying=false`; current animateMove completes naturally, chain does not continue
-- [ ] T011 [US1] Implement `jumpTo(n)` in `cubify-harness/src/CubePlayer.js`: clamp n to `[0, _moves.length]`; set `_stepIndex=n`; call `_applyState(n)` (resetToSolved + applyMovesInstant + reapplyStickering); no event emitted — caller reads `player.state`
-- [ ] T012 [US1] Implement `reset()` in `cubify-harness/src/CubePlayer.js`: call `pause()`, call `jumpTo(0)`, emit `reset`
-- [ ] T013 [US1] Implement `setSpeed(scale)` in `cubify-harness/src/CubePlayer.js`: clamp scale > 0; store `_speedScale=scale`; call `renderer.setSpeed(Math.round(_baseSpeedMs / scale))` immediately so next animateMove uses it
-- [ ] T014 [P] [US1] Implement `setStickering(str)` in `cubify-harness/src/CubePlayer.js`: store `_stickering=str` (null = clear); call `_reapplyStickering()` immediately
-- [ ] T015 [P] [US1] Implement `_reapplyStickering()` private method in `cubify-harness/src/CubePlayer.js`: call `renderer.restoreColours()`; if `_stickering` is set, compute visMap via `CubeStickering.fromOrbitStringWithState(_stickering, _stateAt(_stepIndex).toRawPattern())` then call `renderer.applyStickering(visMap)`
-- [ ] T016 [P] [US1] Implement public getters in `cubify-harness/src/CubePlayer.js`: `get state()` → `_stateAt(_stepIndex)`, `get renderer()` → `_renderer`, `get stepIndex()` → `_stepIndex`, `get isPlaying()` → `_isPlaying`, `get moveCount()` → `_moves.length`
+- [X] T005 [US1] Implement constructor in `cubify-harness/src/CubePlayer.js`: accept `(container, options)`, create and mount `CubeRenderer3D`, store `_baseSpeedMs=300`, `_speedScale=1.0`, `_gapMs=60`, `_stickering=null`, `_stepIndex=0`, `_isPlaying=false`, `_moves=[]`, `_setupMoves=[]`, `_anchor='start'`
+- [X] T006 [US1] Implement `async loadAlg(notation, setup, {anchor='start'}={})` in `cubify-harness/src/CubePlayer.js`: stop playback, parse notation via `AlgParser.parse()`, parse setup string if provided, compute `_baseState` via `CubeState.solved()`, set `_stepIndex=0`, call `_applyState(0)`, emit `reset`
+- [X] T007 [US1] Implement `_applyState(n)` private method in `cubify-harness/src/CubePlayer.js`: `renderer.resetToSolved()`, `renderer.applyMovesInstant([..._setupMoves, ..._moves.slice(0,n)])`, `_reapplyStickering()` — used by loadAlg, jumpTo, reset
+- [X] T008 [US1] Implement `play()` in `cubify-harness/src/CubePlayer.js`: guard if already playing or no moves; if `_stepIndex >= _moves.length` reset to 0; set `_isPlaying=true`; start `_playNext()` chain
+- [X] T009 [US1] Implement `_playNext()` private method in `cubify-harness/src/CubePlayer.js`: if `!_isPlaying || _stepIndex >= _moves.length` → stop and emit `complete`; else call `renderer.animateMove(move, onDone)` where onDone increments `_stepIndex`, emits `move {index, move, state: _stateAt(_stepIndex)}`, then `setTimeout(_playNext, _gapMs)`
+- [X] T010 [US1] Implement `pause()` in `cubify-harness/src/CubePlayer.js`: set `_isPlaying=false`; current animateMove completes naturally, chain does not continue
+- [X] T011 [US1] Implement `jumpTo(n)` in `cubify-harness/src/CubePlayer.js`: clamp n to `[0, _moves.length]`; set `_stepIndex=n`; call `_applyState(n)` (resetToSolved + applyMovesInstant + reapplyStickering); no event emitted — caller reads `player.state`
+- [X] T012 [US1] Implement `reset()` in `cubify-harness/src/CubePlayer.js`: call `pause()`, call `jumpTo(0)`, emit `reset`
+- [X] T013 [US1] Implement `setSpeed(scale)` in `cubify-harness/src/CubePlayer.js`: clamp scale > 0; store `_speedScale=scale`; call `renderer.setSpeed(Math.round(_baseSpeedMs / scale))` immediately so next animateMove uses it
+- [X] T014 [P] [US1] Implement `setStickering(str)` in `cubify-harness/src/CubePlayer.js`: store `_stickering=str` (null = clear); call `_reapplyStickering()` immediately
+- [X] T015 [P] [US1] Implement `_reapplyStickering()` private method in `cubify-harness/src/CubePlayer.js`: call `renderer.restoreColours()`; if `_stickering` is set, compute visMap via `CubeStickering.fromOrbitStringWithState(_stickering, _stateAt(_stepIndex).toRawPattern())` then call `renderer.applyStickering(visMap)`
+- [X] T016 [P] [US1] Implement public getters in `cubify-harness/src/CubePlayer.js`: `get state()` → `_stateAt(_stepIndex)`, `get renderer()` → `_renderer`, `get stepIndex()` → `_stepIndex`, `get isPlaying()` → `_isPlaying`, `get moveCount()` → `_moves.length`
 
 **Checkpoint**: Load `CubePlayer.js` in harness, smoke-test via browser console — all methods should be callable and animation should run correctly before beginning US2
 
@@ -66,18 +66,18 @@
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Update imports in `cubify-harness/index.html`: add `import { CubePlayer } from './src/CubePlayer.js'`; remove `new CubeRenderer3D(...)` and `renderer.mount(container)`; create `const player = new CubePlayer(document.getElementById('cube-container'), { animSpeed: 300, debug: true })`
-- [ ] T018 [US2] Replace `loadAlg(idx)` function in `cubify-harness/index.html`: compute setup string (`alg.caseAlg ? ['z2',...CubeState.invertAlg(moves)].join(' ') : null`), call `await player.loadAlg(alg.notation, setup, { anchor: alg.caseAlg ? 'end' : 'start' })`; keep `currentAlgIndex`, `updateAlgButtons()`, `appendLog()`
-- [ ] T019 [US2] Wire `player.on('reset', ...)` in `cubify-harness/index.html`: handler calls `buildMoveTape()`, `updateStepLabel()`, `updateDebugState(player.state)`, resets `liveState = player.state`
-- [ ] T020 [US2] Wire `player.on('move', ({index, move, state}) => ...)` in `cubify-harness/index.html`: handler calls `updateStepLabel()`, `updateDebugState(state)`, `update2D(state)`, `appendLog(\`[sim] move: ${move} (${index}/${player.moveCount})\`)`
-- [ ] T021 [US2] Wire `player.on('complete', ...)` in `cubify-harness/index.html`: handler calls `stopPlay()` (updates btn-play/btn-stop disabled states), `appendLog('[sim] playback complete')`
-- [ ] T022 [US2] Replace `startPlay()` / `stopPlay()` in `cubify-harness/index.html`: `startPlay()` calls `player.play()`; `stopPlay()` calls `player.pause()`; keep btn-play/btn-stop disabled state management; remove old `isPlaying`, `animateStepForward`, `playNext` local code
-- [ ] T023 [US2] Replace `snapToStep()` and `updateStepLabel()` in `cubify-harness/index.html`: prev/next buttons call `player.jumpTo(player.stepIndex - 1)` / `player.jumpTo(player.stepIndex + 1)`; `updateStepLabel()` reads `player.stepIndex` to mark chips is-active/is-done/plain
-- [ ] T024 [US2] Wire reset and solved buttons in `cubify-harness/index.html`: `btn-reset` calls `player.reset()`; `btn-solved` calls `player.loadAlg('', null, {anchor:'start'})` or directly `player.jumpTo(0)` on empty alg — restore solved display
-- [ ] T025 [US2] Wire speed buttons in `cubify-harness/index.html`: change `renderer.setSpeed(ms)` calls to `player.setSpeed(300 / parseInt(btn.dataset.speed))` (maps 500→0.6, 300→1.0, 120→2.5); keep active-class toggle
-- [ ] T026 [US2] Wire stickering tab in `cubify-harness/index.html`: `applyOrbitString(str)` calls `player.setStickering(str)` and keeps `activeMask = str` for export use; clear button calls `player.setStickering(null)` and clears `activeMask`
-- [ ] T027 [US2] Wire Moves tab to `player.renderer` in `cubify-harness/index.html`: replace bare `renderer.` references in `applyLiveMove`, `btn-move-reset`, `btn-move-apply`, `btn-export-3d` with `player.renderer.`; keep `liveState` as harness-local variable
-- [ ] T028 [US2] Remove now-dead local state from `cubify-harness/index.html`: delete `isPlaying`, `stepIndex`, `currentMoves`, `currentSetupMoves`, `currentCaseState` variables; delete `animateStepForward()`, `snapToStep()`, `startPlay()` / `stopPlay()` function bodies (keep wrapper functions that delegate to `player`); verify no remaining references to deleted vars
+- [X] T017 [US2] Update imports in `cubify-harness/index.html`: add `import { CubePlayer } from './src/CubePlayer.js'`; remove `new CubeRenderer3D(...)` and `renderer.mount(container)`; create `const player = new CubePlayer(document.getElementById('cube-container'), { animSpeed: 300, debug: true })`
+- [X] T018 [US2] Replace `loadAlg(idx)` function in `cubify-harness/index.html`: compute setup string (`alg.caseAlg ? ['z2',...CubeState.invertAlg(moves)].join(' ') : null`), call `await player.loadAlg(alg.notation, setup, { anchor: alg.caseAlg ? 'end' : 'start' })`; keep `currentAlgIndex`, `updateAlgButtons()`, `appendLog()`
+- [X] T019 [US2] Wire `player.on('reset', ...)` in `cubify-harness/index.html`: handler calls `buildMoveTape()`, `updateStepLabel()`, `updateDebugState(player.state)`, resets `liveState = player.state`
+- [X] T020 [US2] Wire `player.on('move', ({index, move, state}) => ...)` in `cubify-harness/index.html`: handler calls `updateStepLabel()`, `updateDebugState(state)`, `update2D(state)`, `appendLog(\`[sim] move: ${move} (${index}/${player.moveCount})\`)`
+- [X] T021 [US2] Wire `player.on('complete', ...)` in `cubify-harness/index.html`: handler calls `stopPlay()` (updates btn-play/btn-stop disabled states), `appendLog('[sim] playback complete')`
+- [X] T022 [US2] Replace `startPlay()` / `stopPlay()` in `cubify-harness/index.html`: `startPlay()` calls `player.play()`; `stopPlay()` calls `player.pause()`; keep btn-play/btn-stop disabled state management; remove old `isPlaying`, `animateStepForward`, `playNext` local code
+- [X] T023 [US2] Replace `snapToStep()` and `updateStepLabel()` in `cubify-harness/index.html`: prev/next buttons call `player.jumpTo(player.stepIndex - 1)` / `player.jumpTo(player.stepIndex + 1)`; `updateStepLabel()` reads `player.stepIndex` to mark chips is-active/is-done/plain
+- [X] T024 [US2] Wire reset and solved buttons in `cubify-harness/index.html`: `btn-reset` calls `player.reset()`; `btn-solved` calls `player.loadAlg('', null, {anchor:'start'})` or directly `player.jumpTo(0)` on empty alg — restore solved display
+- [X] T025 [US2] Wire speed buttons in `cubify-harness/index.html`: change `renderer.setSpeed(ms)` calls to `player.setSpeed(300 / parseInt(btn.dataset.speed))` (maps 500→0.6, 300→1.0, 120→2.5); keep active-class toggle
+- [X] T026 [US2] Wire stickering tab in `cubify-harness/index.html`: `applyOrbitString(str)` calls `player.setStickering(str)` and keeps `activeMask = str` for export use; clear button calls `player.setStickering(null)` and clears `activeMask`
+- [X] T027 [US2] Wire Moves tab to `player.renderer` in `cubify-harness/index.html`: replace bare `renderer.` references in `applyLiveMove`, `btn-move-reset`, `btn-move-apply`, `btn-export-3d` with `player.renderer.`; keep `liveState` as harness-local variable
+- [X] T028 [US2] Remove now-dead local state from `cubify-harness/index.html`: delete `isPlaying`, `stepIndex`, `currentMoves`, `currentSetupMoves`, `currentCaseState` variables; delete `animateStepForward()`, `snapToStep()`, `startPlay()` / `stopPlay()` function bodies (keep wrapper functions that delegate to `player`); verify no remaining references to deleted vars
 
 ---
 
@@ -85,8 +85,8 @@
 
 **Purpose**: Smoke-test all acceptance criteria, clean up, commit
 
-- [ ] T029 Validate all acceptance criteria in harness: play all ALGS; pause mid-sequence; resume; jumpTo 0 and N; setSpeed Slow/Normal/Fast; OLL mask on Sune case; Moves tab trigger buttons; debug panel updates; verify-perms.mjs passes (`node cubify-harness/verify-perms.mjs`)
-- [ ] T030 [P] Update `cubify-harness/CLAUDE.md` Recent Changes: mark feature 024 complete with CubePlayer.js summary; update status in `specs/spec.md` from Planned to Complete
+- [X] T029 Validate all acceptance criteria in harness: play all ALGS; pause mid-sequence; resume; jumpTo 0 and N; setSpeed Slow/Normal/Fast; OLL mask on Sune case; Moves tab trigger buttons; debug panel updates; verify-perms.mjs passes (`node cubify-harness/verify-perms.mjs`)
+- [X] T030 [P] Update `cubify-harness/CLAUDE.md` Recent Changes: mark feature 024 complete with CubePlayer.js summary; update status in `specs/spec.md` from Planned to Complete
 
 ---
 

@@ -139,5 +139,5 @@ The 2D export path must produce images that match these closely enough to be a d
 - [X] Harness 2D tab shows CubeRenderer2D output; 3D tab unchanged
 - [X] `CubeExporter.toPNG(alg, { style: '2d' | '3d' })` API implemented
 - [ ] 3D PNG export visually verified in browser (CubeExporter._render3D wired, browser test pending)
-- [ ] `cubify-scripts` no longer requires Playwright (US-004, explicitly deferred — requires Node.js WebGL/OffscreenCanvas path)
+- [ ] `cubify-scripts` no longer requires Playwright (US-004, deferred to **spec 028** — cubify-scripts migrates to import from the published library and call `CubeExporter.toPNG()` via Playwright+library rather than bespoke rendering; Playwright stays but the custom renderer is replaced)
 - [ ] Per-image generation time <200ms: 2D path is synchronous (<5ms); 3D path untested in browser

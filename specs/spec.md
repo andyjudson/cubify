@@ -111,6 +111,8 @@ Extract cubify-harness core into a clean standalone library with a documented pu
 - Remove internal `_` properties from public surface; wrap speed/animating in methods
 - `CubeRenderer3D.setStickering()` accepts preset name or raw orbit string
 - TypeScript type definitions for consumers
+- `cubify-scripts` migrated to import from the library and call `CubeExporter.toPNG()` — replaces bespoke rendering in `lib/renderer.mjs` (Playwright stays for WebGL; custom renderer removed); validates library is consumable from a real Node.js client
+- Test suite (spec 027) used to validate the library's public API surface before release
 - Prerequisites: 023 stickering, 024 animation, 025 theming, 026 2D export
 
 ---
@@ -165,7 +167,7 @@ Replace TwistyPlayer in cfop-app with cubify React components.
 |---------|------|--------|
 | 022 | cubify-harness | Complete ✅ |
 | 023 | cubify-stickering | Complete ✅ |
-| 024 | cubify-animation | Planned 📋 |
+| 024 | cubify-animation | Complete ✅ |
 | 025 | cubify-theming | Planned 📋 |
 | 026 | cubify-image-export | Complete ✅ |
 | 027 | cubify-tests | Planned 📋 |

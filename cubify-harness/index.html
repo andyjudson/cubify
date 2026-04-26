@@ -293,7 +293,7 @@
 <script type="module">
   import { CubeState } from './src/CubeState.js';
   import { AlgParser } from './src/AlgParser.js';
-  import { CubeRenderer3D } from './src/CubeRenderer3D.js';
+  import { CubePlayer } from './src/CubePlayer.js';
   import { CubeRenderer2D } from './src/CubeRenderer2D.js';
   import { CubeStickering, MASK_PRESETS } from './src/CubeStickering.js';
 
@@ -313,13 +313,15 @@
     { label: 'H-Perm',     notation: "M2 U M2 U2 M2 U M2",                                                    caseAlg: true  },
   ];
 
-  // ---- State ----
+  // ---- Player & 2D renderer ----
+  const player = new CubePlayer(document.getElementById('cube-container'), { animSpeed: 300, debug: true });
+  const renderer2d = new CubeRenderer2D(document.getElementById('cube-2d'), { size: 400 });
+
+  // ---- Harness-local state ----
   let currentAlgIndex = 0;
-  let currentMoves = [];
-  let stepIndex = 0;
-  let isPlaying = false;
-  let activeMask = null;        // orbit string or null
-  let currentSetupMoves = [];   // moves from solved → currentCaseState (for instant reloads)
+  let activeMask = null;
+  let liveState = _solvedBase;
+  let appliedMoves = [];
 
   // ---- Structured debug log ----
   const _stateLog = [];
@@ -331,18 +333,6 @@
       link.href = URL.createObjectURL(blob);
     }
   }
-  function _serializeVisMap(map) {
-    const out = {};
-    map.forEach((vis, key) => { out[key] = vis; });
-    return out;
-  }
-
-  // ---- Renderer ----
-  const container = document.getElementById('cube-container');
-  const renderer = new CubeRenderer3D({ debug: true, animSpeed: 300 });
-  renderer.mount(container);
-
-  const renderer2d = new CubeRenderer2D(document.getElementById('cube-2d'), { size: 400 });
 
   // ---- Debug log ----
   const debugPre = document.getElementById('debug-pre');
@@ -434,9 +424,7 @@
     }
   }
 
-  // ---- Mask helpers ----
-
-  // Lightweight 2D-only update after animated moves — no 3D stickering side effects.
+  // ---- 2D update ----
   function update2D(state) {
     const visMap = activeMask
       ? CubeStickering.fromOrbitStringWithState(activeMask, state.toRawPattern())
@@ -444,54 +432,13 @@
     renderer2d.update(state, visMap);
   }
 
-  // After animation: restore colours (undo previous grey) then reapply active mask.
-  // Does NOT move pieces — preserves the animation-derived positions and quaternions.
-  function reapplyMask(state) {
-    renderer.restoreColours();
-    if (activeMask) {
-      const raw = state.toRawPattern();
-      const visMap = CubeStickering.fromOrbitStringWithState(activeMask, raw);
-      renderer.applyStickering(visMap);
-      renderer2d.update(state, visMap);
-      const worldFaceMap = renderer.getWorldFaceMap();
-      const wfObj = Object.fromEntries(worldFaceMap);
-      _logEvent('reapplyMask', { activeMask, raw, visMap: _serializeVisMap(visMap), worldFaceMap: wfObj });
-    } else {
-      renderer2d.update(state, new Map());
-      _logEvent('reapplyMask', { activeMask: null });
-    }
-  }
-
-  // ---- Apply state snapshot (no animation) ----
-  // Resets the visual cube to solved then instantly animates setupMoves to reach
-  // the target state. Quaternions are set by the same physics as animated moves.
-  function applyStateToRenderer(state, setupMoves = []) {
-    _logEvent('applyStateToRenderer', { setupMoves, raw: state.toRawPattern() });
-    renderer.resetToSolved();
-    renderer.applyMovesInstant(setupMoves);
-    reapplyMask(state);
-    updateDebugState(state);
-    liveState = state;
-    appliedMoves = [];
-    const el = document.getElementById('move-status');
-    if (el) {
-      const solved = state.isSolved();
-      el.textContent = `Applied: (none)${solved ? '  ✓ SOLVED' : ''}`;
-      el.style.color = solved ? '#7fc' : '#666';
-    }
-  }
-
-  function updateStepLabel() {
-    document.getElementById('move-tape').querySelectorAll('.move-chip').forEach((chip, i) => {
-      chip.className = 'move-chip' +
-        (i === stepIndex - 1 ? ' is-active' : i < stepIndex - 1 ? ' is-done' : '');
-    });
-  }
-
+  // ---- Move tape ----
   function buildMoveTape() {
+    const alg = ALGS[currentAlgIndex];
+    const moves = alg && alg.notation ? AlgParser.parse(alg.notation) : [];
     const tape = document.getElementById('move-tape');
     tape.innerHTML = '';
-    currentMoves.forEach(mv => {
+    moves.forEach(mv => {
       const chip = document.createElement('span');
       chip.className = 'move-chip';
       chip.textContent = mv;
@@ -499,91 +446,61 @@
     });
   }
 
-  let currentCaseState = _solvedBase;
-
-  // ---- Load algorithm ----
-  function loadAlg(idx) {
-    stopPlay();
-    currentAlgIndex = idx;
-    const alg = ALGS[idx];
-    currentMoves = alg.notation ? AlgParser.parse(alg.notation) : [];
-    currentSetupMoves = (alg.caseAlg && currentMoves.length)
-      ? ['z2', ...CubeState.invertAlg(currentMoves)]
-      : [];
-    currentCaseState = _solvedBase.applyAlg(currentSetupMoves);
-    stepIndex = 0;
-    updateAlgButtons();
-    applyStateToRenderer(currentCaseState, currentSetupMoves);
-    buildMoveTape();
-    updateStepLabel();
-    appendLog(`[sim] loaded: ${alg.label} (${currentMoves.length} moves)`);
-  }
-
-  // ---- Snap step (no animation) ----
-  function snapToStep(idx) {
-    stepIndex = Math.max(0, Math.min(idx, currentMoves.length));
-    const stepMoves = currentMoves.slice(0, stepIndex);
-    const state = _solvedBase.applyAlg([...currentSetupMoves, ...stepMoves]);
-    applyStateToRenderer(state, [...currentSetupMoves, ...stepMoves]);
-    updateStepLabel();
-    appendLog(`[sim] step ${stepIndex}/${currentMoves.length}`);
-  }
-
-  // ---- Animated step forward ----
-  function animateStepForward(onDone) {
-    if (stepIndex >= currentMoves.length) { onDone?.(); return; }
-    const move = currentMoves[stepIndex];
-    const stateBefore = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex));
-    const prevFaces = stateBefore.toFaceArray();
-    stepIndex++;
-    _logEvent('animateMove', { move, stepIndex });
-    renderer.animateMove(move, () => {
-      const after = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex));
-      update2D(after);
-      updateDebugState(after, prevFaces);
-      updateStepLabel();
-      onDone?.();
+  function updateStepLabel() {
+    document.getElementById('move-tape').querySelectorAll('.move-chip').forEach((chip, i) => {
+      chip.className = 'move-chip' +
+        (i === player.stepIndex - 1 ? ' is-active' : i < player.stepIndex - 1 ? ' is-done' : '');
     });
   }
 
-  // ---- Play all ----
-  function startPlay() {
-    if (isPlaying || currentMoves.length === 0) return;
-    if (stepIndex >= currentMoves.length) {
-      stepIndex = 0;
-      applyStateToRenderer(currentCaseState, currentSetupMoves);
-    }
-    isPlaying = true;
-    document.getElementById('btn-play').disabled = true;
-    document.getElementById('btn-stop').disabled = false;
+  // ---- Player events ----
+  player.on('reset', () => {
+    liveState = player.state;
+    buildMoveTape();
+    updateStepLabel();
+    updateDebugState(player.state);
+    update2D(player.state);
+  });
 
-    const playNext = () => {
-      if (!isPlaying || stepIndex >= currentMoves.length) {
-        stopPlay();
-        appendLog('[sim] playback complete');
-        return;
-      }
-      animateStepForward(() => {
-        if (isPlaying) setTimeout(playNext, 80);
-      });
-    };
-    appendLog('[sim] play started');
-    playNext();
-  }
+  player.on('move', ({ index, move, state }) => {
+    updateStepLabel();
+    updateDebugState(state);
+    update2D(state);
+    appendLog(`[sim] move: ${move} (${index}/${player.moveCount})`);
+  });
 
-  function stopPlay() {
-    isPlaying = false;
-    document.getElementById('btn-play').disabled = false;
-    document.getElementById('btn-stop').disabled = true;
-  }
+  player.on('complete', () => {
+    stopPlay();
+    appendLog('[sim] playback complete');
+  });
 
-  // ---- Build alg buttons ----
+  // ---- Load algorithm ----
   function updateAlgButtons() {
     document.querySelectorAll('#alg-buttons button').forEach((btn, i) => {
       btn.classList.toggle('is-active', i === currentAlgIndex);
     });
   }
 
+  async function loadAlg(idx) {
+    stopPlay();
+    currentAlgIndex = idx;
+    const alg = ALGS[idx];
+    const setup = (alg.caseAlg && alg.notation)
+      ? ['z2', ...CubeState.invertAlg(AlgParser.parse(alg.notation))].join(' ')
+      : null;
+    updateAlgButtons();
+    await player.loadAlg(alg.notation, setup, { anchor: alg.caseAlg ? 'end' : 'start' });
+    appendLog(`[sim] loaded: ${alg.label} (${player.moveCount} moves)`);
+  }
+
+  // ---- Play/pause ----
+  function stopPlay() {
+    player.pause();
+    document.getElementById('btn-play').disabled = false;
+    document.getElementById('btn-stop').disabled = true;
+  }
+
+  // ---- Build alg buttons ----
   const algBtnContainer = document.getElementById('alg-buttons');
   ALGS.forEach((alg, i) => {
     const btn = document.createElement('button');
@@ -594,38 +511,42 @@
   });
 
   // ---- Playback controls ----
-  document.getElementById('btn-play').onclick = startPlay;
+  document.getElementById('btn-play').onclick = () => {
+    player.play();
+    document.getElementById('btn-play').disabled = true;
+    document.getElementById('btn-stop').disabled = false;
+    appendLog('[sim] play started');
+  };
   document.getElementById('btn-stop').onclick = () => { stopPlay(); appendLog('[sim] stopped'); };
 
   // ---- Step controls ----
   document.getElementById('btn-prev').onclick = () => {
     stopPlay();
-    if (stepIndex <= 0 || renderer.isAnimating) return;
-    const lastMove = currentMoves[stepIndex - 1];
-    const stateBefore = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex));
-    const prevFaces = stateBefore.toFaceArray();
-    const inverseMove = CubeState.invertAlg([lastMove])[0];
-    stepIndex--;
-    renderer.animateMove(inverseMove, () => {
-      const state = currentCaseState.applyAlg(currentMoves.slice(0, stepIndex));
-      update2D(state);
-      updateDebugState(state, prevFaces);
-      updateStepLabel();
-    });
+    if (player.stepIndex <= 0 || player.renderer.isAnimating) return;
+    player.jumpTo(player.stepIndex - 1);
+    updateStepLabel();
+    updateDebugState(player.state);
+    update2D(player.state);
+    appendLog(`[sim] step ${player.stepIndex}/${player.moveCount}`);
   };
   document.getElementById('btn-next').onclick = () => {
     stopPlay();
-    if (stepIndex < currentMoves.length) animateStepForward();
+    if (player.stepIndex >= player.moveCount || player.renderer.isAnimating) return;
+    player.jumpTo(player.stepIndex + 1);
+    updateStepLabel();
+    updateDebugState(player.state);
+    update2D(player.state);
+    appendLog(`[sim] step ${player.stepIndex}/${player.moveCount}`);
   };
   document.getElementById('btn-reset').onclick = () => {
     stopPlay();
-    snapToStep(0);
+    player.reset();
     appendLog('[sim] reset to case state');
   };
 
   // ---- Camera ----
   document.getElementById('btn-cam-reset').onclick = () => {
-    renderer.resetCamera();
+    player.renderer.resetCamera();
     appendLog('[sim] camera reset');
   };
 
@@ -634,52 +555,50 @@
   const dl = (url, name) => { const a = document.createElement('a'); a.download = name; a.href = url; a.click(); };
 
   document.getElementById('btn-export-2d').onclick = () => {
-    const raw = currentCaseState.toRawPattern();
+    const state = player.state || _solvedBase;
+    const raw = state.toRawPattern();
     const vis = activeMask ? CubeStickering.fromOrbitStringWithState(activeMask, raw) : new Map();
     const tmpCanvas = document.createElement('canvas');
     tmpCanvas.width  = EXPORT_SIZE;
     tmpCanvas.height = EXPORT_SIZE;
     const tmp2d = new CubeRenderer2D(null, { size: EXPORT_SIZE, canvas: tmpCanvas, transparent: true });
-    tmp2d.update(currentCaseState, vis);
+    tmp2d.update(state, vis);
     dl(tmpCanvas.toDataURL('image/png'), 'cubify-2d.png');
     appendLog(`[export] cubify-2d.png (${EXPORT_SIZE}px)`);
   };
 
   document.getElementById('btn-export-3d').onclick = () => {
-    const gl = renderer._renderer;
+    const gl = player.renderer._renderer;
     const origRatio = gl.getPixelRatio();
     const origCssW  = gl.domElement.clientWidth  || gl.domElement.width  / origRatio;
     const origCssH  = gl.domElement.clientHeight || gl.domElement.height / origRatio;
-    const origBg    = renderer._scene.background;
-    renderer._scene.background = null;
+    const origBg    = player.renderer._scene.background;
+    player.renderer._scene.background = null;
     gl.setPixelRatio(1);
     gl.setSize(EXPORT_SIZE, EXPORT_SIZE, false);
-    gl.render(renderer._scene, renderer._camera);
+    gl.render(player.renderer._scene, player.renderer._camera);
     dl(gl.domElement.toDataURL('image/png'), 'cubify-3d.png');
-    renderer._scene.background = origBg;
+    player.renderer._scene.background = origBg;
     gl.setPixelRatio(origRatio);
     gl.setSize(origCssW, origCssH, false);
     appendLog(`[export] cubify-3d.png (${EXPORT_SIZE}px)`);
   };
 
   // ---- Solved ----
-  document.getElementById('btn-solved').onclick = () => {
+  document.getElementById('btn-solved').onclick = async () => {
     stopPlay();
-    currentSetupMoves = [];
-    currentMoves = [];
-    stepIndex = 0;
-    applyStateToRenderer(_solvedBase, []);
-    updateStepLabel();
+    await player.loadAlg('', null, { anchor: 'start' });
     appendLog('[sim] jumped to solved');
   };
 
   // ---- Speed ----
   document.querySelectorAll('[data-speed]').forEach(btn => {
     btn.onclick = () => {
-      renderer.setSpeed(parseInt(btn.dataset.speed));
+      const speedMs = parseInt(btn.dataset.speed);
+      player.setSpeed(300 / speedMs);
       document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('is-active'));
       btn.classList.add('is-active');
-      appendLog(`[sim] speed: ${btn.dataset.speed}ms`);
+      appendLog(`[sim] speed: ${speedMs}ms`);
     };
   });
 
@@ -701,8 +620,10 @@
     if (!str.trim()) return;
     try {
       activeMask = str.trim();
-      reapplyMask(liveState);
-      const map = CubeStickering.fromOrbitStringWithState(str.trim(), liveState.toRawPattern());
+      player.setStickering(activeMask);
+      const state = player.state || liveState;
+      update2D(state);
+      const map = CubeStickering.fromOrbitStringWithState(str.trim(), state.toRawPattern());
       let active = 0, dimmed = 0, masked = 0;
       for (const slots of map.values()) {
         const max = Math.max(...slots);
@@ -725,27 +646,15 @@
 
   document.getElementById('btn-orbit-clear').onclick = () => {
     activeMask = null;
-    reapplyMask(liveState);
+    player.setStickering(null);
+    update2D(player.state || liveState);
     orbitInput.value = '';
     orbitStatus.textContent = 'Cleared — all stickers visible';
     orbitStatus.style.color = '#666';
     appendLog('[stickering] Cleared — all stickers visible');
   };
 
-  // ---- Move validator ----
-  let liveState = _solvedBase;
-  let appliedMoves = [];
-
-  function setLiveState(state, movesLabel) {
-    liveState = state;
-    reapplyMask(state);
-    updateDebugState(state);
-    const solved = state.isSolved();
-    document.getElementById('move-status').textContent =
-      `Applied: ${movesLabel || '(none)'}${solved ? '  ✓ SOLVED' : ''}`;
-    document.getElementById('move-status').style.color = solved ? '#7fc' : '#666';
-  }
-
+  // ---- Moves tab ----
   const MOVE_BUTTONS_FACE  = ['U',"U'",'R',"R'",'F',"F'",'D',"D'",'L',"L'",'B',"B'"];
   const MOVE_BUTTONS_OTHER = ['M',"M'",'S',"S'",'E',"E'",'x',"x'",'y',"y'",'z',"z'"];
 
@@ -764,12 +673,12 @@
   buildMoveButtons(MOVE_BUTTONS_OTHER, 'move-buttons-other');
 
   function applyLiveMove(mv, onDone) {
-    if (renderer.isAnimating) { appendLog(`[move] skip (animating): ${mv}`); onDone?.(); return; }
+    if (player.renderer.isAnimating) { appendLog(`[move] skip (animating): ${mv}`); onDone?.(); return; }
     appendLog(`[move] move: ${mv}`);
     const prevFaces = liveState.toFaceArray();
     const nextState = liveState.applyMove(mv);
     appliedMoves.push(mv);
-    renderer.animateMove(mv, () => {
+    player.renderer.animateMove(mv, () => {
       liveState = nextState;
       update2D(nextState);
       updateDebugState(nextState, prevFaces);
@@ -781,7 +690,6 @@
     });
   }
 
-
   document.getElementById('btn-move-apply').onclick = () => {
     const input = document.getElementById('move-input');
     const notation = input.value.trim();
@@ -790,7 +698,7 @@
     appendLog(`[move] parsed ${moves.length} moves: ${moves.join(' ')}`);
     if (!moves.length) return;
     const endState = moves.reduce((s, m) => s.applyMove(m), liveState);
-    renderer.animateAlg(moves, (idx) => {
+    player.renderer.animateAlg(moves, (idx) => {
       appendLog(`[move] move: ${moves[idx]}`);
     }, () => {
       liveState = endState;
@@ -806,15 +714,23 @@
   };
 
   document.getElementById('btn-move-reset').onclick = () => {
-    stopPlay();
     appliedMoves = [];
-    renderer.resetToSolved();
-    setLiveState(_solvedBase, '(none)');
+    player.renderer.resetToSolved();
+    liveState = _solvedBase;
+    player.renderer.restoreColours();
+    if (activeMask) {
+      const visMap = CubeStickering.fromOrbitStringWithState(activeMask, _solvedBase.toRawPattern());
+      player.renderer.applyStickering(visMap);
+    }
+    update2D(_solvedBase);
+    updateDebugState(_solvedBase);
+    document.getElementById('move-status').textContent = 'Applied: (none)  ✓ SOLVED';
+    document.getElementById('move-status').style.color = '#7fc';
     appendLog('[move] reset to solved');
   };
 
   // ---- Initial state: Sune selected ----
-  loadAlg(2);
+  await loadAlg(2);
   showTab('log');
 </script>
 
