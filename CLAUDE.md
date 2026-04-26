@@ -49,6 +49,7 @@ Key facts from `cube-mapping-lessons.md`:
 | `src/CubeRenderer3D.js` | Three.js 3D renderer; `setState()`, `animateMove()`, `animateAlg()`, `setSpeed()` |
 | `src/CubeRenderer2D.js` | Canvas 2D top-down view (U face + side strips + corner quads); `transparent` option |
 | `src/CubeStickering.js` | Orbit-string mask parsing; `MASK_PRESETS` (15 presets); chars -/I/D/O/S/P |
+| `src/CubePlayer.js` | Animation engine; `loadAlg(notation, setup, {anchor})`, `play/pause/jumpTo/reset`, `setSpeed(scale)`, `setStickering(str)`, event emitter (`move`, `complete`, `reset`) |
 | `src/CubeExporter.js` | `toPNG(alg, { style: '2d'\|'3d' })`; 2D via canvas, 3D via CubeRenderer3D |
 | `src/AlgParser.js` | WCA notation parser; wide moves, slice moves, x/y/z rotations |
 | `verify-perms.mjs` | 18-test permutation cross-check suite against cubing.js ground truth |
@@ -132,6 +133,7 @@ When automating or screenshotting a third-party web component:
 See `specs/017-cubify-agent-skill/research.md` for the full debugging record.
 
 ## Recent Changes
+- 024-cubify-animation (in progress): `CubePlayer.js` (new); harness wired to CubePlayer events; `liveState` (Moves tab) remains harness-local; stickering not reapplied during animated play — only on jumpTo/reset/loadAlg.
 - 026-cubify-export: `CubeRenderer2D.js` (Canvas 2D + transparent option), `CubeExporter.js` (toPNG routing), harness Export 2D / Export 3D buttons (288px, transparent background). `CubeRenderer3D` gains `alpha + preserveDrawingBuffer`.
 - 023-cubify-stickering: `CubeStickering.fromOrbitStringWithState()` with full char set (-/I/D/O/S/P), `MASK_PRESETS` (15 presets), harness stickering panel. Mask materials baked on mesh, travel with cubelets.
 - 022-cubify-harness: full harness architecture established; `verify-perms.mjs` 18-test suite; cube-mapping-lessons.md documented.
