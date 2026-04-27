@@ -433,8 +433,11 @@
 
   // ---- 2D update ----
   function update2D(state) {
+    // null rawPattern = slot-based visMap: visibility follows WHERE a sticker is,
+    // not which piece is there. Required for correctness when setup moves include
+    // whole-cube rotations (e.g. z2) that put D-layer pieces in U-layer slots.
     const visMap = activeMask
-      ? CubeStickering.fromOrbitStringWithState(activeMask, state.toRawPattern())
+      ? CubeStickering.fromOrbitStringWithState(activeMask, null)
       : new Map();
     renderer2d.update(state, visMap);
   }
@@ -573,8 +576,7 @@
 
   document.getElementById('btn-export-2d').onclick = () => {
     const state = player.state || _solvedBase;
-    const raw = state.toRawPattern();
-    const vis = activeMask ? CubeStickering.fromOrbitStringWithState(activeMask, raw) : new Map();
+    const vis = activeMask ? CubeStickering.fromOrbitStringWithState(activeMask, null) : new Map();
     const tmpCanvas = document.createElement('canvas');
     tmpCanvas.width  = EXPORT_SIZE;
     tmpCanvas.height = EXPORT_SIZE;

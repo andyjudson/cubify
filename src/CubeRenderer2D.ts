@@ -11,7 +11,7 @@ import {
   CENTER_ORBIT_TO_CUBELET,
   type VisMap,
 } from './CubeStickering.js';
-import type { CubeState, RawPattern } from './CubeState.js';
+import type { CubeState } from './CubeState.js';
 
 // ---- Colour palette ----
 const FACE_COLOURS: Record<string, string> = {
@@ -177,12 +177,14 @@ function insetPoly(pts: Point[], d: number): Point[] {
 
 // ---- Vis level helpers ----
 
-function getVisLevel(cell: Cell | CornerPoly, rawPattern: RawPattern, visMap: VisMap | null): number {
+// Slot-based visibility: look up by the orbit SLOT's home position, not the piece's
+// home position. The 2D view redraws from scratch each frame (unlike 3D where materials
+// travel with meshes), so visibility must reflect WHERE the sticker is, not which
+// piece is there. Piece-tracking breaks when whole-cube rotations (z2 setup) put
+// D-layer pieces in U-layer slots — their primarySlot is y=-1, making U-face grey.
+function getVisLevel(cell: Cell | CornerPoly, visMap: VisMap | null): number {
   if (!visMap || visMap.size === 0) return 2;
-  const orbitData = (rawPattern as unknown as Record<string, { pieces: number[] } | null>)[cell.orbit.toLowerCase()];
-  if (!orbitData) return 2;
-  const pieceId    = orbitData.pieces[cell.slotI];
-  const cubeletIdx = ORBIT_TO_CUBELET[cell.orbit][pieceId];
+  const cubeletIdx = ORBIT_TO_CUBELET[cell.orbit][cell.slotI];
   const hp         = CUBELET_POSITIONS[cubeletIdx];
   const visArray   = visMap.get(`${hp.x},${hp.y},${hp.z}`);
   return visArray ? (visArray[cell.visSlot] ?? 2) : 2;
@@ -269,8 +271,7 @@ export class CubeRenderer2D {
       ctx.fillRect(0, 0, this._size, this._size);
     }
 
-    const faceArray  = state.toFaceArray();
-    const rawPattern = state.toRawPattern();
+    const faceArray = state.toFaceArray();
 
     if (this._transparent) {
       ctx.fillStyle = '#111111';
@@ -289,11 +290,11 @@ export class CubeRenderer2D {
     }
 
     for (const poly of CORNER_POLYS) {
-      const colour = blendColour(faceArray[poly.face][poly.fsi], getVisLevel(poly, rawPattern, visMap));
+      const colour = blendColour(faceArray[poly.face][poly.fsi], getVisLevel(poly, visMap));
       drawPoly(ctx, computeCornerPoly(poly.corner, poly.side, this._geo), colour);
     }
     for (const cell of GRID_CELLS) {
-      const colour = blendColour(faceArray[cell.face][cell.fsi], getVisLevel(cell, rawPattern, visMap));
+      const colour = blendColour(faceArray[cell.face][cell.fsi], getVisLevel(cell, visMap));
       drawRect(ctx, computeRect(cell.row, cell.col, this._geo), colour);
     }
   }
@@ -311,21 +312,20 @@ export class CubeRenderer2D {
   }
 
   static toSVG(state: CubeState, visMap: VisMap, { size = 400 } = {}): string {
-    const geo        = computeGeometry(size);
-    const faceArray  = state.toFaceArray();
-    const rawPattern = state.toRawPattern();
+    const geo       = computeGeometry(size);
+    const faceArray = state.toFaceArray();
 
     let content = '';
 
     for (const cell of GRID_CELLS) {
-      const colour = blendColour(faceArray[cell.face][cell.fsi], getVisLevel(cell, rawPattern, visMap));
+      const colour = blendColour(faceArray[cell.face][cell.fsi], getVisLevel(cell, visMap));
       const { x, y, w, h } = computeRect(cell.row, cell.col, geo);
       const i = GAP / 2;
       content += `<rect x="${(x + i).toFixed(1)}" y="${(y + i).toFixed(1)}" width="${(w - GAP).toFixed(1)}" height="${(h - GAP).toFixed(1)}" fill="${colour}"/>\n`;
     }
 
     for (const poly of CORNER_POLYS) {
-      const colour = blendColour(faceArray[poly.face][poly.fsi], getVisLevel(poly, rawPattern, visMap));
+      const colour = blendColour(faceArray[poly.face][poly.fsi], getVisLevel(poly, visMap));
       const pts = insetPoly(computeCornerPoly(poly.corner, poly.side, geo), GAP / 2);
       const pointsStr = pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
       content += `<polygon points="${pointsStr}" fill="${colour}"/>\n`;
