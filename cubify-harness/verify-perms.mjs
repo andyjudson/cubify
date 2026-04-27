@@ -4,10 +4,10 @@
  * Cross-checks a cycle-based sticker permutation model against CubeState (cubing.js ground truth).
  * Also verifies known physical facts (T-perm order, Sexy×6 = solved).
  *
- * Run: node verify-perms.mjs
+ * Run: npx tsx verify-perms.mjs   (from cubify-harness/)
  */
 
-import { CubeState } from './src/CubeState.js';
+import { CubeState } from '../src/CubeState.ts';
 
 const FACE_NAMES = ['U','R','F','D','L','B'];
 const [U,R,F,D,L,B] = [0,9,18,27,36,45];
