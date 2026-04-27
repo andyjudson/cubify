@@ -12,9 +12,14 @@ Generate a cube state image from an algorithm, a named case, or a batch JSON fil
 
 ### Optional flags
 
-- `--2d` — force 2D top-layer visualization (experimental-2D-LL)
-- `--3d` — force 3D perspective visualization (PG3D)
+- `--2d` — force 2D top-layer visualization
+- `--3d` — force 3D perspective visualization (default)
 - `--setup <alg>` — apply setup moves before the algorithm
+
+> **Coming in Feature 030 (cubify-scripts migration):**
+> - `--stickering <preset|orbitstring>` — apply a MASK_PRESET label (e.g. `oll`, `f2l`) or raw orbit string
+> - `--masked` — auto-derive mask from the case method
+> - `--dim` — use the dim variant of the derived/specified mask
 
 ## How to run
 
@@ -24,7 +29,7 @@ Parse the arguments from the user's message after `/cubify` and run:
 node cubify-scripts/cubify.mjs [args]
 ```
 
-Run from the repo root (`/Users/Andy/Documents/TechLab/cubing.spec`).
+Run from the repo root (`/Users/Andy/Documents/TechLab/cubify`).
 
 ### Input mode detection
 
@@ -49,7 +54,7 @@ For batch runs, print the summary line and first few filenames.
 If the script exits with code 1 (input error) or 2 (render error), show the error message to the user and suggest a fix:
 - Invalid alg: check notation and try again
 - Unknown case ID: the error message lists available IDs
-- Chromium not found: `cd cfop-app && npx playwright install chromium`
+- Chromium not found: `cd cubify-scripts && npx playwright install chromium`
 - Missing file: check the path is relative to `cfop-app/public/data/` or provide an absolute path
 
 ## Notes

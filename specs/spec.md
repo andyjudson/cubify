@@ -93,15 +93,16 @@ PNG export from both the 2D canvas renderer and the 3D WebGL renderer, at exact 
 Vitest unit suite covering the core library without a headed browser.
 
 ### Completed
-- `test/cube-state.test.js` — 32 tests: toFaceArray ground truth, slot ordering, orientation formula, isSolved, U/D direction, invertAlg round-trip
-- `test/cube-stickering.test.js` — 20 tests: all 15 MASK_PRESETS parse, 'O'/'D'/'S'/'P'/'I' char semantics, homePos keying, idempotency
-- `test/cube-player.test.js` — 40 tests: full play/pause/jumpTo/reset sequence with mock renderer, event emission, setSpeed, setStickering, mask travel invariant
-- `test/cube-exporter.test.js` — 11 tests: `_resolve` pure state computation, alg inversion, CubeState passthrough, setupAlg ordering
-- `test/cube-renderer-2d-svg.test.js` — 15 tests: migrated from `demo/export-test.mjs`; SVG structure invariants (13 rects + 8 corner quads), colour rendering, idempotency
-- `test/cube-renderer-3d.test.js` — 20 tests (4 skipped): MOVE_AXIS directions and axis assignments; WebGL-dependent tests `.skip`
-- `test/cube-renderer-2d.test.js` — canvas tests (all `.skip`; enable with `CUBIFY_CANVAS_TESTS=1` + `npm install canvas`)
-- `npm test` runs 138 tests, 0 failures, no headed browser required
-- `MOVE_AXIS` exported from CubeRenderer3D.js for testability
+- `test/cube-state.test.ts` — 32 tests: toFaceArray ground truth, slot ordering, orientation formula, isSolved, U/D direction, invertAlg round-trip
+- `test/cube-stickering.test.ts` — 20 tests: all 15 MASK_PRESETS parse, 'O'/'D'/'S'/'P'/'I' char semantics, homePos keying, idempotency
+- `test/cube-player.test.ts` — 40 tests: full play/pause/jumpTo/reset sequence with mock renderer, event emission, setSpeed, setStickering, mask travel invariant
+- `test/cube-exporter.test.ts` — 11 tests: `_resolve` pure state computation, alg inversion, CubeState passthrough, setupAlg ordering
+- `test/cube-renderer-2d-svg.test.ts` — 15 tests: migrated from `demo/export-test.mjs`; SVG structure invariants (13 rects + 8 corner quads), colour rendering, idempotency
+- `test/cube-renderer-3d.test.ts` — 20 tests (4 skipped): MOVE_AXIS directions and axis assignments; WebGL-dependent tests `.skip`
+- `test/cube-renderer-2d.test.ts` — canvas tests (all `.skip`; enable with `CUBIFY_CANVAS_TESTS=1` + `npm install canvas`)
+- Tests live at repo root `test/` (not under `cubify-harness/`); written in TypeScript
+- `vitest.config.js` at repo root; `npm test` runs from `cubify/` — 138 tests, 10 skipped, 0 failures, no headed browser required
+- `MOVE_AXIS` exported from `src/CubeRenderer3D.ts` for testability
 
 ---
 
@@ -113,16 +114,20 @@ Vitest unit suite covering the core library without a headed browser.
 Extract cubify-harness core into a clean standalone library with a documented public API surface.
 
 ### Completed
-- Library source extracted to `src/` at repo root; `src/index.js` public entry point
-- `package.json` at repo root with `"exports"` and `"types"` fields
-- `src/CubeScramble.js` — pure JS random scramble generator (no cubing.js); `CubeScramble.random(length?)`
+- Library source at `src/` — all files TypeScript (`.ts`); `src/index.ts` public entry point
+- `package.json` at repo root with `"exports"` and `"types"` fields; `"main": "./src/index.ts"`
+- `src/CubeScramble.ts` — pure JS scramble generator (no cubing.js); `CubeScramble.random(length?)`
 - `CubeRenderer3D.setStickering(presetOrString)` — accepts MASK_PRESETS label or raw orbit string
 - `CubeRenderer3D.snapshotAt(size?)` — transparent PNG export without accessing internal properties
+- `CubeRenderer3D.abortAnimation()` — snaps in-flight animation to t=1 to prevent state corruption on mid-animation alg reload
 - `CubePlayer.setupMoves` getter — exposes setup move list publicly
-- `types/cubify.d.ts` — full TypeScript definitions for the public API
+- `CubePlayer` generation counter — discards stale `animateMove` callbacks when state is reset mid-animation
+- `CubeRenderer2D` added to public exports in `src/index.ts` and `types/index.d.ts`
+- `types/index.d.ts` — full TypeScript definitions for all public exports including `CubeRenderer2D`
 - Harness rewired: `index.html` imports from `../src/`; `_` property accesses replaced with public API
+- `node_modules` consolidated to repo root — harness `package.json` and `node_modules/` removed
 - All 138 Vitest tests pass against the root `src/` library
-- `/cubify` skill moved to `.claude/commands/cubify.md` in this repo
+- `/cubify` skill at `.claude/commands/cubify.md` in this repo
 - `.gitignore` at repo root covering `node_modules/`, `dist/`, `.claude/tmp/`
 - `cubify-scripts` renderer migration deferred (Playwright + Node.js WebGL path) ⏳
 
@@ -133,7 +138,7 @@ Extract cubify-harness core into a clean standalone library with a documented pu
 ### Status: Planned 📋
 
 ### Scope
-React wrapper components around the cubify library.
+Thin React wrapper components around the cubify library for use in cfop-app.
 
 ### Goals
 - `<CubePlayer>` React component: `playing/stepIndex/alg/stickering` props, `onMove/onComplete`
@@ -142,17 +147,20 @@ React wrapper components around the cubify library.
 
 ---
 
-## Feature 030: cubify-decouple
+## Feature 030: cubify-scripts
 
 ### Status: Planned 📋
 
 ### Scope
-Remove all direct cubing.js imports from cfop-app — cubing.js stays internal to cubify-harness (KPattern) only.
+Migrate `cubify-scripts/` from TwistyPlayer to the cubify `CubeExporter` API. Remove the esbuild step and cfop-app rendering dependency. Add stickering controls to the CLI and agent skill.
 
 ### Goals
-- Alg/Move imports in cfop-app scramble generator replaced with cubify equivalents
-- VisualizerModal cubing.js imports replaced with cubify API
-- Zero cubing.js imports in cfop-app source after migration
+- `renderer.mjs` calls `CubeExporter.toPNG()` via Playwright — no TwistyPlayer bundle
+- `--stickering <preset|orbitstring>`, `--masked`, `--dim` CLI flags
+- `masks.mjs` returns MASK_PRESETS labels; cubify resolves orbit strings internally
+- `--2d` mode runs `CubeRenderer2D` in Node.js — no browser needed
+- `.claude/commands/cubify.md` updated with new flags and API
+- Unblocked now — depends only on Features 026 and 028 (both complete ✅)
 
 ---
 
@@ -161,14 +169,15 @@ Remove all direct cubing.js imports from cfop-app — cubing.js stays internal t
 ### Status: Planned 📋
 
 ### Scope
-Replace TwistyPlayer in cfop-app with cubify React components.
+Full adoption of cubify in cfop-app — scrambles, alg parsing, and 3D visualisation. Absorbs what was previously split as "decouple" (alg imports) and "migration" (TwistyPlayer replacement): they are one coherent delivery.
 
 ### Goals
-- Replace TwistyPlayer in VisualizerModal with `<CubePlayer>`
-- Replace TwistyPlayer in ScrambleCubePreview with `<CubeState>`
-- Remove all IntersectionObserver workarounds and explicit px dimension hacks
-- Production bundle size reduction: cubing.js 3D chunk removed
-- Prerequisites: 024 animation, 025 theming, 029 React wrapper, 030 decouple
+- Scramble generation: `CubeScramble.random()` replaces `randomScrambleForEvent`
+- Alg parsing: `AlgParser.parse()` replaces `Alg`/`Move` imports in scrambler + VisualizerModal
+- Visualisation: `<CubePlayer>` replaces TwistyPlayer in VisualizerModal
+- Scramble preview: `<CubeState>` replaces TwistyPlayer in ScrambleCubePreview
+- No cubing.js imports in cfop-app source; IntersectionObserver workarounds removed
+- Prerequisites: 029 (React wrapper), 028 (library API)
 
 ---
 
@@ -182,7 +191,7 @@ Replace TwistyPlayer in cfop-app with cubify React components.
 | 025 | cubify-theming | Planned 📋 |
 | 026 | cubify-image-export | Complete ✅ |
 | 027 | cubify-tests | Complete ✅ |
-| 028 | cubify.js Library API | Complete ✅ |
+| 028 | cubify-library | Complete ✅ |
 | 029 | cubify-react | Planned 📋 |
-| 030 | cubify-decouple | Planned 📋 |
-| 031 | cubify-cfop-migration | Planned 📋 |
+| 030 | cubify-scripts | Planned 📋 |
+| 031 | cfop-migration | Planned 📋 |
