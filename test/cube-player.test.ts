@@ -24,6 +24,7 @@ vi.mock('../src/CubeRenderer3D.ts', () => {
     setSpeed: ReturnType<typeof vi.fn>;
     restoreColours: ReturnType<typeof vi.fn>;
     applyStickering: ReturnType<typeof vi.fn>;
+    abortAnimation: ReturnType<typeof vi.fn>;
 
     constructor() {
       this._speedMs = 300;
@@ -36,6 +37,7 @@ vi.mock('../src/CubeRenderer3D.ts', () => {
       this.setSpeed       = vi.fn((ms: number) => { this._speedMs = ms; });
       this.restoreColours = vi.fn();
       this.applyStickering = vi.fn();
+      this.abortAnimation = vi.fn();
       mockRenderer = this;
     }
     get isAnimating() { return false; }

@@ -574,6 +574,11 @@ export class CubeRenderer3D {
     return url;
   }
 
+  abortAnimation(): void {
+    if (!this._animating || !this._animTick) return;
+    this._animTick(Infinity); // force t=1 — completes the move instantly, calls onDone via setTimeout
+  }
+
   get isAnimating(): boolean { return this._animating; }
 
   getDebugLog(): string { return this._debugLog.join('\n'); }

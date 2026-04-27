@@ -37,6 +37,7 @@ export class CubePlayer {
   private _stepIndex: number;
   private _isPlaying: boolean;
   private _baseState: CubeState | null;
+  private _generation: number;
 
   private _listeners: Map<string, Set<EventCallback>>;
 
@@ -55,6 +56,7 @@ export class CubePlayer {
     this._stepIndex  = 0;
     this._isPlaying  = false;
     this._baseState  = null;
+    this._generation = 0;
 
     this._listeners = new Map();
   }
@@ -110,6 +112,7 @@ export class CubePlayer {
 
   pause(): void {
     this._isPlaying = false;
+    this._generation++;
   }
 
   jumpTo(n: number): void {
@@ -146,6 +149,7 @@ export class CubePlayer {
 
   private _applyState(n: number): void {
     if (!this._baseState) return;
+    this._renderer.abortAnimation(); // snap any in-flight move before reset touches cubelets
     const allMoves = [...this._setupMoves, ...this._moves.slice(0, n)];
     this._renderer.resetToSolved();
     if (allMoves.length) this._renderer.applyMovesInstant(allMoves);
@@ -171,7 +175,9 @@ export class CubePlayer {
     }
 
     const move = this._moves[this._stepIndex];
+    const gen  = this._generation;
     this._renderer.animateMove(move, () => {
+      if (this._generation !== gen) return;
       this._stepIndex++;
       const state = this._stateAt(this._stepIndex);
       this.emit('move', { index: this._stepIndex, move, state });
