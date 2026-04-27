@@ -12,23 +12,33 @@ Clean public API — import from `src/index.js` or consume as an npm package.
 | `CubeScramble` | Pure JS scramble generator — `CubeScramble.random(length?)`, no cubing.js dependency |
 | `AlgParser` | WCA notation parser (face turns, wide moves, slice moves, rotations) |
 | `CubeStickering` | CFOP orbit-string masking — `fromOrbitStringWithState()` with full char set (-/I/D/O/S/P); `MASK_PRESETS` (15 presets) |
-| `CubeRenderer3D` | Three.js 3D renderer — `setState()`, `animateMove()`, `setSpeed()`, `setStickering()`, `snapshotAt()` |
+| `CubeRenderer2D` | Top-down 2D renderer — `toSVG()` (static, no DOM), canvas `update()` / `toDataURL()` |
+| `CubeRenderer3D` | Three.js 3D renderer — `animateMove()`, `setSpeed()`, `applyStickering()`, `snapshotAt()` |
 | `CubePlayer` | Animation engine — `loadAlg()`, `play/pause/jumpTo/reset`, `setSpeed()`, `setStickering()`; events (`move`, `complete`, `reset`) |
-| `CubeExporter` | `toPNG(alg, { style: '2d'\|'3d' })` — 288px transparent PNG export |
+| `CubeExporter` | `toPNG(alg, { style: '2d'\|'3d' })` — transparent PNG export |
 
-TypeScript definitions: [`types/cubify.d.ts`](types/cubify.d.ts)
+TypeScript definitions: [`types/index.d.ts`](types/index.d.ts)
+
+## Development
+
+```bash
+npm install        # install all dependencies
+npm test           # run Vitest suite (138 pass, 10 skip)
+npm run dev        # start Vite dev server (cubify-harness/index.html)
+npm run typecheck  # tsc type-check + emit declarations to types/
+```
 
 ## cubify-harness
 
-Browser test harness and dev environment. Open `cubify-harness/index.html` via Vite.
+Interactive browser dev environment — algorithm selector, play/step controls, export buttons.
 
 <img src="screenshot.png" width="900" alt="cubify-harness" />
 
 | File | Description |
 |------|-------------|
-| `cubify-harness/index.html` | Interactive harness — algorithm selector, play/step controls, export buttons |
-| `cubify-harness/test/` | Vitest suite — 138 tests, no headed browser (`npm test`) |
-| `cubify-harness/verify-perms.mjs` | 18-test permutation cross-check suite against cubing.js ground truth |
+| `cubify-harness/index.html` | Interactive harness UI |
+| `test/` | Vitest suite — 138 tests, no headed browser |
+| `cubify-harness/verify-perms.mjs` | 18-test permutation cross-check against cubing.js ground truth (`npx tsx verify-perms.mjs`) |
 
 **Design goals:** Clean public API, CSS custom property theming, no hidden dependencies, MIT licensed.
 
