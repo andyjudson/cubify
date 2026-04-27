@@ -9,33 +9,33 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { CubeState } from '../src/CubeState.js';
-import { CubeStickering } from '../src/CubeStickering.js';
-import { CubeRenderer2D } from '../src/CubeRenderer2D.js';
+import { CubeState } from '../src/CubeState.ts';
+import { CubeStickering } from '../src/CubeStickering.ts';
+import { CubeRenderer2D } from '../src/CubeRenderer2D.ts';
 
 const SUNE_ALG  = "R U R' U R U2 R'";
 const TPERM_ALG = "R U R' U' R' F R2 U' R' U' R U R' F'";
 const OLL_MASK  = 'EDGES:OOOODDDDDDDD,CORNERS:OOOODDDD,CENTERS:-DDDDD';
 const PLL_MASK  = 'EDGES:----DDDDDDDD,CORNERS:DDDDDDDD,CENTERS:-DDDDD';
 
-let solved;
+let solved: CubeState;
 
 beforeAll(async () => {
   solved = await CubeState.solved();
 });
 
-function buildState(alg) {
+function buildState(alg: string): CubeState {
   const algMoves = alg.trim() ? alg.split(/\s+/).filter(Boolean) : [];
   return solved.applyAlg(CubeState.invertAlg(algMoves));
 }
 
-function buildVisMap(state, mask) {
+function buildVisMap(state: CubeState, mask: string | null) {
   return mask
     ? CubeStickering.fromOrbitStringWithState(mask, state.toRawPattern())
-    : new Map();
+    : new Map<string, number[]>();
 }
 
-function svgCounts(svg) {
+function svgCounts(svg: string) {
   // Count <rect> elements that are sticker cells (not the background rect)
   const rectCount = (svg.match(/<rect(?! width="\d+" height="\d+" fill="#)/g) ?? []).length;
   const triCount  = (svg.match(/<polygon /g) ?? []).length;

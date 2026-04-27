@@ -2,15 +2,15 @@
  * CubeExporter unit tests — CubeExporter._resolve (pure Node.js, no DOM/canvas).
  *
  * _render2D and _render3D require DOM/WebGL and are covered by:
- *   - cube-renderer-2d-svg.test.js (SVG path, Node.js safe)
+ *   - cube-renderer-2d-svg.test.ts (SVG path, Node.js safe)
  *   - Browser / Playwright acceptance tests
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { CubeState } from '../src/CubeState.js';
-import { CubeExporter } from '../src/CubeExporter.js';
+import { CubeState } from '../src/CubeState.ts';
+import { CubeExporter } from '../src/CubeExporter.ts';
 
-let solved;
+let solved: CubeState;
 
 beforeAll(async () => {
   solved = await CubeState.solved();

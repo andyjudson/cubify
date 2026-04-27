@@ -1,69 +1,53 @@
 /**
  * CubeRenderer3D — Three.js WebGL renderer for a 3×3×3 Rubik's cube.
  *
- * Features:
- * - ResizeObserver mount (no IntersectionObserver constraint)
- * - OrbitControls for mouse drag/zoom
- * - Per-face move animation with configurable speed
- * - setState() for instant state changes (non-animated)
- * - animateMove() for animated single-move transitions
- *
  * Cubelet layout: 26 BoxGeometry meshes at grid positions {-1,0,1}³
- * Each face uses a canvas-generated texture: rounded-rect sticker on black plastic.
  * Three.js BoxGeometry slot order: [+X=R, -X=L, +Y=U, -Y=D, +Z=F, -Z=B]
  */
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { CubeStickering, MASK_PRESETS, type VisMap } from './CubeStickering.js';
 
-// ---- Colours (hex strings for canvas, hex numbers for Three) ----
-const FACE_COLOURS_HEX = {
-  U: '#ffffff',
-  R: '#c41e1e',
-  F: '#1a7c2a',
-  D: '#ffd000',
-  L: '#e06000',
-  B: '#0f4fad',
-  X: '#2a2a2a',  // dark grey — hidden/masked stickers (near-black, blends with plastic body by design)
+// ---- Colours ----
+type FaceKey = 'U' | 'R' | 'F' | 'D' | 'L' | 'B' | 'X';
+
+const FACE_COLOURS_HEX: Record<FaceKey, string> = {
+  U: '#ffffff', R: '#c41e1e', F: '#1a7c2a',
+  D: '#ffd000', L: '#e06000', B: '#0f4fad',
+  X: '#2a2a2a',
 };
-// Three.js slot → WCA face name (slot 0=+X=R, 1=-X=L, 2=+Y=U, 3=-Y=D, 4=+Z=F, 5=-Z=B)
-const SLOT_TO_FACE = ['R', 'L', 'U', 'D', 'F', 'B'];
 
-// Dim variants: each face colour blended 50% toward mid-grey (160) — for F2L context display
-const FACE_DIM_COLOURS_HEX = Object.fromEntries(
+const SLOT_TO_FACE: FaceKey[] = ['R', 'L', 'U', 'D', 'F', 'B'];
+
+const FACE_DIM_COLOURS_HEX: Record<string, string> = Object.fromEntries(
   Object.entries(FACE_COLOURS_HEX).map(([face, hex]) => {
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
-    const mix = (c) => Math.round(c * 0.5 + 160 * 0.5).toString(16).padStart(2, '0');
+    const mix = (c: number) => Math.round(c * 0.5 + 160 * 0.5).toString(16).padStart(2, '0');
     return [face, `#${mix(r)}${mix(g)}${mix(b)}`];
   })
 );
 
 // ---- Sticker texture factory ----
-// Returns a CanvasTexture with a rounded-rect sticker on a black background.
-// Cached by colour string so we share textures across cubelets.
-const _textureCache = new Map();
-let _maxAnisotropy = 1;  // set once renderer is available
 
-function makeStickerTexture(colourHex) {
-  if (_textureCache.has(colourHex)) return _textureCache.get(colourHex);
+const _textureCache = new Map<string, THREE.CanvasTexture>();
+let _maxAnisotropy = 1;
 
-  const size   = 256;
-  const pad    = 10;   // black border width
-  const radius = 8;    // corner radius — subtle, speed-cube style
+function makeStickerTexture(colourHex: string): THREE.CanvasTexture {
+  if (_textureCache.has(colourHex)) return _textureCache.get(colourHex)!;
 
+  const size = 256, pad = 10, radius = 8;
   const canvas = document.createElement('canvas');
   canvas.width  = size;
   canvas.height = size;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d')!;
 
-  // Dark grey plastic body
   ctx.fillStyle = '#141414';
   ctx.fillRect(0, 0, size, size);
 
-  // Rounded-rect sticker
   const x = pad, y = pad, w = size - pad * 2, h = size - pad * 2;
   ctx.fillStyle = colourHex;
   ctx.beginPath();
@@ -86,8 +70,11 @@ function makeStickerTexture(colourHex) {
   return tex;
 }
 
-// Local slot direction vectors — slot 0=+X(R), 1=-X(L), 2=+Y(U), 3=-Y(D), 4=+Z(F), 5=-Z(B)
-const LOCAL_DIRS = [
+// ---- Cubelet types ----
+
+interface Vec3 { x: number; y: number; z: number; }
+
+const LOCAL_DIRS: THREE.Vector3[] = [
   new THREE.Vector3( 1, 0, 0),
   new THREE.Vector3(-1, 0, 0),
   new THREE.Vector3( 0, 1, 0),
@@ -95,19 +82,23 @@ const LOCAL_DIRS = [
   new THREE.Vector3( 0, 0, 1),
   new THREE.Vector3( 0, 0,-1),
 ];
-const _slotDir = new THREE.Vector3(); // reusable scratch vector for quaternion rotation
+const _slotDir = new THREE.Vector3();
 
-// Shared solid-black material for all inner (non-outward) faces — no texture, no sticker shape
 const BLACK_MATERIAL = new THREE.MeshStandardMaterial({
-  color: 0x141414,
-  roughness: 0.9,
-  metalness: 0.0,
+  color: 0x141414, roughness: 0.9, metalness: 0.0,
 });
 
-// ---- Cubelet helpers ----
+interface Cubelet {
+  mesh: THREE.Mesh<RoundedBoxGeometry, THREE.Material[]>;
+  pos: Vec3;
+  homePos: Vec3;
+  isOutward: boolean[];
+}
 
-function buildCubeletPositions() {
-  const out = [];
+// ---- Helpers ----
+
+function buildCubeletPositions(): Vec3[] {
+  const out: Vec3[] = [];
   for (const x of [-1, 0, 1])
     for (const y of [-1, 0, 1])
       for (const z of [-1, 0, 1])
@@ -116,13 +107,19 @@ function buildCubeletPositions() {
   return out;
 }
 
-function outwardSlots({ x, y, z }) {
+function outwardSlots({ x, y, z }: Vec3): boolean[] {
   return [x===1, x===-1, y===1, y===-1, z===1, z===-1];
 }
 
-// ---- Face rotation axis/filter for animation ----
-// Exported for unit tests (lessons §5, cube-physical-rules §3.4)
-export const MOVE_AXIS = {
+// ---- Move axis / filter for animation ----
+
+export interface MoveAxisDef {
+  axis: THREE.Vector3;
+  dir: number;
+  filter: (p: Vec3) => boolean;
+}
+
+export const MOVE_AXIS: Record<string, MoveAxisDef> = {
   U: { axis: new THREE.Vector3(0,  1, 0), dir: -1, filter: p => p.y ===  1 },
   D: { axis: new THREE.Vector3(0,  1, 0), dir:  1, filter: p => p.y === -1 },
   R: { axis: new THREE.Vector3(1,  0, 0), dir: -1, filter: p => p.x ===  1 },
@@ -130,44 +127,59 @@ export const MOVE_AXIS = {
   F: { axis: new THREE.Vector3(0,  0, 1), dir: -1, filter: p => p.z ===  1 },
   B: { axis: new THREE.Vector3(0,  0, 1), dir:  1, filter: p => p.z === -1 },
   M: { axis: new THREE.Vector3(1,  0, 0), dir:  1, filter: p => p.x ===  0 },
-  E: { axis: new THREE.Vector3(0,  1, 0), dir:  1, filter: p => p.y ===  0 },  // follows D (same flip as D)
+  E: { axis: new THREE.Vector3(0,  1, 0), dir:  1, filter: p => p.y ===  0 },
   S: { axis: new THREE.Vector3(0,  0, 1), dir: -1, filter: p => p.z ===  0 },
-  // Whole-cube rotations — all cubelets move
   X: { axis: new THREE.Vector3(1,  0, 0), dir: -1, filter: () => true },
   Y: { axis: new THREE.Vector3(0,  1, 0), dir: -1, filter: () => true },
   Z: { axis: new THREE.Vector3(0,  0, 1), dir: -1, filter: () => true },
 };
 
+export interface CubeRenderer3DOptions {
+  gap?: number;
+  animSpeed?: number;
+  debug?: boolean;
+  canvas?: HTMLCanvasElement | null;
+}
+
 export class CubeRenderer3D {
-  /**
-   * @param {object} [options]
-   * @param {number}  [options.gap=0.02]        — gap between cubelets (Three.js units)
-   * @param {number}  [options.animSpeed=300]   — ms per quarter-turn animation
-   * @param {boolean} [options.debug=false]
-   * @param {HTMLCanvasElement} [options.canvas] — pre-existing canvas (skips DOM append in mount)
-   */
-  constructor({ gap = 0.02, animSpeed = 300, debug = false, canvas = null } = {}) {
-    this._gap = gap;
+  private _gap: number;
+  private _animSpeed: number;
+  private _debug: boolean;
+  private _container: HTMLElement | null;
+  private _renderer: THREE.WebGLRenderer | null;
+  private _scene: THREE.Scene | null;
+  private _camera: THREE.PerspectiveCamera | null;
+  private _controls: OrbitControls | null;
+  private _cubelets: Cubelet[];
+  private _ro: ResizeObserver | null;
+  private _animFrame: number | null;
+  private _animTick: ((now: number) => void) | null;
+  private _animating: boolean;
+  private _debugLog: string[];
+  private _offscreenCanvas: HTMLCanvasElement | null;
+
+  constructor({ gap = 0.02, animSpeed = 300, debug = false, canvas = null }: CubeRenderer3DOptions = {}) {
+    this._gap      = gap;
     this._animSpeed = animSpeed;
-    this._debug = debug;
+    this._debug    = debug;
 
     this._container = null;
     this._renderer  = null;
     this._scene     = null;
     this._camera    = null;
     this._controls  = null;
-    this._cubelets  = [];   // { mesh, pos, isOutward }
+    this._cubelets  = [];
     this._ro        = null;
     this._animFrame = null;
     this._animTick  = null;
     this._animating = false;
     this._debugLog  = [];
-    this._offscreenCanvas = canvas ?? null;  // pre-existing canvas for off-DOM export use
+    this._offscreenCanvas = canvas ?? null;
   }
 
   // ---- Logging ----
 
-  _log(msg) {
+  private _log(msg: string): void {
     const entry = `[cubify] ${msg}`;
     this._debugLog.push(entry);
     if (this._debug) console.log(entry);
@@ -177,7 +189,7 @@ export class CubeRenderer3D {
 
   // ---- Mount / unmount ----
 
-  mount(container) {
+  mount(container: HTMLElement): void {
     this._container = container;
 
     this._scene = new THREE.Scene();
@@ -187,7 +199,6 @@ export class CubeRenderer3D {
     this._camera.position.set(5.5, 4.5, 5.5);
     this._camera.lookAt(0, 0, 0);
 
-    // Lighting — bright ambient so all faces are readable, key light for depth
     this._scene.add(new THREE.AmbientLight(0xffffff, 1.2));
     const key = new THREE.DirectionalLight(0xffffff, 0.6);
     key.position.set(6, 10, 6);
@@ -196,7 +207,7 @@ export class CubeRenderer3D {
     fill.position.set(-5, -2, -4);
     this._scene.add(fill);
 
-    const rendererOpts = { antialias: true, alpha: true, preserveDrawingBuffer: true };
+    const rendererOpts: THREE.WebGLRendererParameters = { antialias: true, alpha: true, preserveDrawingBuffer: true };
     if (this._offscreenCanvas) rendererOpts.canvas = this._offscreenCanvas;
     this._renderer = new THREE.WebGLRenderer(rendererOpts);
     this._renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -204,14 +215,13 @@ export class CubeRenderer3D {
     if (!this._offscreenCanvas) container.appendChild(this._renderer.domElement);
 
     this._controls = new OrbitControls(this._camera, this._renderer.domElement);
-    this._controls.enableDamping = true;
-    this._controls.enablePan = false;
-    this._controls.dampingFactor = 0.08;
-    this._controls.minDistance = 9;
-    this._controls.maxDistance = 12;
-    // Limit vertical rotation: min ~15° above horizon, max ~75° (no looking straight down)
-    this._controls.minPolarAngle = Math.PI * 0.25;  // 45° from top — limits white visibility
-    this._controls.maxPolarAngle = Math.PI * 0.75;  // 135° — 45° past horizontal, symmetric with top
+    this._controls.enableDamping  = true;
+    this._controls.enablePan      = false;
+    this._controls.dampingFactor  = 0.08;
+    this._controls.minDistance    = 9;
+    this._controls.maxDistance    = 12;
+    this._controls.minPolarAngle  = Math.PI * 0.25;
+    this._controls.maxPolarAngle  = Math.PI * 0.75;
     this._controls.target.set(0, 0, 0);
 
     this._buildCubelets();
@@ -235,7 +245,7 @@ export class CubeRenderer3D {
     this._ro.observe(container);
   }
 
-  unmount() {
+  unmount(): void {
     this._stopLoop();
     if (this._ro) { this._ro.disconnect(); this._ro = null; }
     if (this._controls) { this._controls.dispose(); this._controls = null; }
@@ -245,59 +255,56 @@ export class CubeRenderer3D {
       this._renderer = null;
     }
     this._cubelets = [];
-    this._scene = null;
-    this._camera = null;
+    this._scene    = null;
+    this._camera   = null;
     this._log('unmounted');
   }
 
   // ---- Render loop ----
 
-  _startLoop() {
-    const loop = (now) => {
+  private _startLoop(): void {
+    const loop = (now: number) => {
       this._animFrame = requestAnimationFrame(loop);
       if (this._controls) this._controls.update();
-      // Drive animation tick from render loop — no separate rAF, no interleaving
       if (this._animTick) this._animTick(now);
-      this._renderer?.render(this._scene, this._camera);
+      this._renderer?.render(this._scene!, this._camera!);
     };
     loop(performance.now());
   }
 
-  _stopLoop() {
-    if (this._animFrame) { cancelAnimationFrame(this._animFrame); this._animFrame = null; }
+  private _stopLoop(): void {
+    if (this._animFrame !== null) {
+      cancelAnimationFrame(this._animFrame);
+      this._animFrame = null;
+    }
   }
 
-  _resize(w, h) {
-    this._renderer.setSize(w, h);
-    this._camera.aspect = w / h;
-    this._camera.updateProjectionMatrix();
+  _resize(w: number, h: number): void {
+    this._renderer!.setSize(w, h);
+    this._camera!.aspect = w / h;
+    this._camera!.updateProjectionMatrix();
   }
 
   // ---- Cubelet geometry ----
 
-  _buildCubelets() {
+  private _buildCubelets(): void {
     const positions = buildCubeletPositions();
     const size = 1 - this._gap;
-    // Rounded box geometry — slight bevel on cubelet edges
     const geo = new RoundedBoxGeometry(size, size, size, 2, 0.03);
 
     for (const pos of positions) {
       const isOutward = outwardSlots(pos);
 
-      // Six materials — one per face slot.
-      // Outward faces: sticker texture (rounded rect on black).
-      // Inner faces: solid black (shared texture).
-      const materials = SLOT_TO_FACE.map((face, slot) => {
+      const materials: THREE.Material[] = SLOT_TO_FACE.map((face, slot) => {
         if (!isOutward[slot]) return BLACK_MATERIAL;
         return new THREE.MeshBasicMaterial({
           map: makeStickerTexture(FACE_COLOURS_HEX[face]),
         });
       });
 
-      const mesh = new THREE.Mesh(geo, materials);
+      const mesh = new THREE.Mesh(geo, materials) as THREE.Mesh<RoundedBoxGeometry, THREE.Material[]>;
       mesh.position.set(pos.x, pos.y, pos.z);
-      this._scene.add(mesh);
-      // homePos: the original grid position — used by setState to reset before repainting
+      this._scene!.add(mesh);
       this._cubelets.push({ mesh, pos: { ...pos }, homePos: { ...pos }, isOutward });
     }
     this._log(`built ${this._cubelets.length} cubelets`);
@@ -305,48 +312,34 @@ export class CubeRenderer3D {
 
   // ---- State ----
 
-  /**
-   * Reset every cubelet to its home position with identity quaternion and home colours.
-   * Call before applyMovesInstant() to establish a known visual baseline.
-   */
-  resetToSolved() {
+  resetToSolved(): void {
     for (const cubelet of this._cubelets) {
       const { mesh, homePos } = cubelet;
       mesh.position.set(homePos.x, homePos.y, homePos.z);
       mesh.quaternion.identity();
-      cubelet.pos      = { ...homePos };
+      cubelet.pos       = { ...homePos };
       cubelet.isOutward = outwardSlots(homePos);
     }
     this.restoreColours();
     this._log('resetToSolved');
   }
 
-  /**
-   * Restore every outward sticker slot to its home colour.
-   * Undoes any grey applied by applyStickering without moving pieces.
-   * Call after animation completes, before applying a new stickering mask.
-   */
-  restoreColours() {
+  restoreColours(): void {
     for (const { mesh, homePos } of this._cubelets) {
       const homeOut = outwardSlots(homePos);
       for (let slot = 0; slot < 6; slot++) {
         if (!homeOut[slot]) continue;
         const tex = makeStickerTexture(FACE_COLOURS_HEX[SLOT_TO_FACE[slot]]);
-        if (mesh.material[slot].map !== tex) {
-          mesh.material[slot].map = tex;
-          mesh.material[slot].needsUpdate = true;
+        const mat = mesh.material[slot] as THREE.MeshBasicMaterial;
+        if (mat.map !== tex) {
+          mat.map = tex;
+          mat.needsUpdate = true;
         }
       }
     }
   }
 
-  /**
-   * Apply moves synchronously using the same physics as animateMove, but with no
-   * visual transition. Quaternions and positions are set exactly as they would be
-   * after animation completes. Call after resetToSolved() to reach a target state.
-   * @param {string[]} moves
-   */
-  applyMovesInstant(moves) {
+  applyMovesInstant(moves: string[]): void {
     for (const move of moves) {
       const base = move.replace(/'|2/g, '');
       const mod  = move.endsWith("'") ? -1 : move.endsWith('2') ? 2 : 1;
@@ -358,7 +351,6 @@ export class CubeRenderer3D {
       const quat = new THREE.Quaternion().setFromAxisAngle(axis, totalAngle);
       const mat4 = new THREE.Matrix4().makeRotationFromQuaternion(quat);
 
-      // Filter on current positions before applying — same logic as animateMove
       const moving = this._cubelets.filter(c => def.filter(c.pos));
       for (const { mesh } of moving) {
         mesh.applyMatrix4(mat4);
@@ -373,14 +365,7 @@ export class CubeRenderer3D {
 
   // ---- Orientation ----
 
-  /**
-   * Instantly apply a whole-cube rotation (e.g. 'z2', 'x', "y'").
-   * Physically moves all cubelets — no animation. Updates metadata so position-based
-   * stickering works correctly after the rotation.
-   * Call after setState() to set a display orientation (e.g. z2 for yellow-on-top).
-   * @param {string} move  e.g. 'z2', 'x', "y'"
-   */
-  applyOrientation(move) {
+  applyOrientation(move: string): void {
     const base = move.replace(/'|2/g, '');
     const mod  = move.endsWith("'") ? -1 : move.endsWith('2') ? 2 : 1;
     const def  = MOVE_AXIS[base.toUpperCase()];
@@ -403,14 +388,7 @@ export class CubeRenderer3D {
 
   // ---- Animated move ----
 
-  /**
-   * Animate a single WCA move, then call onDone when complete.
-   * Colors are physically attached to cubelets — they travel with the mesh.
-   * No color reassignment happens here; setState is only for instant state loads.
-   * @param {string} move
-   * @param {Function} [onDone]
-   */
-  animateMove(move, onDone) {
+  animateMove(move: string, onDone?: () => void): void {
     if (this._animating) {
       onDone?.();
       return;
@@ -434,14 +412,14 @@ export class CubeRenderer3D {
     const start = performance.now();
 
     const pivot = new THREE.Object3D();
-    this._scene.add(pivot);
+    this._scene!.add(pivot);
     for (const { mesh } of moving) {
-      this._scene.remove(mesh);
+      this._scene!.remove(mesh);
       pivot.add(mesh);
     }
 
-    this._animTick = (now) => {
-      const t = Math.min((now - start) / duration, 1);
+    this._animTick = (now: number) => {
+      const t    = Math.min((now - start) / duration, 1);
       const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
       pivot.setRotationFromAxisAngle(axis, totalAngle * ease);
 
@@ -451,16 +429,13 @@ export class CubeRenderer3D {
         pivot.updateMatrixWorld();
         for (const { mesh } of moving) {
           pivot.remove(mesh);
-          // Bake the pivot rotation into the mesh — position moves, quaternion accumulates.
-          // Do NOT reset quaternion: sticker textures are physically attached and must
-          // rotate with the cubelet. Colors never change; only position and orientation do.
           mesh.applyMatrix4(pivot.matrix);
           mesh.position.x = Math.round(mesh.position.x);
           mesh.position.y = Math.round(mesh.position.y);
           mesh.position.z = Math.round(mesh.position.z);
-          this._scene.add(mesh);
+          this._scene!.add(mesh);
         }
-        this._scene.remove(pivot);
+        this._scene!.remove(pivot);
         this._updateCubeletMetadata();
         this._animating = false;
         setTimeout(() => onDone?.(), 0);
@@ -468,11 +443,7 @@ export class CubeRenderer3D {
     };
   }
 
-  /**
-   * Rebuild pos/isOutward metadata from each mesh's current world position.
-   * Called after animation completes.
-   */
-  _updateCubeletMetadata() {
+  private _updateCubeletMetadata(): void {
     for (const cubelet of this._cubelets) {
       const p = cubelet.mesh.position;
       cubelet.pos = {
@@ -484,15 +455,7 @@ export class CubeRenderer3D {
     }
   }
 
-  /**
-   * Animate a sequence of moves with a gap between each.
-   * State tracking is the caller's responsibility.
-   * @param {string[]} moves
-   * @param {Function} onStep  — called with (moveIndex) after each move
-   * @param {Function} [onComplete]
-   * @param {number} [gapMs=60]
-   */
-  animateAlg(moves, onStep, onComplete, gapMs = 60) {
+  animateAlg(moves: string[], onStep: (i: number) => void, onComplete?: () => void, gapMs = 60): void {
     let i = 0;
     const next = () => {
       if (i >= moves.length) { onComplete?.(); return; }
@@ -507,16 +470,7 @@ export class CubeRenderer3D {
 
   // ---- Stickering ----
 
-  /**
-   * Apply a stickering mask. Hidden slots get the grey plastic texture.
-   * Looks up each cubelet by its current grid position — position-based semantics.
-   * Call setState() first to rebake colors if the cube has been animated since the last setState.
-   * @param {Map<string, boolean[]>} visibilityMap — "x,y,z" grid position → slot visibility[6]
-   */
-  applyStickering(visibilityMap) {
-    // visibilityMap: homePos "x,y,z" → number[6] where 0=hidden, 1=dim, 2=full.
-    // restoreColours() has already set all slots to full, so we only need to act
-    // on slots that are dim (1) or hidden (0).
+  applyStickering(visibilityMap: VisMap): void {
     this._cubelets.forEach(({ mesh, homePos }) => {
       const vis = visibilityMap.get(`${homePos.x},${homePos.y},${homePos.z}`);
       if (!vis) return;
@@ -524,37 +478,30 @@ export class CubeRenderer3D {
       for (let slot = 0; slot < 6; slot++) {
         if (!homeOut[slot]) continue;
         const level = vis[slot];
-        if (level === 2) continue; // full — already restored
+        if (level === 2) continue;
         const face = SLOT_TO_FACE[slot];
-        const hex = level === 1 ? FACE_DIM_COLOURS_HEX[face] : FACE_COLOURS_HEX.X;
-        const tex = makeStickerTexture(hex);
-        if (mesh.material[slot].map !== tex) {
-          mesh.material[slot].map = tex;
-          mesh.material[slot].needsUpdate = true;
+        const hex  = level === 1 ? FACE_DIM_COLOURS_HEX[face] : FACE_COLOURS_HEX.X;
+        const tex  = makeStickerTexture(hex);
+        const mat  = mesh.material[slot] as THREE.MeshBasicMaterial;
+        if (mat.map !== tex) {
+          mat.map = tex;
+          mat.needsUpdate = true;
         }
       }
     });
     this._log('applyStickering');
   }
 
-  /**
-   * Returns a world-face color map for diagnostic comparison.
-   * For each outward face of each cubelet's current world position, resolves which
-   * local slot faces that direction (via mesh quaternion) and what color it carries.
-   *
-   * @returns {Map<string, string>}  "wx,wy,wz:FACE" → color tag (face letter, 'grey', or 'plastic')
-   */
-  getWorldFaceMap() {
+  getWorldFaceMap(): Map<string, string> {
     const FACE_BY_HEX = Object.fromEntries(
       Object.entries(FACE_COLOURS_HEX).map(([f, h]) => [h, f])
     );
-    const result = new Map();
+    const result = new Map<string, string>();
     for (const { mesh } of this._cubelets) {
       const wx = Math.round(mesh.position.x);
       const wy = Math.round(mesh.position.y);
       const wz = Math.round(mesh.position.z);
-      // Outward world faces at this world position
-      const outward = [];
+      const outward: string[] = [];
       if (wx ===  1) outward.push('R');
       if (wx === -1) outward.push('L');
       if (wy ===  1) outward.push('U');
@@ -565,18 +512,19 @@ export class CubeRenderer3D {
       for (let slot = 0; slot < 6; slot++) {
         _slotDir.copy(LOCAL_DIRS[slot]).applyQuaternion(mesh.quaternion);
         const ax = Math.abs(_slotDir.x), ay = Math.abs(_slotDir.y), az = Math.abs(_slotDir.z);
-        let face;
+        let face: string;
         if (ax >= ay && ax >= az) face = _slotDir.x > 0 ? 'R' : 'L';
         else if (ay >= ax && ay >= az) face = _slotDir.y > 0 ? 'U' : 'D';
         else                           face = _slotDir.z > 0 ? 'F' : 'B';
-        if (!outward.includes(face)) continue;  // faces inward, skip
+        if (!outward.includes(face)) continue;
 
         const mat = mesh.material[slot];
-        let color;
+        let color: string;
         if (mat === BLACK_MATERIAL) {
           color = 'plastic';
         } else {
-          const hex = [..._textureCache.entries()].find(([,t]) => t === mat.map)?.[0];
+          const entry = [..._textureCache.entries()].find(([,t]) => t === (mat as THREE.MeshBasicMaterial).map);
+          const hex   = entry?.[0];
           color = hex ? (FACE_BY_HEX[hex] ?? hex) : 'unknown';
         }
         result.set(`${wx},${wy},${wz}:${face}`, color);
@@ -587,15 +535,46 @@ export class CubeRenderer3D {
 
   // ---- Camera ----
 
-  resetCamera() {
-    this._camera.position.set(5.5, 4.5, 5.5);
-    this._camera.lookAt(0, 0, 0);
+  resetCamera(): void {
+    this._camera!.position.set(5.5, 4.5, 5.5);
+    this._camera!.lookAt(0, 0, 0);
     this._controls?.reset();
   }
 
-  setSpeed(ms) { this._animSpeed = ms; }
+  setSpeed(ms: number): void { this._animSpeed = ms; }
 
-  get isAnimating() { return this._animating; }
+  setStickering(presetOrString: string): void {
+    const preset = MASK_PRESETS.find(p => p.label === presetOrString);
+    const str    = preset ? preset.str : presetOrString;
+    const visMap = CubeStickering.fromOrbitStringWithState(str, null);
+    this.restoreColours();
+    this.applyStickering(visMap);
+  }
 
-  getDebugLog() { return this._debugLog.join('\n'); }
+  snapshotAt(size?: number): string {
+    const renderer = this._renderer!;
+    const origRatio = renderer.getPixelRatio();
+    const origCssW  = renderer.domElement.clientWidth  || renderer.domElement.width  / origRatio;
+    const origCssH  = renderer.domElement.clientHeight || renderer.domElement.height / origRatio;
+    const origBg    = this._scene!.background;
+
+    this._scene!.background = null;
+    if (size) {
+      renderer.setPixelRatio(1);
+      renderer.setSize(size, size, false);
+    }
+    renderer.render(this._scene!, this._camera!);
+    const url = renderer.domElement.toDataURL('image/png');
+
+    this._scene!.background = origBg;
+    if (size) {
+      renderer.setPixelRatio(origRatio);
+      renderer.setSize(origCssW, origCssH, false);
+    }
+    return url;
+  }
+
+  get isAnimating(): boolean { return this._animating; }
+
+  getDebugLog(): string { return this._debugLog.join('\n'); }
 }

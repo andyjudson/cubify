@@ -292,11 +292,11 @@
 </div>
 
 <script type="module">
-  import { CubeState } from './src/CubeState.js';
-  import { AlgParser } from './src/AlgParser.js';
-  import { CubePlayer } from './src/CubePlayer.js';
-  import { CubeRenderer2D } from './src/CubeRenderer2D.js';
-  import { CubeStickering, MASK_PRESETS } from './src/CubeStickering.js';
+  import { CubeState } from '../src/CubeState.js';
+  import { AlgParser } from '../src/AlgParser.js';
+  import { CubePlayer } from '../src/CubePlayer.js';
+  import { CubeRenderer2D } from '../src/CubeRenderer2D.js';
+  import { CubeStickering, MASK_PRESETS } from '../src/CubeStickering.js';
 
   // Warm up kpuzzle early (cached after first call)
   const _solvedBase = await CubeState.solved();
@@ -467,7 +467,7 @@
     updateStepLabel();
     updateDebugState(player.state);
     update2D(player.state);
-    if (TELEMETRY) _logEvent('applyStateToRenderer', { setupMoves: player._setupMoves, raw: player.state.toRawPattern() });
+    if (TELEMETRY) _logEvent('applyStateToRenderer', { setupMoves: player.setupMoves, raw: player.state.toRawPattern() });
   });
 
   player.on('move', ({ index, move, state }) => {
@@ -585,19 +585,7 @@
   };
 
   document.getElementById('btn-export-3d').onclick = () => {
-    const gl = player.renderer._renderer;
-    const origRatio = gl.getPixelRatio();
-    const origCssW  = gl.domElement.clientWidth  || gl.domElement.width  / origRatio;
-    const origCssH  = gl.domElement.clientHeight || gl.domElement.height / origRatio;
-    const origBg    = player.renderer._scene.background;
-    player.renderer._scene.background = null;
-    gl.setPixelRatio(1);
-    gl.setSize(EXPORT_SIZE, EXPORT_SIZE, false);
-    gl.render(player.renderer._scene, player.renderer._camera);
-    dl(gl.domElement.toDataURL('image/png'), 'cubify-3d.png');
-    player.renderer._scene.background = origBg;
-    gl.setPixelRatio(origRatio);
-    gl.setSize(origCssW, origCssH, false);
+    dl(player.renderer.snapshotAt(EXPORT_SIZE), 'cubify-3d.png');
     appendLog(`[export] cubify-3d.png (${EXPORT_SIZE}px)`);
   };
 

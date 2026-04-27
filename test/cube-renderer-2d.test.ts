@@ -7,7 +7,7 @@
  * To enable: npm install --save-dev canvas
  * Then set env CUBIFY_CANVAS_TESTS=1 and re-run.
  *
- * The SVG rendering logic is covered by cube-renderer-2d-svg.test.js (no dependency).
+ * The SVG rendering logic is covered by cube-renderer-2d-svg.test.ts (no dependency).
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -15,13 +15,14 @@ import { describe, it, expect, beforeAll } from 'vitest';
 const CANVAS_ENABLED = process.env.CUBIFY_CANVAS_TESTS === '1';
 
 describe.skipIf(!CANVAS_ENABLED)('CubeRenderer2D canvas — requires canvas package', () => {
-  let CubeRenderer2D, CubeState, solved, canvas;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let CubeRenderer2D: any, CubeState: any, solved: any, canvas: any, canvasMod: any;
 
   beforeAll(async () => {
     // Dynamic import to avoid parse-time failure when canvas is not installed
-    ({ CubeState } = await import('../src/CubeState.js'));
-    ({ CubeRenderer2D } = await import('../src/CubeRenderer2D.js'));
-    const canvasMod = await import('canvas');
+    ({ CubeState } = await import('../src/CubeState.ts'));
+    ({ CubeRenderer2D } = await import('../src/CubeRenderer2D.ts'));
+    canvasMod = await import('canvas');
     canvas = canvasMod.createCanvas(400, 400);
     solved = await CubeState.solved();
   });

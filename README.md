@@ -1,26 +1,34 @@
 # cubify
 
-Clean-room 3×3 cube rendering and logic library. Built to understand and eventually replace cubing.js TwistyPlayer in the Learning CFOP app with a dependency-free renderer — no IntersectionObserver constraints, no shadow DOM, no baked-in controls.
+Clean-room 3×3 cube rendering and logic library. Built to understand and eventually replace Cubing.js TwistyPlayer in the Learning CFOP app with a dependency-free renderer — no IntersectionObserver constraints, no shadow DOM, no baked-in controls, and css themes.
 
-## What's Built
+## Library (`src/`)
 
-### cubify-harness
-
-Browser test harness and library implementation. Open `cubify-harness/index.html` directly — no build step.
-
-<img src="screenshot.png" width="900" alt="cubify-harness" />
+Clean public API — import from `src/index.js` or consume as an npm package.
 
 | Module | Description |
 |--------|-------------|
-| `CubeState` | cubing.js KPattern wrapper — `applyMove/applyAlg`, `toFaceArray()`, `invertAlg()` |
-| `CubeRenderer3D` | Three.js 3D renderer — `setState()`, `animateMove()`, `animateAlg()`, `setSpeed()`; alpha + preserveDrawingBuffer for PNG export |
-| `CubeRenderer2D` | Canvas 2D top-down view (U face + side strips + corner quads); SVG for Node.js; transparent background option |
-| `CubeStickering` | CFOP orbit-string masking — `fromOrbitStringWithState()` with full char set (-/I/D/O/S/P); `MASK_PRESETS` (15 presets) |
-| `CubePlayer` | Animation engine — `loadAlg()`, `play/pause/jumpTo/reset`, `setSpeed()`, `setStickering()`; event emitter (`move`, `complete`, `reset`) |
-| `CubeExporter` | `toPNG(alg, { style: '2d'\|'3d' })` — 288px transparent PNG export |
+| `CubeState` | cubing.js KPattern wrapper — `applyMove/applyAlg`, `toFaceArray()`, `isSolved()`, `invertAlg()` |
+| `CubeScramble` | Pure JS scramble generator — `CubeScramble.random(length?)`, no cubing.js dependency |
 | `AlgParser` | WCA notation parser (face turns, wide moves, slice moves, rotations) |
-| `verify-perms.mjs` | 18-test permutation cross-check suite against cubing.js ground truth |
-| `test/` | Vitest suite — 138 tests, no headed browser (`npm test`) |
+| `CubeStickering` | CFOP orbit-string masking — `fromOrbitStringWithState()` with full char set (-/I/D/O/S/P); `MASK_PRESETS` (15 presets) |
+| `CubeRenderer3D` | Three.js 3D renderer — `setState()`, `animateMove()`, `setSpeed()`, `setStickering()`, `snapshotAt()` |
+| `CubePlayer` | Animation engine — `loadAlg()`, `play/pause/jumpTo/reset`, `setSpeed()`, `setStickering()`; events (`move`, `complete`, `reset`) |
+| `CubeExporter` | `toPNG(alg, { style: '2d'\|'3d' })` — 288px transparent PNG export |
+
+TypeScript definitions: [`types/cubify.d.ts`](types/cubify.d.ts)
+
+## cubify-harness
+
+Browser test harness and dev environment. Open `cubify-harness/index.html` via Vite.
+
+<img src="screenshot.png" width="900" alt="cubify-harness" />
+
+| File | Description |
+|------|-------------|
+| `cubify-harness/index.html` | Interactive harness — algorithm selector, play/step controls, export buttons |
+| `cubify-harness/test/` | Vitest suite — 138 tests, no headed browser (`npm test`) |
+| `cubify-harness/verify-perms.mjs` | 18-test permutation cross-check suite against cubing.js ground truth |
 
 **Design goals:** Clean public API, CSS custom property theming, no hidden dependencies, MIT licensed.
 
@@ -67,4 +75,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Status**: Features 022–024, 026–027 complete • 025, 028–031 planned
+**Status**: Features 022–024, 026–028 complete • 025, 029–031 planned

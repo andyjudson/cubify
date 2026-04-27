@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { MOVE_AXIS } from '../src/CubeRenderer3D.js';
+import { MOVE_AXIS } from '../src/CubeRenderer3D.ts';
 
 // ── MOVE_AXIS directions (lessons §5, physical §3.4) ─────────────────────────
 

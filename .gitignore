@@ -1,0 +1,4 @@
+node_modules/
+dist/
+types/
+.claude/tmp/

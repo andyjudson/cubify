@@ -6,14 +6,25 @@
  */
 
 import { vi, describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
-import { CubeState } from '../src/CubeState.js';
+import { CubeState } from '../src/CubeState.ts';
 
 // vi.mock is hoisted by Vitest before any imports —
 // CubePlayer will receive this mock when it imports CubeRenderer3D.
-let mockRenderer; // populated by MockCubeRenderer3D constructor
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockRenderer: any; // populated by MockCubeRenderer3D constructor
 
-vi.mock('../src/CubeRenderer3D.js', () => {
+vi.mock('../src/CubeRenderer3D.ts', () => {
   const MockCubeRenderer3D = class {
+    _speedMs: number;
+    mount: ReturnType<typeof vi.fn>;
+    unmount: ReturnType<typeof vi.fn>;
+    resetToSolved: ReturnType<typeof vi.fn>;
+    applyMovesInstant: ReturnType<typeof vi.fn>;
+    animateMove: ReturnType<typeof vi.fn>;
+    setSpeed: ReturnType<typeof vi.fn>;
+    restoreColours: ReturnType<typeof vi.fn>;
+    applyStickering: ReturnType<typeof vi.fn>;
+
     constructor() {
       this._speedMs = 300;
       this.mount          = vi.fn();
@@ -21,8 +32,8 @@ vi.mock('../src/CubeRenderer3D.js', () => {
       this.resetToSolved  = vi.fn();
       this.applyMovesInstant = vi.fn();
       // Synchronous onDone — no animation delay in tests
-      this.animateMove    = vi.fn((move, onDone) => onDone());
-      this.setSpeed       = vi.fn((ms) => { this._speedMs = ms; });
+      this.animateMove    = vi.fn((move: string, onDone: () => void) => onDone());
+      this.setSpeed       = vi.fn((ms: number) => { this._speedMs = ms; });
       this.restoreColours = vi.fn();
       this.applyStickering = vi.fn();
       mockRenderer = this;
@@ -33,12 +44,12 @@ vi.mock('../src/CubeRenderer3D.js', () => {
 });
 
 // Import AFTER the mock declaration (Vitest hoisting means mock is already in place)
-import { CubePlayer } from '../src/CubePlayer.js';
+import { CubePlayer } from '../src/CubePlayer.ts';
 
 // Fake container — mock renderer's mount() ignores the argument
-const FAKE_CONTAINER = {};
+const FAKE_CONTAINER = {} as HTMLElement;
 
-let player;
+let player: CubePlayer;
 
 beforeAll(async () => {
   // Warm up cubing.js KPuzzle once for the whole suite
@@ -68,7 +79,7 @@ describe('loadAlg', () => {
   });
 
   it('emits reset event', async () => {
-    const resets = [];
+    const resets: unknown[] = [];
     player.on('reset', e => resets.push(e));
     await player.loadAlg("R U R'");
     expect(resets).toHaveLength(1);
@@ -117,7 +128,7 @@ describe('jumpTo', () => {
   });
 
   it('jumpTo does not emit move event', () => {
-    const moves = [];
+    const moves: unknown[] = [];
     player.on('move', e => moves.push(e));
     player.jumpTo(1);
     expect(moves).toHaveLength(0);
@@ -136,7 +147,7 @@ describe('play() event sequence', () => {
   it('3-move alg emits 3 move events', async () => {
     vi.useFakeTimers();
     await player.loadAlg("R U R'");
-    const moves = [];
+    const moves: unknown[] = [];
     player.on('move', e => moves.push(e));
     player.play();
     await vi.runAllTimersAsync();
@@ -146,8 +157,8 @@ describe('play() event sequence', () => {
   it('first move event has index=1', async () => {
     vi.useFakeTimers();
     await player.loadAlg("R U R'");
-    const moves = [];
-    player.on('move', e => moves.push(e));
+    const moves: Array<{ index: number }> = [];
+    player.on('move', e => moves.push(e as { index: number }));
     player.play();
     await vi.runAllTimersAsync();
     expect(moves[0].index).toBe(1);
@@ -156,8 +167,8 @@ describe('play() event sequence', () => {
   it('move event carries correct move string', async () => {
     vi.useFakeTimers();
     await player.loadAlg("R U R'");
-    const moves = [];
-    player.on('move', e => moves.push(e));
+    const moves: Array<{ move: string }> = [];
+    player.on('move', e => moves.push(e as { move: string }));
     player.play();
     await vi.runAllTimersAsync();
     expect(moves.map(e => e.move)).toEqual(['R', 'U', "R'"]);
@@ -166,13 +177,13 @@ describe('play() event sequence', () => {
   it('move event state matches _stateAt(index)', async () => {
     vi.useFakeTimers();
     await player.loadAlg("R U R'");
-    const moveEvents = [];
-    player.on('move', e => moveEvents.push(e));
+    const moveEvents: Array<{ state: CubeState }> = [];
+    player.on('move', e => moveEvents.push(e as { state: CubeState }));
     player.play();
     await vi.runAllTimersAsync();
 
-    const solved = await CubeState.solved();
-    const expectedAfterR = solved.applyAlg(['R']);
+    const solvedState = await CubeState.solved();
+    const expectedAfterR = solvedState.applyAlg(['R']);
     // First move event: index=1, state = solved.applyAlg(['R'])
     expect(moveEvents[0].state.toFaceArray()).toEqual(expectedAfterR.toFaceArray());
   });
@@ -199,7 +210,7 @@ describe('play() event sequence', () => {
     vi.useFakeTimers();
     await player.loadAlg("R U R'");
     player.jumpTo(3); // at end
-    const moves = [];
+    const moves: unknown[] = [];
     player.on('move', e => moves.push(e));
     player.play(); // should reset to 0 first
     await vi.runAllTimersAsync();
@@ -209,7 +220,7 @@ describe('play() event sequence', () => {
   it('play() while already playing is a no-op (no duplicate events)', async () => {
     vi.useFakeTimers();
     await player.loadAlg("R U R'");
-    const moves = [];
+    const moves: unknown[] = [];
     player.on('move', e => moves.push(e));
     player.play();
     player.play(); // second call: no-op
@@ -232,7 +243,7 @@ describe('play() event sequence', () => {
     vi.useFakeTimers();
     await player.loadAlg("R U R' U'");
     player.jumpTo(2); // at step 2, 2 moves remain (R', U')
-    const moves = [];
+    const moves: unknown[] = [];
     let completed = false;
     player.on('move', e => moves.push(e));
     player.on('complete', () => { completed = true; });
@@ -257,7 +268,7 @@ describe('pause()', () => {
   it('pause() after first move: only 1 move event emitted', async () => {
     vi.useFakeTimers();
     await player.loadAlg("R U R' U'");
-    const moves = [];
+    const moves: unknown[] = [];
     player.on('move', e => moves.push(e));
     player.play();
     // First move completes synchronously via mock animateMove
@@ -291,7 +302,7 @@ describe('reset()', () => {
 
   it('reset() emits reset event', async () => {
     await player.loadAlg("R U R'");
-    const resets = [];
+    const resets: unknown[] = [];
     player.on('reset', e => resets.push(e));
     player.reset();
     expect(resets).toHaveLength(1);
@@ -345,13 +356,14 @@ describe('setStickering', () => {
 
   it('setStickering(str) stores the stickering string', () => {
     player.setStickering(OLL_STR);
-    expect(player._stickering).toBe(OLL_STR);
+    // Access private field via cast for test verification
+    expect((player as unknown as { _stickering: string | null })._stickering).toBe(OLL_STR);
   });
 
   it('setStickering(null) clears stickering', () => {
     player.setStickering(OLL_STR);
     player.setStickering(null);
-    expect(player._stickering).toBeNull();
+    expect((player as unknown as { _stickering: string | null })._stickering).toBeNull();
   });
 
   it('setStickering calls renderer.restoreColours', () => {

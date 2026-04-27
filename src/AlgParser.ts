@@ -7,28 +7,22 @@
  */
 
 export class AlgParser {
-  /**
-   * Parse a WCA notation string into an array of move tokens.
-   *
-   * @param {string} notation — e.g. "R U R' U'" or "r U R' U' r' F R F'"
-   * @returns {string[]} — e.g. ["R", "U", "R'", "U'"]
-   */
-  static parse(notation) {
+  /** Parse a WCA notation string into an array of move tokens. */
+  static parse(notation: string): string[] {
     if (!notation || !notation.trim()) return [];
 
-    // Strip comments (anything after //) and grouping brackets
     const cleaned = notation
       .replace(/\/\/.*$/gm, '')
       .replace(/[()[\]]/g, '')
       .trim();
 
-    const moves = [];
+    const moves: string[] = [];
     const re = /([UDRLFBMESxyz](?:w)?|[udrlf b])('|2)?/g;
-    let match;
+    let match: RegExpExecArray | null;
     while ((match = re.exec(cleaned)) !== null) {
       const base = match[1].trim();
       if (!base) continue;
-      moves.push(base + (match[2] || ''));
+      moves.push(base + (match[2] ?? ''));
     }
     return moves;
   }

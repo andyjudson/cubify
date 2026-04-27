@@ -107,18 +107,24 @@ Vitest unit suite covering the core library without a headed browser.
 
 ## Feature 028: cubify.js Library API
 
-### Status: Planned 📋
+### Status: Complete ✅
 
 ### Scope
 Extract cubify-harness core into a clean standalone library with a documented public API surface.
 
-### Goals
-- Remove internal `_` properties from public surface; wrap speed/animating in methods
-- `CubeRenderer3D.setStickering()` accepts preset name or raw orbit string
-- TypeScript type definitions for consumers
-- `cubify-scripts` migrated to import from the library and call `CubeExporter.toPNG()` — replaces bespoke rendering in `lib/renderer.mjs` (Playwright stays for WebGL; custom renderer removed); validates library is consumable from a real Node.js client
-- Test suite (spec 027) used to validate the library's public API surface before release
-- Prerequisites: 023 stickering, 024 animation, 025 theming, 026 2D export
+### Completed
+- Library source extracted to `src/` at repo root; `src/index.js` public entry point
+- `package.json` at repo root with `"exports"` and `"types"` fields
+- `src/CubeScramble.js` — pure JS random scramble generator (no cubing.js); `CubeScramble.random(length?)`
+- `CubeRenderer3D.setStickering(presetOrString)` — accepts MASK_PRESETS label or raw orbit string
+- `CubeRenderer3D.snapshotAt(size?)` — transparent PNG export without accessing internal properties
+- `CubePlayer.setupMoves` getter — exposes setup move list publicly
+- `types/cubify.d.ts` — full TypeScript definitions for the public API
+- Harness rewired: `index.html` imports from `../src/`; `_` property accesses replaced with public API
+- All 138 Vitest tests pass against the root `src/` library
+- `/cubify` skill moved to `.claude/commands/cubify.md` in this repo
+- `.gitignore` at repo root covering `node_modules/`, `dist/`, `.claude/tmp/`
+- `cubify-scripts` renderer migration deferred (Playwright + Node.js WebGL path) ⏳
 
 ---
 
@@ -176,7 +182,7 @@ Replace TwistyPlayer in cfop-app with cubify React components.
 | 025 | cubify-theming | Planned 📋 |
 | 026 | cubify-image-export | Complete ✅ |
 | 027 | cubify-tests | Complete ✅ |
-| 028 | cubify.js Library API | Planned 📋 |
+| 028 | cubify.js Library API | Complete ✅ |
 | 029 | cubify-react | Planned 📋 |
 | 030 | cubify-decouple | Planned 📋 |
 | 031 | cubify-cfop-migration | Planned 📋 |

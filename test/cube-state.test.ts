@@ -11,14 +11,14 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { CubeState } from '../src/CubeState.js';
+import { CubeState } from '../src/CubeState.ts';
 
 const SUNE     = "R U R' U R U2 R'";
 const TPERM    = "R U R' U' R' F R2 U' R' U' R U R' F'";
 const SEXY     = "R U R' U'";
 const SLEDGE   = "R' F R F'";
 
-let solved;
+let solved: CubeState;
 
 beforeAll(async () => {
   solved = await CubeState.solved();

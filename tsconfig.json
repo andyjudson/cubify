@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "declaration": true,
+    "declarationDir": "./types",
+    "emitDeclarationOnly": true,
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": false,
+    "paths": {
+      "cubing":   ["./cubify-harness/node_modules/cubing"],
+      "cubing/*": ["./cubify-harness/node_modules/cubing/*"],
+      "three":    ["./cubify-harness/node_modules/@types/three"],
+      "three/*":  ["./cubify-harness/node_modules/@types/three/*"]
+    },
+    "typeRoots": ["./cubify-harness/node_modules/@types"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "cubify-harness", "cubify-scripts"]
+}

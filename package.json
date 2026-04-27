@@ -1,0 +1,19 @@
+{
+  "name": "cubify",
+  "version": "0.1.0",
+  "description": "Clean-room 3×3 cube rendering and logic library",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./types/index.d.ts"
+    }
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "cubing": "^0.63.3",
+    "three": "^0.170.0"
+  }
+}

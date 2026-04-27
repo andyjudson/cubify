@@ -10,11 +10,12 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { CubeStickering, MASK_PRESETS } from '../src/CubeStickering.js';
-import { CubeState } from '../src/CubeState.js';
+import { CubeStickering, MASK_PRESETS } from '../src/CubeStickering.ts';
+import { CubeState } from '../src/CubeState.ts';
+import type { RawPattern } from '../src/CubeState.ts';
 
-let solved;
-let solvedRaw;
+let solved: CubeState;
+let solvedRaw: RawPattern;
 
 beforeAll(async () => {
   solved = await CubeState.solved();
@@ -52,14 +53,14 @@ describe('MASK_PRESETS', () => {
 
 describe('fromOrbitStringWithState — map structure', () => {
   it('full preset: all 26 pieces in visMap', () => {
-    const { str } = MASK_PRESETS.find(p => p.label === 'full');
+    const { str } = MASK_PRESETS.find(p => p.label === 'full')!;
     const map = CubeStickering.fromOrbitStringWithState(str, null);
     // 8 corners + 12 edges + 6 centers = 26
     expect(map.size).toBe(26);
   });
 
   it('visMap keys are "x,y,z" homePos format strings', () => {
-    const { str } = MASK_PRESETS.find(p => p.label === 'full');
+    const { str } = MASK_PRESETS.find(p => p.label === 'full')!;
     const map = CubeStickering.fromOrbitStringWithState(str, null);
     for (const key of map.keys()) {
       expect(key).toMatch(/^-?[01],-?[01],-?[01]$/);
@@ -67,7 +68,7 @@ describe('fromOrbitStringWithState — map structure', () => {
   });
 
   it('visMap values are number[6] arrays', () => {
-    const { str } = MASK_PRESETS.find(p => p.label === 'full');
+    const { str } = MASK_PRESETS.find(p => p.label === 'full')!;
     const map = CubeStickering.fromOrbitStringWithState(str, null);
     for (const val of map.values()) {
       expect(val).toHaveLength(6);
@@ -76,7 +77,7 @@ describe('fromOrbitStringWithState — map structure', () => {
   });
 
   it('full preset: all outward slots are vis=2 (full colour)', () => {
-    const { str } = MASK_PRESETS.find(p => p.label === 'full');
+    const { str } = MASK_PRESETS.find(p => p.label === 'full')!;
     const map = CubeStickering.fromOrbitStringWithState(str, null);
     // Every outward-facing slot should be 2 (full); inward slots = 0
     for (const [key, vis] of map) {
@@ -120,7 +121,7 @@ describe("char 'O' — IgnoreNonPrimary semantics (lessons §17)", () => {
     // CORNERS: slot 0 = URF → char 'O', rest 'I'
     const str = 'EDGES:IIIIIIIIIIII,CORNERS:OIIIIIII,CENTERS:IIIIII';
     const map = CubeStickering.fromOrbitStringWithState(str, null);
-    const vis = map.get('1,1,1'); // URF homePos
+    const vis = map.get('1,1,1')!; // URF homePos
     expect(vis).toBeDefined();
     expect(vis[2]).toBe(2); // U slot = full (primary)
     expect(vis[0]).toBe(0); // R slot = hidden (non-primary)
@@ -132,7 +133,7 @@ describe("char 'O' — IgnoreNonPrimary semantics (lessons §17)", () => {
     // CORNERS: slot 7 = DRB → char 'O', rest 'I'
     const str = 'EDGES:IIIIIIIIIIII,CORNERS:IIIIIIIO,CENTERS:IIIIII';
     const map = CubeStickering.fromOrbitStringWithState(str, null);
-    const vis = map.get('1,-1,-1'); // DRB homePos
+    const vis = map.get('1,-1,-1')!; // DRB homePos
     expect(vis).toBeDefined();
     expect(vis[3]).toBe(2); // D slot = full (primary)
     expect(vis[0]).toBe(0); // R slot = hidden
@@ -144,7 +145,7 @@ describe("char 'O' — IgnoreNonPrimary semantics (lessons §17)", () => {
     // EDGES: slot 8 = FR → char 'O', rest 'I' (8 I's then O then 3 I's = 12 chars)
     const str = 'EDGES:IIIIIIIIOIII,CORNERS:IIIIIIII,CENTERS:IIIIII';
     const map = CubeStickering.fromOrbitStringWithState(str, null);
-    const vis = map.get('1,0,1'); // FR homePos
+    const vis = map.get('1,0,1')!; // FR homePos
     expect(vis).toBeDefined();
     expect(vis[4]).toBe(2); // F slot = full (primary)
     expect(vis[0]).toBe(0); // R slot = hidden
@@ -180,7 +181,7 @@ describe("char 'S' — primary full, sides dim", () => {
     // CORNERS slot 0 = URF, char 'S'
     const str = 'EDGES:IIIIIIIIIIII,CORNERS:SIIIIIII,CENTERS:IIIIII';
     const map = CubeStickering.fromOrbitStringWithState(str, null);
-    const vis = map.get('1,1,1'); // URF
+    const vis = map.get('1,1,1')!; // URF
     expect(vis[2]).toBe(2); // U primary = full
     expect(vis[0]).toBe(1); // R = dim
     expect(vis[4]).toBe(1); // F = dim
@@ -194,7 +195,7 @@ describe("char 'P' — primary dim, sides full", () => {
     // CORNERS slot 0 = URF, char 'P'
     const str = 'EDGES:IIIIIIIIIIII,CORNERS:PIIIIIII,CENTERS:IIIIII';
     const map = CubeStickering.fromOrbitStringWithState(str, null);
-    const vis = map.get('1,1,1'); // URF
+    const vis = map.get('1,1,1')!; // URF
     expect(vis[2]).toBe(1); // U primary = dim
     expect(vis[0]).toBe(2); // R = full
     expect(vis[4]).toBe(2); // F = full
@@ -205,7 +206,7 @@ describe("char 'P' — primary dim, sides full", () => {
 
 describe('Idempotency — lessons §12', () => {
   it('fromOrbitStringWithState called twice with same args returns identical Maps', () => {
-    const { str } = MASK_PRESETS.find(p => p.label === 'oll-face');
+    const { str } = MASK_PRESETS.find(p => p.label === 'oll-face')!;
     const map1 = CubeStickering.fromOrbitStringWithState(str, solvedRaw);
     const map2 = CubeStickering.fromOrbitStringWithState(str, solvedRaw);
     expect(map1.size).toBe(map2.size);
@@ -219,7 +220,7 @@ describe('Idempotency — lessons §12', () => {
 
 describe('OLL preset — spot checks (stickering §2–3)', () => {
   it('oll-face: U-layer edges have primary slot visible', () => {
-    const { str } = MASK_PRESETS.find(p => p.label === 'oll-face');
+    const { str } = MASK_PRESETS.find(p => p.label === 'oll-face')!;
     const map = CubeStickering.fromOrbitStringWithState(str, null);
 
     // U-layer edges (UF, UR, UB, UL) — all have y=1, primary slot = 2 (U face)
@@ -233,7 +234,7 @@ describe('OLL preset — spot checks (stickering §2–3)', () => {
 
   it('cross preset: bottom-layer edges are hidden (char I)', () => {
     // cross: EDGES:----IIIIIIII — top 4 edges full, rest 'I'=hidden
-    const { str } = MASK_PRESETS.find(p => p.label === 'cross');
+    const { str } = MASK_PRESETS.find(p => p.label === 'cross')!;
     const map = CubeStickering.fromOrbitStringWithState(str, null);
 
     // Bottom edges: DF(y=-1,z=1), DR(y=-1,x=1), DB(y=-1,z=-1), DL(y=-1,x=-1)
@@ -243,9 +244,9 @@ describe('OLL preset — spot checks (stickering §2–3)', () => {
       expect(vis, `key ${key}`).toBeDefined();
       // All outward slots should be 0 (char 'I')
       const [x, y, z] = key.split(',').map(Number);
-      if (x !== 0) expect(vis[x > 0 ? 0 : 1]).toBe(0);
-      if (y !== 0) expect(vis[y > 0 ? 2 : 3]).toBe(0);
-      if (z !== 0) expect(vis[z > 0 ? 4 : 5]).toBe(0);
+      if (x !== 0) expect(vis![x > 0 ? 0 : 1]).toBe(0);
+      if (y !== 0) expect(vis![y > 0 ? 2 : 3]).toBe(0);
+      if (z !== 0) expect(vis![z > 0 ? 4 : 5]).toBe(0);
     }
   });
 });
