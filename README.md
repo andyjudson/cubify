@@ -67,6 +67,7 @@ Override with `CFOP_APP_DIR=/path/to/cfop/cfop-app`.
 
 | Doc | Content |
 |-----|---------|
+| [`specs/cubify.md`](specs/cubify.md) | Library architecture — package layout, tsconfig, declaration generation, public API |
 | [`specs/cubing-js-architecture.md`](specs/cubing-js-architecture.md) | Cubing.js KPuzzle/KPattern data model, orbit slot ordering, move application |
 | [`specs/cubing-js-stickering.md`](specs/cubing-js-stickering.md) | Cubing.js Stickering architecture, orbit string char semantics |
 | [`specs/cube-physical-rules.md`](specs/cube-physical-rules.md) | Physical cube geometry, CFOP conventions, masking philosophy |
