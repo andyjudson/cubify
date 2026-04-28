@@ -322,3 +322,37 @@ The U layer now holds the yellow OLL/PLL pieces. `currentMoves` (the alg) is unc
 This is determined purely from `homePos` — no quaternion lookup needed in the visMap. The mesh quaternion does the work automatically: greyeing slot0 and slot4 on a DRF piece means those slots travel grey wherever they go, and slot3 (yellow) shows on whatever world face the rotation places it.
 
 **Implementation**: `fromOrbitStringWithState` outputs slot-indexed booleans keyed by homePos; `applyStickering` uses `vis[slot]` directly. No world-face index conversion needed.
+
+---
+
+## 18. 2D stickering — slot-based lookup with orientation, NOT piece-based
+
+**Context**: The 3D renderer gets piece-tracking for free because the mesh quaternion carries materials through moves. The 2D renderer has no quaternion — it must derive which home sticker is at each visible face from the KPattern orientation value alone.
+
+**The trap**: it's tempting to use `pieceId = rawPattern.corners.pieces[slotI]` to find where the occupying piece naturally lives, then look up `visMap[piece's homePos][vis-slot]`. This has two failure modes:
+1. **Wrong when piece home ≠ slot home** (e.g. after z2, D-home pieces occupy U-slots): the piece's homePos carries a `-` char (all-visible in its natural D-slot), so the sticker shows regardless of the slot's actual mask char ('O', 'I', etc). Masks are not respected.
+2. **Mask lookup at wrong position**: the visMap is built slot-based (`null` rawPattern), so each entry is keyed by the *slot's* natural homePos, not the piece's. Looking up the piece's homePos retrieves the wrong mask char.
+
+**The correct approach** — use the slot's homePos and slot's vis-slot table throughout; only read `orientation` from `rawPattern`:
+
+```typescript
+// CORNERS
+const orientation = rawPattern.corners.orientation[slotI] ?? 0;
+const slotVis     = CORNER_VIS_SLOTS[slotI];      // [primary, secondary, tertiary] vis-slots for THIS slot
+const s           = slotVis.indexOf(cell.visSlot); // position of this visible face within the slot
+if (s < 0) return 2;
+const h           = (s - orientation + 3) % 3;    // home sticker index at position s
+const homeVisSlot = slotVis[h];                   // natural direction of that home sticker, in slot's frame
+const cubeletIdx  = ORBIT_TO_CUBELET['CORNERS'][slotI]; // slot's homePos — NOT pieceId
+const visArray    = visMap.get(`${hp.x},${hp.y},${hp.z}`);
+return visArray[homeVisSlot];                      // vis level for that home sticker
+```
+
+**Why it works**: `h = (s - orientation + 3) % 3` tells us which home sticker (0=primary/yellow, 1=secondary, 2=tertiary) is currently at visual position `s`. `slotVis[h]` maps that sticker index to its natural home direction — still within the *slot's* coordinate frame. `visArray[homeVisSlot]` then gives the mask visibility for that sticker, correctly implementing 'O' (show primary only wherever it lands), 'I' (hide all), '-' (show all), etc.
+
+**Key rule**: `pieceId` is never needed. Only `orientation` from `rawPattern` matters. Both the homePos lookup and the `CORNER_VIS_SLOTS` index must use `cell.slotI`.
+
+**Verified behaviour**:
+- `oll-face` + z2 (D-home pieces at U-slots, orientation 0/1/2): yellow shows on U-face when orientation=0, yellow shows on side strip when orientation=1 or 2, non-yellow stickers always grey ✓
+- `f2l` mask (U-layer = 'I'): all U-slot stickers return 0 (hidden) regardless of which piece is there ✓
+- `oll-cross`, `cross`, and other presets: respected correctly ✓

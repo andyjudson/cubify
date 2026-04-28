@@ -11,7 +11,7 @@ import {
   CENTER_ORBIT_TO_CUBELET,
   type VisMap,
 } from './CubeStickering.js';
-import type { CubeState } from './CubeState.js';
+import type { CubeState, RawPattern } from './CubeState.js';
 
 // ---- Colour palette ----
 const FACE_COLOURS: Record<string, string> = {
@@ -177,13 +177,84 @@ function insetPoly(pts: Point[], d: number): Point[] {
 
 // ---- Vis level helpers ----
 
-// Slot-based visibility: look up by the orbit SLOT's home position, not the piece's
-// home position. The 2D view redraws from scratch each frame (unlike 3D where materials
-// travel with meshes), so visibility must reflect WHERE the sticker is, not which
-// piece is there. Piece-tracking breaks when whole-cube rotations (z2 setup) put
-// D-layer pieces in U-layer slots — their primarySlot is y=-1, making U-face grey.
-function getVisLevel(cell: Cell | CornerPoly, visMap: VisMap | null): number {
+// vis-slot ordering (primary, secondary, tertiary) for each cubing.js corner orbit index.
+// Derived from CORNER_POSITIONS in CubeState.ts: face→vis-slot mapping is
+// U=2, R=0, F=4, D=3, L=1, B=5.
+const CORNER_VIS_SLOTS: readonly [number, number, number][] = [
+  [2, 0, 4], // 0: URF
+  [2, 5, 0], // 1: URB
+  [2, 1, 5], // 2: ULB
+  [2, 4, 1], // 3: ULF
+  [3, 4, 0], // 4: DRF
+  [3, 1, 4], // 5: DLF
+  [3, 5, 1], // 6: DLB
+  [3, 0, 5], // 7: DRB
+];
+
+// vis-slot ordering (primary, secondary) for each cubing.js edge orbit index.
+const EDGE_VIS_SLOTS: readonly [number, number][] = [
+  [2, 4], // 0: UF
+  [2, 0], // 1: UR
+  [2, 5], // 2: UB
+  [2, 1], // 3: UL
+  [3, 4], // 4: DF
+  [3, 0], // 5: DR
+  [3, 5], // 6: DB
+  [3, 1], // 7: DL
+  [4, 0], // 8: FR
+  [4, 1], // 9: FL
+  [5, 0], // 10: BR
+  [5, 1], // 11: BL
+];
+
+// Determine visibility for a single 2D cell, matching 3D "physical mesh" behaviour.
+//
+// visMap is built slot-based (null rawPattern): each entry is keyed by the slot's
+// natural home position and carries the vis array for that orbit slot's mask char.
+//
+// For corners/edges we use the piece orientation (from rawPattern) to find which
+// home sticker index `h` is currently at visual position `s`, then look up the
+// vis level for that home sticker's natural direction — all within the SLOT's home
+// data. This correctly shows the primary sticker (yellow) wherever it faces, and
+// hides non-primary stickers, matching the 3D renderer's material-travel behaviour.
+//
+// Centers can't twist so they use a direct slot-based lookup.
+function getVisLevel(cell: Cell | CornerPoly, visMap: VisMap | null, rawPattern: RawPattern | null): number {
   if (!visMap || visMap.size === 0) return 2;
+
+  if (cell.orbit === 'CORNERS' && rawPattern) {
+    const orientation = rawPattern.corners?.orientation?.[cell.slotI] ?? 0;
+
+    const slotVis = CORNER_VIS_SLOTS[cell.slotI];
+    const s = slotVis.indexOf(cell.visSlot);
+    if (s < 0) return 2;
+
+    const h = (s - orientation + 3) % 3;
+    const homeVisSlot = slotVis[h];
+
+    const cubeletIdx = ORBIT_TO_CUBELET['CORNERS'][cell.slotI];
+    const hp         = CUBELET_POSITIONS[cubeletIdx];
+    const visArray   = visMap.get(`${hp.x},${hp.y},${hp.z}`);
+    return visArray ? (visArray[homeVisSlot] ?? 2) : 2;
+  }
+
+  if (cell.orbit === 'EDGES' && rawPattern) {
+    const orientation = rawPattern.edges?.orientation?.[cell.slotI] ?? 0;
+
+    const slotVis = EDGE_VIS_SLOTS[cell.slotI];
+    const s = slotVis.indexOf(cell.visSlot);
+    if (s < 0) return 2;
+
+    const h = (s - orientation + 2) % 2;
+    const homeVisSlot = slotVis[h];
+
+    const cubeletIdx = ORBIT_TO_CUBELET['EDGES'][cell.slotI];
+    const hp         = CUBELET_POSITIONS[cubeletIdx];
+    const visArray   = visMap.get(`${hp.x},${hp.y},${hp.z}`);
+    return visArray ? (visArray[homeVisSlot] ?? 2) : 2;
+  }
+
+  // Centers (can't twist) and fallback: slot-based lookup.
   const cubeletIdx = ORBIT_TO_CUBELET[cell.orbit][cell.slotI];
   const hp         = CUBELET_POSITIONS[cubeletIdx];
   const visArray   = visMap.get(`${hp.x},${hp.y},${hp.z}`);
@@ -271,7 +342,8 @@ export class CubeRenderer2D {
       ctx.fillRect(0, 0, this._size, this._size);
     }
 
-    const faceArray = state.toFaceArray();
+    const faceArray   = state.toFaceArray();
+    const rawPattern  = state.toRawPattern();
 
     if (this._transparent) {
       ctx.fillStyle = '#111111';
@@ -290,11 +362,11 @@ export class CubeRenderer2D {
     }
 
     for (const poly of CORNER_POLYS) {
-      const colour = blendColour(faceArray[poly.face][poly.fsi], getVisLevel(poly, visMap));
+      const colour = blendColour(faceArray[poly.face][poly.fsi], getVisLevel(poly, visMap, rawPattern));
       drawPoly(ctx, computeCornerPoly(poly.corner, poly.side, this._geo), colour);
     }
     for (const cell of GRID_CELLS) {
-      const colour = blendColour(faceArray[cell.face][cell.fsi], getVisLevel(cell, visMap));
+      const colour = blendColour(faceArray[cell.face][cell.fsi], getVisLevel(cell, visMap, rawPattern));
       drawRect(ctx, computeRect(cell.row, cell.col, this._geo), colour);
     }
   }
@@ -312,20 +384,21 @@ export class CubeRenderer2D {
   }
 
   static toSVG(state: CubeState, visMap: VisMap, { size = 400 } = {}): string {
-    const geo       = computeGeometry(size);
-    const faceArray = state.toFaceArray();
+    const geo        = computeGeometry(size);
+    const faceArray  = state.toFaceArray();
+    const rawPattern = state.toRawPattern();
 
     let content = '';
 
     for (const cell of GRID_CELLS) {
-      const colour = blendColour(faceArray[cell.face][cell.fsi], getVisLevel(cell, visMap));
+      const colour = blendColour(faceArray[cell.face][cell.fsi], getVisLevel(cell, visMap, rawPattern));
       const { x, y, w, h } = computeRect(cell.row, cell.col, geo);
       const i = GAP / 2;
       content += `<rect x="${(x + i).toFixed(1)}" y="${(y + i).toFixed(1)}" width="${(w - GAP).toFixed(1)}" height="${(h - GAP).toFixed(1)}" fill="${colour}"/>\n`;
     }
 
     for (const poly of CORNER_POLYS) {
-      const colour = blendColour(faceArray[poly.face][poly.fsi], getVisLevel(poly, visMap));
+      const colour = blendColour(faceArray[poly.face][poly.fsi], getVisLevel(poly, visMap, rawPattern));
       const pts = insetPoly(computeCornerPoly(poly.corner, poly.side, geo), GAP / 2);
       const pointsStr = pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
       content += `<polygon points="${pointsStr}" fill="${colour}"/>\n`;
