@@ -57,15 +57,21 @@ Extract the move sequencing and playback control into a dedicated `CubePlayer` e
 
 ## Feature 025: cubify-theming
 
-### Status: Planned 📋
+### Status: Complete ✅
 
 ### Scope
 Named theme presets for sticker colour schemes, plastic colour, gap size, bevel radius, and surface finish.
 
-### Goals
-- Named themes: Rubik's classic, modern/Twisty-style, speed cube, minimal white
-- Theme dimensions: sticker colours, plastic colour, gap size, bevel radius, surface finish
-- Live controls in harness demo; per-face colour pickers; export theme as JSON
+### Completed
+- `CubeTheme` interface — all visual parameters (colours, brightness, saturation, plasticColour, plasticOpacity, gap, bevel, stickerPad, stickerRadius, centerShape, materialType, roughness, metalness)
+- `THEME_PRESETS` — 3 named presets: `rubiks` (classic toy feel), `modern` (white plastic, tight gap, physically lit), `minimal` (Twisty colours, dark grey plastic, flat lit)
+- `DEFAULT_THEME` — library default speed/clean look
+- HSL colour utilities — `hexToHsl`, `hslToHex`, `effectiveColours(theme)` (brightness + saturation scaling)
+- `validateTheme`, `cloneTheme`, `getThemePreset`, `themeToJSON`, `themeFromJSON` — full theme management API
+- `CubeRenderer3D.setTheme()` — live theme switching; geometry rebuild (gap/bevel) vs material-only path; texture cache invalidation; stickering re-applied automatically
+- `CubeRenderer2D.setTheme()` — derives face colours and plastic colour from theme on every render
+- Harness Theming tab — preset buttons, per-face colour pickers, brightness/saturation/gap/bevel/pad/radius sliders, frame colour + opacity, JSON export/import
+- All exports added to `src/index.ts` and `types/index.d.ts`
 
 ---
 

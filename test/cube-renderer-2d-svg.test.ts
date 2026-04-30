@@ -124,18 +124,17 @@ describe('toSVG — colour rendering on solved cube', () => {
 
 // ── OLL stickering mask ───────────────────────────────────────────────────────
 
-describe('toSVG — OLL stickering produces plastic colour for hidden stickers', () => {
-  it('Sune OLL: SVG contains plastic colour (#141414) for hidden stickers', () => {
+describe('toSVG — OLL stickering produces grey for hidden stickers', () => {
+  it('Sune OLL: SVG contains #888888 for hidden stickers', () => {
     const state  = buildState(SUNE_ALG);
     const visMap = buildVisMap(state, OLL_MASK);
     const svg = CubeRenderer2D.toSVG(state, visMap, { size: 400 });
-    // Hidden pieces use plasticColour from DEFAULT_THEME
-    expect(svg).toContain('#141414');
+    expect(svg).toContain('#888888');
   });
 
-  it('full mask: SVG does not contain legacy grey (#444444)', () => {
+  it('full mask: SVG does not contain stickering grey (#888888) when no mask active', () => {
     const svg = CubeRenderer2D.toSVG(solved, new Map(), { size: 400 });
-    expect(svg).not.toContain('#444444');
+    expect(svg).not.toContain('#888888');
   });
 });
 

@@ -2,7 +2,7 @@
 
 ## Summary
 
-Define a cube theming system for `cubify-harness`: named themes (rubiks, gan, modern, minimal) controlling sticker colours, plastic colour, gap size, roundedness, and surface finish. Expose live controls in the demo for interactive tuning.
+Define a cube theming system for `cubify-harness`: named themes (default, rubiks, modern, minimal) controlling sticker colours, plastic colour, gap size, roundedness, and surface finish. Expose live controls in the demo for interactive tuning.
 
 ---
 
@@ -41,7 +41,7 @@ Rather than hardcoding colours, drive all visual parameters from a `CubeTheme` o
 | Surface finish | Roughness/metalness | Matte (roughness 0.9), satin (0.5), glossy (0.1) |
 | Sticker pad | Black border width on 256 px texture canvas | 4 px (tight) – 40 px (thick border) |
 | Sticker radius | Corner radius on sticker shape | 0 px (square) – 128 px (circle) |
-| Center shape | Shape override for center pieces only | square, circle (GAN-style) |
+| Center shape | Shape override for center pieces only | square, circle |
 
 ---
 
@@ -54,7 +54,7 @@ The "speed" look (current harness default) is not a named preset — its paramet
 | `rubiks` | Classic toy feel — thick pad, rounded corners, physically lit (MeshStandard, roughness 0.85) |
 | `modern` | Twisty-style colours, dark grey plastic, thin gap, flat-lit |
 | `minimal` | White/off-white plastic, pastel colours, very tight gap, high bevel |
-| `gan` | GAN-inspired — black shell, circle center pieces, tight gap, muted stickers |
+| `modern` | White plastic shell, tight gap, physically lit — GAN-inspired feel |
 
 ---
 
@@ -64,7 +64,7 @@ The "speed" look (current harness default) is not a named preset — its paramet
 All visual parameters (colours, plastic, gap, bevel, sticker shape) driven by a `CubeTheme` object — nothing hardcoded in the renderer. `CubeRenderer3D` and `CubeRenderer2D` accept a theme at construction and via `setTheme()`.
 
 **US-002 — Named theme presets**
-`THEME_PRESETS` record (rubiks, modern, minimal, gan) and `CubeTheme.get(name)` helper. Presets are plain JSON-serialisable objects. Clicking a preset in the harness fully replaces the current theme — all controls snap to the preset's values.
+`THEME_PRESETS` record (rubiks, modern, minimal) and `getThemePreset(name)` helper, plus `DEFAULT_THEME`. Presets are plain JSON-serialisable objects. Clicking a preset in the harness fully replaces the current theme — all controls snap to the preset's values.
 
 **US-003 — Live controls in demo**
 New *Theming* tab in the harness right panel (after Stickering) with:
@@ -76,7 +76,7 @@ New *Theming* tab in the harness right panel (after Stickering) with:
 - Bevel slider (0–0.08)
 - Sticker pad slider (4–40 px)
 - Sticker corner-radius slider (0–128 px)
-- Center shape toggle: square / circle
+- Center shape toggle: square / circle (field exists on CubeTheme; not exposed in harness UI)
 
 **US-004 — Sticker colour palette editor**
 Per-face `<input type="color">` pickers with live preview. Colours update without page reload. Palette locked to standard hues by default; pickers allow full override.
@@ -135,12 +135,12 @@ Feels like the familiar toy — chunky sticker tiles sitting on black plastic, s
 ## Acceptance Criteria
 
 - [x] Theme object drives all visual parameters — nothing hardcoded in renderer
-- [x] 4 named themes render correctly (rubiks, modern, minimal, gan)
+- [x] 3 named presets render correctly (rubiks, modern, minimal) plus DEFAULT_THEME
 - [x] Harness Theming tab: all controls live-update cube without page reload
 - [x] Material-only changes (colour, pad, radius) require no geometry rebuild
 - [x] Geometry changes (gap, bevel) rebuild cubelets in-place without scene teardown
 - [x] Brightness slider scales all face lightness proportionally in HSL space
-- [x] GAN theme shows circular center pieces, square corner/edge stickers
+- [x] centerShape field on CubeTheme supported by renderer; circle texture path available but not exposed in harness UI
 - [x] Theme JSON can be copied to clipboard and re-imported to restore state
 - [x] CubeRenderer2D respects theme colours
-- [x] All changes pass Vitest suite (138 + new theme tests = 168)
+- [x] All changes pass Vitest suite (138 + new theme tests = 167)

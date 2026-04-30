@@ -258,7 +258,7 @@ function getVisLevel(cell: Cell | CornerPoly, visMap: VisMap | null, rawPattern:
 }
 
 function blendColour(faceChar: string, visLevel: number, faceColours: Record<string, string>, plastic: string): string {
-  if (visLevel === 0) return plastic;
+  if (visLevel === 0) return '#888888';
   const hex = faceColours[faceChar] ?? plastic;
   if (visLevel === 2) return hex;
   const r  = parseInt(hex.slice(1, 3), 16);

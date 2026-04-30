@@ -48,8 +48,9 @@ Key facts from `cube-mapping-lessons.md`:
 |------|------|
 | `src/index.js` | Public entry point — re-exports all public API |
 | `src/CubeState.js` | Cubing.js KPattern wrapper; `applyMove/applyAlg`, `toFaceArray()`, `invertAlg()` |
-| `src/CubeRenderer3D.js` | Three.js 3D renderer; `setState()`, `animateMove()`, `setSpeed()`, `setStickering()`, `snapshotAt()` |
-| `src/CubeRenderer2D.js` | Canvas 2D top-down view (internal to CubeExporter; not in public API) |
+| `src/CubeTheme.js` | Theme object, `THEME_PRESETS` (rubiks/gan/modern/minimal), `effectiveColours()`, `themeToJSON/FromJSON` — planned (025) |
+| `src/CubeRenderer3D.js` | Three.js 3D renderer; `setState()`, `animateMove()`, `setSpeed()`, `setStickering()`, `snapshotAt()`, `setTheme()` — theme API planned (025) |
+| `src/CubeRenderer2D.js` | Canvas 2D top-down view; `setTheme()` planned (025) |
 | `src/CubeStickering.js` | Orbit-string mask parsing; `MASK_PRESETS` (15 presets); chars -/I/D/O/S/P |
 | `src/CubePlayer.js` | Animation engine; `loadAlg()`, `play/pause/jumpTo/reset`, `setSpeed()`, `setStickering()`, events |
 | `src/CubeExporter.js` | `toPNG(alg, { style: '2d'\|'3d' })`; 2D via canvas, 3D via CubeRenderer3D |

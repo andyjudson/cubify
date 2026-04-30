@@ -12,7 +12,7 @@ export interface FaceColours {
   B: string;
 }
 
-export type ThemePresetName = 'rubiks' | 'modern' | 'minimal' | 'gan';
+export type ThemePresetName = 'rubiks' | 'modern' | 'minimal';
 
 export interface CubeTheme {
   colours: FaceColours;
@@ -60,30 +60,21 @@ export const THEME_PRESETS: Record<ThemePresetName, CubeTheme> = {
     materialType: 'standard', roughness: 0.85, metalness: 0,
   },
   modern: {
+    colours: CLASSIC,
+    brightness: 1.25, saturation: 1.15,
+    plasticColour: '#ffffff', plasticOpacity: 0.9,
+    gap: 0.005, bevel: 0.035,
+    stickerPad: 5, stickerRadius: 26,
+    centerShape: 'square',
+    materialType: 'standard', roughness: 0.85, metalness: 0,
+  },
+  minimal: {
     colours: TWISTY,
     brightness: 1.0, saturation: 1.0,
     plasticColour: '#2a2a2a', plasticOpacity: 1,
     gap: 0.02, bevel: 0.04,
     stickerPad: 14, stickerRadius: 16,
     centerShape: 'square',
-    materialType: 'basic', roughness: 0.9, metalness: 0,
-  },
-  minimal: {
-    colours: PASTEL,
-    brightness: 1.0, saturation: 0.8,
-    plasticColour: '#e8e8e8', plasticOpacity: 1,
-    gap: 0.015, bevel: 0.05,
-    stickerPad: 12, stickerRadius: 48,
-    centerShape: 'square',
-    materialType: 'basic', roughness: 0.9, metalness: 0,
-  },
-  gan: {
-    colours: CLASSIC,
-    brightness: 0.95, saturation: 0.85,
-    plasticColour: '#1a1a1a', plasticOpacity: 1,
-    gap: 0.018, bevel: 0.025,
-    stickerPad: 12, stickerRadius: 6,
-    centerShape: 'circle',
     materialType: 'basic', roughness: 0.9, metalness: 0,
   },
 };

@@ -94,6 +94,10 @@
       color: #666;
     }
     .btn-row { display: flex; gap: 4px; flex-wrap: wrap; }
+    .th-row { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+    .th-lbl { font-size: 0.68rem; color: #888; width: 56px; flex-shrink: 0; }
+    .th-slider { flex: 1; min-width: 0; }
+    .th-val { font-size: 0.68rem; color: #ccc; width: 34px; text-align: right; flex-shrink: 0; }
     .alg-label {
       font-size: 0.72rem;
       color: #888;
@@ -274,10 +278,10 @@
       <div class="control-group">
         <span class="control-label">Preset</span>
         <div class="btn-row">
-          <button class="button is-harness is-small" onclick="applyPreset('rubiks')">Rubik's</button>
-          <button class="button is-harness is-small" onclick="applyPreset('gan')">GAN</button>
-          <button class="button is-harness is-small" onclick="applyPreset('modern')">Modern</button>
-          <button class="button is-harness is-small" onclick="applyPreset('minimal')">Minimal</button>
+          <button class="button is-harness is-small" onclick="applyDefaultTheme()">default</button>
+          <button class="button is-harness is-small" onclick="applyPreset('rubiks')">rubik</button>
+          <button class="button is-harness is-small" onclick="applyPreset('modern')">modern</button>
+          <button class="button is-harness is-small" onclick="applyPreset('minimal')">minimal</button>
         </div>
       </div>
 
@@ -294,76 +298,62 @@
         </div>
       </div>
 
-      <!-- Brightness / Saturation -->
-      <div class="control-group">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-          <span style="font-size:0.72rem;color:#aaa;width:80px">Brightness</span>
-          <input id="th-brightness" type="range" min="0.3" max="2.0" step="0.05" style="flex:1" oninput="applyThemePatch({brightness:+this.value});document.getElementById('th-brightness-val').textContent=this.value">
-          <span id="th-brightness-val" style="font-size:0.72rem;color:#ccc;width:36px;text-align:right">1.00</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:0.72rem;color:#aaa;width:80px">Saturation</span>
-          <input id="th-saturation" type="range" min="0" max="2.0" step="0.05" style="flex:1" oninput="applyThemePatch({saturation:+this.value});document.getElementById('th-saturation-val').textContent=this.value">
-          <span id="th-saturation-val" style="font-size:0.72rem;color:#ccc;width:36px;text-align:right">1.00</span>
-        </div>
-      </div>
+      <!-- Two-column slider grid -->
+      <div class="control-group" style="padding-bottom:2px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px">
 
-      <!-- Plastic -->
-      <div class="control-group">
-        <span class="control-label">Plastic</span>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-          <label style="font-size:0.72rem;color:#aaa">Colour <input id="th-plastic-colour" type="color" oninput="applyThemePatch({plasticColour:this.value})" style="width:32px;height:22px;border:none;padding:0;background:none;cursor:pointer"></label>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:0.72rem;color:#aaa;width:80px">Opacity</span>
-          <input id="th-plastic-opacity" type="range" min="0" max="1" step="0.05" style="flex:1" oninput="applyThemePatch({plasticOpacity:+this.value});document.getElementById('th-plastic-opacity-val').textContent=this.value">
-          <span id="th-plastic-opacity-val" style="font-size:0.72rem;color:#ccc;width:36px;text-align:right">1.00</span>
-        </div>
-      </div>
+          <!-- Left column -->
+          <div>
+            <div style="font-size:0.65rem;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Colour</div>
+            <div class="th-row">
+              <span class="th-lbl">Brightness</span>
+              <input id="th-brightness" type="range" min="0.3" max="2.0" step="0.05" class="th-slider" oninput="applyThemePatch({brightness:+this.value});document.getElementById('th-brightness-val').textContent=(+this.value).toFixed(2)">
+              <span id="th-brightness-val" class="th-val">1.00</span>
+            </div>
+            <div class="th-row">
+              <span class="th-lbl">Saturation</span>
+              <input id="th-saturation" type="range" min="0" max="2.0" step="0.05" class="th-slider" oninput="applyThemePatch({saturation:+this.value});document.getElementById('th-saturation-val').textContent=(+this.value).toFixed(2)">
+              <span id="th-saturation-val" class="th-val">1.00</span>
+            </div>
 
-      <!-- Geometry -->
-      <div class="control-group">
-        <span class="control-label">Geometry</span>
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-          <span style="font-size:0.72rem;color:#aaa;width:80px">Gap</span>
-          <input id="th-gap" type="range" min="0.005" max="0.1" step="0.005" style="flex:1" oninput="applyThemePatch({gap:+this.value});document.getElementById('th-gap-val').textContent=this.value">
-          <span id="th-gap-val" style="font-size:0.72rem;color:#ccc;width:36px;text-align:right">0.02</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:0.72rem;color:#aaa;width:80px">Bevel</span>
-          <input id="th-bevel" type="range" min="0" max="0.1" step="0.005" style="flex:1" oninput="applyThemePatch({bevel:+this.value});document.getElementById('th-bevel-val').textContent=this.value">
-          <span id="th-bevel-val" style="font-size:0.72rem;color:#ccc;width:36px;text-align:right">0.03</span>
-        </div>
-      </div>
+            <div style="font-size:0.65rem;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin:10px 0 6px">Geometry</div>
+            <div class="th-row">
+              <span class="th-lbl">Gap</span>
+              <input id="th-gap" type="range" min="0.005" max="0.1" step="0.005" class="th-slider" oninput="applyThemePatch({gap:+this.value});document.getElementById('th-gap-val').textContent=(+this.value).toFixed(3)">
+              <span id="th-gap-val" class="th-val">0.020</span>
+            </div>
+            <div class="th-row">
+              <span class="th-lbl">Bevel</span>
+              <input id="th-bevel" type="range" min="0" max="0.1" step="0.005" class="th-slider" oninput="applyThemePatch({bevel:+this.value});document.getElementById('th-bevel-val').textContent=(+this.value).toFixed(3)">
+              <span id="th-bevel-val" class="th-val">0.030</span>
+            </div>
+          </div>
 
-      <!-- Sticker -->
-      <div class="control-group">
-        <span class="control-label">Sticker</span>
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-          <span style="font-size:0.72rem;color:#aaa;width:80px">Pad</span>
-          <input id="th-pad" type="range" min="0" max="60" step="1" style="flex:1" oninput="applyThemePatch({stickerPad:+this.value});document.getElementById('th-pad-val').textContent=this.value">
-          <span id="th-pad-val" style="font-size:0.72rem;color:#ccc;width:36px;text-align:right">10</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-          <span style="font-size:0.72rem;color:#aaa;width:80px">Radius</span>
-          <input id="th-radius" type="range" min="0" max="128" step="1" style="flex:1" oninput="applyThemePatch({stickerRadius:+this.value});document.getElementById('th-radius-val').textContent=this.value">
-          <span id="th-radius-val" style="font-size:0.72rem;color:#ccc;width:36px;text-align:right">8</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:0.72rem;color:#aaa;width:80px">Center</span>
-          <button id="th-shape-sq" class="button is-harness is-small is-active" onclick="applyThemePatch({centerShape:'square'});document.getElementById('th-shape-sq').classList.add('is-active');document.getElementById('th-shape-ci').classList.remove('is-active')">Square</button>
-          <button id="th-shape-ci" class="button is-harness is-small" onclick="applyThemePatch({centerShape:'circle'});document.getElementById('th-shape-ci').classList.add('is-active');document.getElementById('th-shape-sq').classList.remove('is-active')">Circle</button>
-        </div>
-      </div>
+          <!-- Right column -->
+          <div>
+            <div style="font-size:0.65rem;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Sticker</div>
+            <div class="th-row">
+              <span class="th-lbl">Pad</span>
+              <input id="th-pad" type="range" min="0" max="60" step="1" class="th-slider" oninput="applyThemePatch({stickerPad:+this.value});document.getElementById('th-pad-val').textContent=this.value">
+              <span id="th-pad-val" class="th-val">10</span>
+            </div>
+            <div class="th-row">
+              <span class="th-lbl">Radius</span>
+              <input id="th-radius" type="range" min="0" max="128" step="1" class="th-slider" oninput="applyThemePatch({stickerRadius:+this.value});document.getElementById('th-radius-val').textContent=this.value">
+              <span id="th-radius-val" class="th-val">8</span>
+            </div>
+            <div style="font-size:0.65rem;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin:10px 0 6px">Frame</div>
+            <div class="th-row" style="margin-bottom:6px">
+              <span class="th-lbl">Colour</span>
+              <input id="th-plastic-colour" type="color" oninput="applyThemePatch({plasticColour:this.value})" style="width:36px;height:22px;border:none;padding:0;background:none;cursor:pointer;flex-shrink:0">
+            </div>
+            <div class="th-row">
+              <span class="th-lbl">Opacity</span>
+              <input id="th-plastic-opacity" type="range" min="0" max="1" step="0.05" class="th-slider" oninput="applyThemePatch({plasticOpacity:+this.value});document.getElementById('th-plastic-opacity-val').textContent=(+this.value).toFixed(2)">
+              <span id="th-plastic-opacity-val" class="th-val">1.00</span>
+            </div>
+          </div>
 
-      <!-- Material -->
-      <div class="control-group">
-        <span class="control-label">Material</span>
-        <div class="btn-row">
-          <button class="button is-harness is-small" onclick="applyThemePatch({materialType:'basic',roughness:0.9})">Flat</button>
-          <button class="button is-harness is-small" onclick="applyThemePatch({materialType:'standard',roughness:0.85})">Matte</button>
-          <button class="button is-harness is-small" onclick="applyThemePatch({materialType:'standard',roughness:0.5})">Satin</button>
-          <button class="button is-harness is-small" onclick="applyThemePatch({materialType:'standard',roughness:0.1})">Glossy</button>
         </div>
       </div>
 
@@ -467,11 +457,16 @@
     document.getElementById('th-pad-val').textContent = t.stickerPad;
     document.getElementById('th-radius').value = t.stickerRadius;
     document.getElementById('th-radius-val').textContent = t.stickerRadius;
-    document.getElementById('th-shape-sq').classList.toggle('is-active', t.centerShape === 'square');
-    document.getElementById('th-shape-ci').classList.toggle('is-active', t.centerShape === 'circle');
     for (const face of ['U','R','F','D','L','B']) {
       document.getElementById(`th-colour-${face}`).value = t.colours[face];
     }
+  }
+
+  function applyDefaultTheme() {
+    currentTheme = cloneTheme(DEFAULT_THEME);
+    syncControlsToTheme(currentTheme);
+    player.renderer.setTheme(currentTheme);
+    renderer2d.setTheme(currentTheme);
   }
 
   function applyPreset(name) {
@@ -511,6 +506,7 @@
   }
 
   window.applyThemePatch   = applyThemePatch;
+  window.applyDefaultTheme = applyDefaultTheme;
   window.applyPreset       = applyPreset;
   window.applyFaceColour   = applyFaceColour;
   window.exportThemeJSON   = exportThemeJSON;

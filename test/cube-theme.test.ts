@@ -5,10 +5,10 @@ import {
   type CubeTheme, type ThemePresetName,
 } from '../src/CubeTheme.js';
 
-const PRESET_NAMES: ThemePresetName[] = ['rubiks', 'modern', 'minimal', 'gan'];
+const PRESET_NAMES: ThemePresetName[] = ['rubiks', 'modern', 'minimal'];
 
 describe('THEME_PRESETS', () => {
-  it('has exactly 4 named presets', () => {
+  it('has exactly 3 named presets', () => {
     expect(Object.keys(THEME_PRESETS)).toEqual(PRESET_NAMES);
   });
 
@@ -22,16 +22,17 @@ describe('THEME_PRESETS', () => {
     expect(validateTheme(DEFAULT_THEME)).toBeNull();
   });
 
-  it('gan preset has centerShape circle', () => {
-    expect(THEME_PRESETS.gan.centerShape).toBe('circle');
+  it('modern preset has white plastic and partial opacity', () => {
+    expect(THEME_PRESETS.modern.plasticColour).toBe('#ffffff');
+    expect(THEME_PRESETS.modern.plasticOpacity).toBe(0.9);
   });
 
   it('rubiks preset uses standard material', () => {
     expect(THEME_PRESETS.rubiks.materialType).toBe('standard');
   });
 
-  it('minimal preset uses pastel colours (U is off-white)', () => {
-    expect(THEME_PRESETS.minimal.colours.U).toBe('#f5f5f5');
+  it('minimal preset uses Twisty colours (U is white)', () => {
+    expect(THEME_PRESETS.minimal.colours.U).toBe('#ffffff');
   });
 });
 

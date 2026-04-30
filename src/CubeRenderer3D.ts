@@ -226,7 +226,7 @@ export class CubeRenderer3D {
     this._container = container;
 
     this._scene = new THREE.Scene();
-    this._scene.background = new THREE.Color(0x000000);
+    this._scene.background = new THREE.Color(0x141414);
 
     this._camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
     this._camera.position.set(5.5, 4.5, 5.5);
@@ -550,7 +550,7 @@ export class CubeRenderer3D {
         const level = vis[slot];
         if (level === 2) continue;
         const face = SLOT_TO_FACE[slot];
-        const hex  = level === 1 ? dimHex(effColours[face]) : plasticColour;
+        const hex  = level === 1 ? dimHex(effColours[face]) : '#888888';
         const tex  = makeStickerTexture(hex, plasticColour, plasticOpacity, stickerPad, stickerRadius, centerPiece, centerShape);
         const mat  = mesh.material[slot] as THREE.MeshBasicMaterial;
         if (mat.map !== tex) {
