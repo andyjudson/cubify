@@ -188,7 +188,7 @@ Full adoption of cubify in cfop-app — scrambles, alg parsing, and 3D visualisa
 | 022 | cubify-harness | Complete ✅ |
 | 023 | cubify-stickering | Complete ✅ |
 | 024 | cubify-animation | Complete ✅ |
-| 025 | cubify-theming | Planned 📋 |
+| 025 | cubify-theming | Complete ✅ |
 | 026 | cubify-image-export | Complete ✅ |
 | 027 | cubify-tests | Complete ✅ |
 | 028 | cubify-library | Complete ✅ |

@@ -1,8 +1,17 @@
-# Feature 024 — cubify-theming
+# Feature 025 — cubify-theming
 
 ## Summary
 
-Define a cube theming system for `cubify-harness`: named themes (Rubik's classic, speed cube, minimal) controlling sticker colours, plastic colour, gap size, roundedness, and surface finish. Expose live controls in the demo for interactive tuning.
+Define a cube theming system for `cubify-harness`: named themes (rubiks, gan, modern, minimal) controlling sticker colours, plastic colour, gap size, roundedness, and surface finish. Expose live controls in the demo for interactive tuning.
+
+---
+
+## Clarifications
+
+### Session 2026-04-29
+
+- Q: When a preset button is clicked in the harness, do all sliders reset to preset values? → A: Full replace — all controls (brightness, saturation, colours, geometry, sticker params) snap to the preset's defined values.
+- Q: Should `CubeExporter.toPNG()` accept an optional `theme` param in 025? → A: Deferred to 030 — CubeExporter keeps its current API; theming applies only to live renderers.
 
 ---
 
@@ -15,7 +24,7 @@ The default colour scheme (classic Rubik's saturated colours, black plastic, tig
 - **Speed cube style**: GAN-like — white or black plastic shell, slightly muted sticker colours, very tight gaps
 - **Export images**: may want a specific palette that reads well at small sizes
 
-Rather than hardcoding colours, expose a CSS custom property token layer (`--cubify-U`, `--cubify-R`, etc.) that themes can override.
+Rather than hardcoding colours, drive all visual parameters from a `CubeTheme` object. A CSS custom-property token layer is a future extension (post-025).
 
 ---
 
@@ -24,38 +33,59 @@ Rather than hardcoding colours, expose a CSS custom property token layer (`--cub
 | Property | Description | Example values |
 |----------|-------------|----------------|
 | Sticker colours | Per-face hex colours | Classic, Twisty bright, soft/pastel |
+| Brightness | Master lightness scale applied to all 6 faces uniformly | 0.5 (dark) – 1.5 (bright) |
 | Plastic colour | Body + gap colour | Black `#111`, dark grey `#2a2a2a`, white `#f0f0f0` |
+| Plastic opacity | 0 = transparent cube, 1 = opaque | 1 (default) |
 | Gap size | Space between cubelets | 0.01 – 0.08 |
 | Bevel radius | Cubelet edge roundedness | 0 (sharp) – 0.08 (very rounded) |
 | Surface finish | Roughness/metalness | Matte (roughness 0.9), satin (0.5), glossy (0.1) |
-| Sticker shape | Padding + corner radius on texture | Square, rounded, very rounded |
+| Sticker pad | Black border width on 256 px texture canvas | 4 px (tight) – 40 px (thick border) |
+| Sticker radius | Corner radius on sticker shape | 0 px (square) – 128 px (circle) |
+| Center shape | Shape override for center pieces only | square, circle (GAN-style) |
 
 ---
 
 ## Named Themes (initial set)
 
+The "speed" look (current harness default) is not a named preset — its parameter values become the library defaults when no theme is specified.
+
 | Name | Description |
 |------|-------------|
-| `rubiks` | Classic saturated colours, black plastic, 0.06 gap — the current default |
-| `modern` | Softer/brighter colours (Twisty-style), dark grey plastic, 0.02 gap, slight bevel |
-| `speed` | GAN-inspired — black shell, tight 0.01 gap, slightly muted stickers, glossy finish |
-| `minimal` | White plastic, very tight gap, pastel stickers, high bevel |
+| `rubiks` | Classic toy feel — thick pad, rounded corners, physically lit (MeshStandard, roughness 0.85) |
+| `modern` | Twisty-style colours, dark grey plastic, thin gap, flat-lit |
+| `minimal` | White/off-white plastic, pastel colours, very tight gap, high bevel |
+| `gan` | GAN-inspired — black shell, circle center pieces, tight gap, muted stickers |
 
 ---
 
 ## User Stories
 
-**US-001 — Theme token layer**
-All colours and geometry parameters driven by a theme object, not hardcoded. `CubeRenderer3D` accepts `{ theme }` option.
+**US-001 — Theme object layer**
+All visual parameters (colours, plastic, gap, bevel, sticker shape) driven by a `CubeTheme` object — nothing hardcoded in the renderer. `CubeRenderer3D` and `CubeRenderer2D` accept a theme at construction and via `setTheme()`.
 
 **US-002 — Named theme presets**
-`CubeTheme.get(name)` returns the full theme object. `CubeRenderer3D` accepts theme name string.
+`THEME_PRESETS` record (rubiks, modern, minimal, gan) and `CubeTheme.get(name)` helper. Presets are plain JSON-serialisable objects. Clicking a preset in the harness fully replaces the current theme — all controls snap to the preset's values.
 
 **US-003 — Live controls in demo**
-Sliders/buttons in the harness demo for: gap size, bevel radius, plastic colour, surface finish. Instant re-render on change (rebuild cubelet materials, no scene teardown).
+New *Theming* tab in the harness right panel (after Stickering) with:
+- Preset buttons (one per named theme)
+- Master brightness slider (scales all 6 face colours proportionally in HSL lightness)
+- Per-face colour pickers
+- Plastic colour picker + opacity slider
+- Gap slider (0.01–0.08)
+- Bevel slider (0–0.08)
+- Sticker pad slider (4–40 px)
+- Sticker corner-radius slider (0–128 px)
+- Center shape toggle: square / circle
 
 **US-004 — Sticker colour palette editor**
-Per-face colour pickers or palette presets. Live preview. Export theme as JSON.
+Per-face `<input type="color">` pickers with live preview. Colours update without page reload. Palette locked to standard hues by default; pickers allow full override.
+
+**US-005 — Center piece shape**
+GAN-style circular center stickers: when `centerShape: 'circle'`, center cubelets use a disc texture instead of a rounded rectangle. All other cubelets remain square/rounded-square.
+
+**US-006 — Theme JSON export / import**
+"Export JSON" button in Theming tab copies current theme to clipboard. "Import JSON" input pastes it back. Enables saving and sharing theme configs. `CubeExporter.toPNG()` is not in scope for theming in 025 — deferred to 030. CSS custom-property token output is also a future extension.
 
 ---
 
@@ -104,7 +134,13 @@ Feels like the familiar toy — chunky sticker tiles sitting on black plastic, s
 
 ## Acceptance Criteria
 
-- [ ] Theme object drives all visual parameters — nothing hardcoded in renderer
-- [ ] 4 named themes render correctly
-- [ ] Live demo controls update cube without page reload
-- [ ] Theme JSON can be serialised/deserialised for future export use
+- [x] Theme object drives all visual parameters — nothing hardcoded in renderer
+- [x] 4 named themes render correctly (rubiks, modern, minimal, gan)
+- [x] Harness Theming tab: all controls live-update cube without page reload
+- [x] Material-only changes (colour, pad, radius) require no geometry rebuild
+- [x] Geometry changes (gap, bevel) rebuild cubelets in-place without scene teardown
+- [x] Brightness slider scales all face lightness proportionally in HSL space
+- [x] GAN theme shows circular center pieces, square corner/edge stickers
+- [x] Theme JSON can be copied to clipboard and re-imported to restore state
+- [x] CubeRenderer2D respects theme colours
+- [x] All changes pass Vitest suite (138 + new theme tests = 168)

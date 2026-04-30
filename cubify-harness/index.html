@@ -188,6 +188,7 @@
         <li id="tool-tab-simulation" class="is-active"><a onclick="showToolsTab('simulation')">Simulation</a></li>
         <li id="tool-tab-moves"><a onclick="showToolsTab('moves')">Moves</a></li>
         <li id="tool-tab-stickering"><a onclick="showToolsTab('stickering')">Stickering</a></li>
+        <li id="tool-tab-theming"><a onclick="showToolsTab('theming')">Theming</a></li>
       </ul>
     </div>
 
@@ -266,6 +267,123 @@
       <div id="orbit-status"></div>
     </div>
 
+    <!-- Theming panel -->
+    <div id="tools-theming-panel" class="tools-panel">
+
+      <!-- Preset buttons -->
+      <div class="control-group">
+        <span class="control-label">Preset</span>
+        <div class="btn-row">
+          <button class="button is-harness is-small" onclick="applyPreset('rubiks')">Rubik's</button>
+          <button class="button is-harness is-small" onclick="applyPreset('gan')">GAN</button>
+          <button class="button is-harness is-small" onclick="applyPreset('modern')">Modern</button>
+          <button class="button is-harness is-small" onclick="applyPreset('minimal')">Minimal</button>
+        </div>
+      </div>
+
+      <!-- Per-face colour pickers -->
+      <div class="control-group">
+        <span class="control-label">Face colours</span>
+        <div class="btn-row" style="gap:8px;align-items:center;flex-wrap:wrap">
+          <label style="font-size:0.72rem;color:#aaa">U <input id="th-colour-U" type="color" oninput="applyFaceColour('U',this.value)" style="width:32px;height:22px;border:none;padding:0;background:none;cursor:pointer"></label>
+          <label style="font-size:0.72rem;color:#aaa">R <input id="th-colour-R" type="color" oninput="applyFaceColour('R',this.value)" style="width:32px;height:22px;border:none;padding:0;background:none;cursor:pointer"></label>
+          <label style="font-size:0.72rem;color:#aaa">F <input id="th-colour-F" type="color" oninput="applyFaceColour('F',this.value)" style="width:32px;height:22px;border:none;padding:0;background:none;cursor:pointer"></label>
+          <label style="font-size:0.72rem;color:#aaa">D <input id="th-colour-D" type="color" oninput="applyFaceColour('D',this.value)" style="width:32px;height:22px;border:none;padding:0;background:none;cursor:pointer"></label>
+          <label style="font-size:0.72rem;color:#aaa">L <input id="th-colour-L" type="color" oninput="applyFaceColour('L',this.value)" style="width:32px;height:22px;border:none;padding:0;background:none;cursor:pointer"></label>
+          <label style="font-size:0.72rem;color:#aaa">B <input id="th-colour-B" type="color" oninput="applyFaceColour('B',this.value)" style="width:32px;height:22px;border:none;padding:0;background:none;cursor:pointer"></label>
+        </div>
+      </div>
+
+      <!-- Brightness / Saturation -->
+      <div class="control-group">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span style="font-size:0.72rem;color:#aaa;width:80px">Brightness</span>
+          <input id="th-brightness" type="range" min="0.3" max="2.0" step="0.05" style="flex:1" oninput="applyThemePatch({brightness:+this.value});document.getElementById('th-brightness-val').textContent=this.value">
+          <span id="th-brightness-val" style="font-size:0.72rem;color:#ccc;width:36px;text-align:right">1.00</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:0.72rem;color:#aaa;width:80px">Saturation</span>
+          <input id="th-saturation" type="range" min="0" max="2.0" step="0.05" style="flex:1" oninput="applyThemePatch({saturation:+this.value});document.getElementById('th-saturation-val').textContent=this.value">
+          <span id="th-saturation-val" style="font-size:0.72rem;color:#ccc;width:36px;text-align:right">1.00</span>
+        </div>
+      </div>
+
+      <!-- Plastic -->
+      <div class="control-group">
+        <span class="control-label">Plastic</span>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <label style="font-size:0.72rem;color:#aaa">Colour <input id="th-plastic-colour" type="color" oninput="applyThemePatch({plasticColour:this.value})" style="width:32px;height:22px;border:none;padding:0;background:none;cursor:pointer"></label>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:0.72rem;color:#aaa;width:80px">Opacity</span>
+          <input id="th-plastic-opacity" type="range" min="0" max="1" step="0.05" style="flex:1" oninput="applyThemePatch({plasticOpacity:+this.value});document.getElementById('th-plastic-opacity-val').textContent=this.value">
+          <span id="th-plastic-opacity-val" style="font-size:0.72rem;color:#ccc;width:36px;text-align:right">1.00</span>
+        </div>
+      </div>
+
+      <!-- Geometry -->
+      <div class="control-group">
+        <span class="control-label">Geometry</span>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span style="font-size:0.72rem;color:#aaa;width:80px">Gap</span>
+          <input id="th-gap" type="range" min="0.005" max="0.1" step="0.005" style="flex:1" oninput="applyThemePatch({gap:+this.value});document.getElementById('th-gap-val').textContent=this.value">
+          <span id="th-gap-val" style="font-size:0.72rem;color:#ccc;width:36px;text-align:right">0.02</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:0.72rem;color:#aaa;width:80px">Bevel</span>
+          <input id="th-bevel" type="range" min="0" max="0.1" step="0.005" style="flex:1" oninput="applyThemePatch({bevel:+this.value});document.getElementById('th-bevel-val').textContent=this.value">
+          <span id="th-bevel-val" style="font-size:0.72rem;color:#ccc;width:36px;text-align:right">0.03</span>
+        </div>
+      </div>
+
+      <!-- Sticker -->
+      <div class="control-group">
+        <span class="control-label">Sticker</span>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span style="font-size:0.72rem;color:#aaa;width:80px">Pad</span>
+          <input id="th-pad" type="range" min="0" max="60" step="1" style="flex:1" oninput="applyThemePatch({stickerPad:+this.value});document.getElementById('th-pad-val').textContent=this.value">
+          <span id="th-pad-val" style="font-size:0.72rem;color:#ccc;width:36px;text-align:right">10</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span style="font-size:0.72rem;color:#aaa;width:80px">Radius</span>
+          <input id="th-radius" type="range" min="0" max="128" step="1" style="flex:1" oninput="applyThemePatch({stickerRadius:+this.value});document.getElementById('th-radius-val').textContent=this.value">
+          <span id="th-radius-val" style="font-size:0.72rem;color:#ccc;width:36px;text-align:right">8</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:0.72rem;color:#aaa;width:80px">Center</span>
+          <button id="th-shape-sq" class="button is-harness is-small is-active" onclick="applyThemePatch({centerShape:'square'});document.getElementById('th-shape-sq').classList.add('is-active');document.getElementById('th-shape-ci').classList.remove('is-active')">Square</button>
+          <button id="th-shape-ci" class="button is-harness is-small" onclick="applyThemePatch({centerShape:'circle'});document.getElementById('th-shape-ci').classList.add('is-active');document.getElementById('th-shape-sq').classList.remove('is-active')">Circle</button>
+        </div>
+      </div>
+
+      <!-- Material -->
+      <div class="control-group">
+        <span class="control-label">Material</span>
+        <div class="btn-row">
+          <button class="button is-harness is-small" onclick="applyThemePatch({materialType:'basic',roughness:0.9})">Flat</button>
+          <button class="button is-harness is-small" onclick="applyThemePatch({materialType:'standard',roughness:0.85})">Matte</button>
+          <button class="button is-harness is-small" onclick="applyThemePatch({materialType:'standard',roughness:0.5})">Satin</button>
+          <button class="button is-harness is-small" onclick="applyThemePatch({materialType:'standard',roughness:0.1})">Glossy</button>
+        </div>
+      </div>
+
+      <!-- JSON export / import -->
+      <div class="control-group">
+        <div class="btn-row" style="margin-bottom:6px">
+          <button class="button is-harness is-small" onclick="exportThemeJSON()">Export JSON</button>
+          <span id="th-export-msg" style="font-size:0.72rem;color:#4a90d9;display:none">Copied!</span>
+        </div>
+        <textarea id="th-import-input" class="input is-small" rows="3"
+          placeholder="Paste theme JSON here…"
+          style="font-family:monospace;font-size:0.68rem;background:#111827;border-color:#444;color:#ddf;width:100%;resize:vertical"></textarea>
+        <div class="btn-row" style="margin-top:4px">
+          <button class="button is-harness is-small" onclick="importThemeJSON()">Apply</button>
+          <span id="th-import-error" style="font-size:0.72rem;color:#e04040;display:none"></span>
+        </div>
+      </div>
+
+    </div>
+
   </div>
 
 </div>
@@ -297,6 +415,7 @@
   import { CubePlayer } from '../src/CubePlayer.js';
   import { CubeRenderer2D } from '../src/CubeRenderer2D.js';
   import { CubeStickering, MASK_PRESETS } from '../src/CubeStickering.js';
+  import { THEME_PRESETS, DEFAULT_THEME, cloneTheme, themeToJSON, themeFromJSON } from '../src/CubeTheme.js';
 
   // Warm up kpuzzle early (cached after first call)
   const _solvedBase = await CubeState.solved();
@@ -318,6 +437,87 @@
   let TELEMETRY = false;
   const player = new CubePlayer(document.getElementById('cube-container'), { animSpeed: 300, debug: true });
   const renderer2d = new CubeRenderer2D(document.getElementById('cube-2d'), { size: 400 });
+
+  // ---- Theming state ----
+  let currentTheme = cloneTheme(DEFAULT_THEME);
+
+  function applyThemePatch(patch) {
+    if (patch.colours) {
+      currentTheme = { ...currentTheme, colours: { ...currentTheme.colours, ...patch.colours } };
+    } else {
+      currentTheme = { ...currentTheme, ...patch };
+    }
+    player.renderer.setTheme(currentTheme);
+    renderer2d.setTheme(currentTheme);
+  }
+
+  function syncControlsToTheme(t) {
+    document.getElementById('th-brightness').value = t.brightness;
+    document.getElementById('th-brightness-val').textContent = t.brightness.toFixed(2);
+    document.getElementById('th-saturation').value = t.saturation;
+    document.getElementById('th-saturation-val').textContent = t.saturation.toFixed(2);
+    document.getElementById('th-plastic-colour').value = t.plasticColour;
+    document.getElementById('th-plastic-opacity').value = t.plasticOpacity;
+    document.getElementById('th-plastic-opacity-val').textContent = t.plasticOpacity.toFixed(2);
+    document.getElementById('th-gap').value = t.gap;
+    document.getElementById('th-gap-val').textContent = t.gap.toFixed(3);
+    document.getElementById('th-bevel').value = t.bevel;
+    document.getElementById('th-bevel-val').textContent = t.bevel.toFixed(3);
+    document.getElementById('th-pad').value = t.stickerPad;
+    document.getElementById('th-pad-val').textContent = t.stickerPad;
+    document.getElementById('th-radius').value = t.stickerRadius;
+    document.getElementById('th-radius-val').textContent = t.stickerRadius;
+    document.getElementById('th-shape-sq').classList.toggle('is-active', t.centerShape === 'square');
+    document.getElementById('th-shape-ci').classList.toggle('is-active', t.centerShape === 'circle');
+    for (const face of ['U','R','F','D','L','B']) {
+      document.getElementById(`th-colour-${face}`).value = t.colours[face];
+    }
+  }
+
+  function applyPreset(name) {
+    currentTheme = cloneTheme(THEME_PRESETS[name]);
+    syncControlsToTheme(currentTheme);
+    player.renderer.setTheme(currentTheme);
+    renderer2d.setTheme(currentTheme);
+  }
+
+  function applyFaceColour(face, value) {
+    applyThemePatch({ colours: { [face]: value } });
+  }
+
+  function exportThemeJSON() {
+    const json = themeToJSON(currentTheme);
+    navigator.clipboard.writeText(json).then(() => {
+      const msg = document.getElementById('th-export-msg');
+      msg.style.display = 'inline';
+      setTimeout(() => { msg.style.display = 'none'; }, 1500);
+    });
+  }
+
+  function importThemeJSON() {
+    const input = document.getElementById('th-import-input').value.trim();
+    const errEl = document.getElementById('th-import-error');
+    errEl.style.display = 'none';
+    try {
+      const imported = themeFromJSON(input);
+      currentTheme = imported;
+      syncControlsToTheme(currentTheme);
+      player.renderer.setTheme(currentTheme);
+      renderer2d.setTheme(currentTheme);
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'inline';
+    }
+  }
+
+  window.applyThemePatch   = applyThemePatch;
+  window.applyPreset       = applyPreset;
+  window.applyFaceColour   = applyFaceColour;
+  window.exportThemeJSON   = exportThemeJSON;
+  window.importThemeJSON   = importThemeJSON;
+
+  // Initialise controls to DEFAULT_THEME values
+  syncControlsToTheme(currentTheme);
 
   // ---- Harness-local state ----
   let currentAlgIndex = 0;
@@ -373,7 +573,7 @@
   window.showCubeTab = showCubeTab;
 
   function showToolsTab(tab) {
-    ['simulation','moves','stickering'].forEach(t => {
+    ['simulation','moves','stickering','theming'].forEach(t => {
       document.getElementById(`tool-tab-${t}`)?.classList.toggle('is-active', t === tab);
       document.getElementById(`tools-${t}-panel`)?.classList.toggle('is-active', t === tab);
     });

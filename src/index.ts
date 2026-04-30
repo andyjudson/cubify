@@ -1,3 +1,6 @@
+export type { CubeTheme, FaceColours, ThemePresetName } from './CubeTheme.js';
+export { THEME_PRESETS, DEFAULT_THEME, getThemePreset, cloneTheme, effectiveColours, validateTheme, themeToJSON, themeFromJSON } from './CubeTheme.js';
+
 export { CubeState } from './CubeState.js';
 export type { RawOrbitData, RawPattern } from './CubeState.js';
 

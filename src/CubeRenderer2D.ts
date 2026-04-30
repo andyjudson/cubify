@@ -12,14 +12,10 @@ import {
   type VisMap,
 } from './CubeStickering.js';
 import type { CubeState, RawPattern } from './CubeState.js';
-
-// ---- Colour palette ----
-const FACE_COLOURS: Record<string, string> = {
-  U: '#ffffff', R: '#c41e1e', F: '#1a7c2a',
-  D: '#ffd000', L: '#e06000', B: '#0f4fad',
-  X: '#2a2a2a',
-};
-const GREY = '#444444';
+import {
+  type CubeTheme, type ThemePresetName,
+  DEFAULT_THEME, effectiveColours, getThemePreset, cloneTheme,
+} from './CubeTheme.js';
 
 // Cubelet positions (same order as CubeStickering.ts)
 interface CubeletPos { x: number; y: number; z: number; }
@@ -261,18 +257,18 @@ function getVisLevel(cell: Cell | CornerPoly, visMap: VisMap | null, rawPattern:
   return visArray ? (visArray[cell.visSlot] ?? 2) : 2;
 }
 
-function blendColour(faceChar: string, visLevel: number): string {
-  if (visLevel === 0) return GREY;
-  const hex = FACE_COLOURS[faceChar] ?? GREY;
+function blendColour(faceChar: string, visLevel: number, faceColours: Record<string, string>, plastic: string): string {
+  if (visLevel === 0) return plastic;
+  const hex = faceColours[faceChar] ?? plastic;
   if (visLevel === 2) return hex;
   const r  = parseInt(hex.slice(1, 3), 16);
   const g  = parseInt(hex.slice(3, 5), 16);
   const b  = parseInt(hex.slice(5, 7), 16);
-  const gr = parseInt(GREY.slice(1, 3), 16);
-  const gg = parseInt(GREY.slice(3, 5), 16);
-  const gb = parseInt(GREY.slice(5, 7), 16);
+  const pr = parseInt(plastic.slice(1, 3), 16);
+  const pg = parseInt(plastic.slice(3, 5), 16);
+  const pb = parseInt(plastic.slice(5, 7), 16);
   const mix = (c: number, gc: number) => Math.round(c * 0.4 + gc * 0.6).toString(16).padStart(2, '0');
-  return `#${mix(r, gr)}${mix(g, gg)}${mix(b, gb)}`;
+  return `#${mix(r, pr)}${mix(g, pg)}${mix(b, pb)}`;
 }
 
 // ---- Canvas draw helpers ----
@@ -300,6 +296,7 @@ export interface CubeRenderer2DOptions {
   size?: number;
   canvas?: HTMLCanvasElement | null;
   transparent?: boolean;
+  theme?: CubeTheme | ThemePresetName;
 }
 
 export class CubeRenderer2D {
@@ -310,12 +307,17 @@ export class CubeRenderer2D {
   private _canvas: HTMLCanvasElement;
   private _ownCanvas: boolean;
   private _ctx: CanvasRenderingContext2D;
+  private _theme: CubeTheme;
 
-  constructor(container: HTMLElement | null, { size = 400, canvas = null, transparent = false }: CubeRenderer2DOptions = {}) {
+  constructor(container: HTMLElement | null, { size = 400, canvas = null, transparent = false, theme }: CubeRenderer2DOptions = {}) {
     this._size        = size;
     this._geo         = computeGeometry(size);
     this._destroyed   = false;
     this._transparent = transparent;
+
+    if (typeof theme === 'string') this._theme = getThemePreset(theme);
+    else if (theme) this._theme = cloneTheme(theme);
+    else this._theme = cloneTheme(DEFAULT_THEME);
 
     if (canvas) {
       this._canvas    = canvas;
@@ -332,13 +334,23 @@ export class CubeRenderer2D {
     this._ctx = ctx;
   }
 
+  get theme(): CubeTheme { return cloneTheme(this._theme); }
+
+  setTheme(theme: CubeTheme | ThemePresetName): void {
+    if (typeof theme === 'string') this._theme = getThemePreset(theme);
+    else this._theme = cloneTheme(theme);
+  }
+
   update(state: CubeState, visMap: VisMap): void {
     if (this._destroyed) throw new Error('CubeRenderer2D: update() called after destroy()');
     const ctx = this._ctx;
     ctx.clearRect(0, 0, this._size, this._size);
 
+    const effColours = effectiveColours(this._theme);
+    const plastic    = this._theme.plasticColour;
+
     if (!this._transparent) {
-      ctx.fillStyle = '#111111';
+      ctx.fillStyle = plastic;
       ctx.fillRect(0, 0, this._size, this._size);
     }
 
@@ -346,7 +358,7 @@ export class CubeRenderer2D {
     const rawPattern  = state.toRawPattern();
 
     if (this._transparent) {
-      ctx.fillStyle = '#111111';
+      ctx.fillStyle = plastic;
       for (const poly of CORNER_POLYS) {
         const pts = computeCornerPoly(poly.corner, poly.side, this._geo);
         ctx.beginPath();
@@ -362,11 +374,11 @@ export class CubeRenderer2D {
     }
 
     for (const poly of CORNER_POLYS) {
-      const colour = blendColour(faceArray[poly.face][poly.fsi], getVisLevel(poly, visMap, rawPattern));
+      const colour = blendColour(faceArray[poly.face][poly.fsi], getVisLevel(poly, visMap, rawPattern), effColours, plastic);
       drawPoly(ctx, computeCornerPoly(poly.corner, poly.side, this._geo), colour);
     }
     for (const cell of GRID_CELLS) {
-      const colour = blendColour(faceArray[cell.face][cell.fsi], getVisLevel(cell, visMap, rawPattern));
+      const colour = blendColour(faceArray[cell.face][cell.fsi], getVisLevel(cell, visMap, rawPattern), effColours, plastic);
       drawRect(ctx, computeRect(cell.row, cell.col, this._geo), colour);
     }
   }
@@ -383,7 +395,12 @@ export class CubeRenderer2D {
     }
   }
 
-  static toSVG(state: CubeState, visMap: VisMap, { size = 400 } = {}): string {
+  static toSVG(state: CubeState, visMap: VisMap, { size = 400, theme }: { size?: number; theme?: CubeTheme | ThemePresetName } = {}): string {
+    const resolvedTheme = typeof theme === 'string' ? getThemePreset(theme)
+                        : theme ? cloneTheme(theme)
+                        : cloneTheme(DEFAULT_THEME);
+    const effColours = effectiveColours(resolvedTheme);
+    const plastic    = resolvedTheme.plasticColour;
     const geo        = computeGeometry(size);
     const faceArray  = state.toFaceArray();
     const rawPattern = state.toRawPattern();
@@ -391,21 +408,21 @@ export class CubeRenderer2D {
     let content = '';
 
     for (const cell of GRID_CELLS) {
-      const colour = blendColour(faceArray[cell.face][cell.fsi], getVisLevel(cell, visMap, rawPattern));
+      const colour = blendColour(faceArray[cell.face][cell.fsi], getVisLevel(cell, visMap, rawPattern), effColours, plastic);
       const { x, y, w, h } = computeRect(cell.row, cell.col, geo);
       const i = GAP / 2;
       content += `<rect x="${(x + i).toFixed(1)}" y="${(y + i).toFixed(1)}" width="${(w - GAP).toFixed(1)}" height="${(h - GAP).toFixed(1)}" fill="${colour}"/>\n`;
     }
 
     for (const poly of CORNER_POLYS) {
-      const colour = blendColour(faceArray[poly.face][poly.fsi], getVisLevel(poly, visMap, rawPattern));
+      const colour = blendColour(faceArray[poly.face][poly.fsi], getVisLevel(poly, visMap, rawPattern), effColours, plastic);
       const pts = insetPoly(computeCornerPoly(poly.corner, poly.side, geo), GAP / 2);
       const pointsStr = pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
       content += `<polygon points="${pointsStr}" fill="${colour}"/>\n`;
     }
 
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">\n`
-      + `<rect width="${size}" height="${size}" fill="#111111"/>\n`
+      + `<rect width="${size}" height="${size}" fill="${plastic}"/>\n`
       + content
       + `</svg>`;
   }

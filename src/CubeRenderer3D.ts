@@ -9,65 +9,86 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { CubeStickering, MASK_PRESETS, type VisMap } from './CubeStickering.js';
+import {
+  type CubeTheme, type FaceColours, type ThemePresetName,
+  DEFAULT_THEME, effectiveColours, getThemePreset, cloneTheme,
+} from './CubeTheme.js';
 
 // ---- Colours ----
-type FaceKey = 'U' | 'R' | 'F' | 'D' | 'L' | 'B' | 'X';
 
-const FACE_COLOURS_HEX: Record<FaceKey, string> = {
-  U: '#ffffff', R: '#c41e1e', F: '#1a7c2a',
-  D: '#ffd000', L: '#e06000', B: '#0f4fad',
-  X: '#2a2a2a',
-};
-
-const SLOT_TO_FACE: FaceKey[] = ['R', 'L', 'U', 'D', 'F', 'B'];
-
-const FACE_DIM_COLOURS_HEX: Record<string, string> = Object.fromEntries(
-  Object.entries(FACE_COLOURS_HEX).map(([face, hex]) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    const mix = (c: number) => Math.round(c * 0.5 + 160 * 0.5).toString(16).padStart(2, '0');
-    return [face, `#${mix(r)}${mix(g)}${mix(b)}`];
-  })
-);
+const SLOT_TO_FACE = ['R', 'L', 'U', 'D', 'F', 'B'] as const;
+type SlotFace = typeof SLOT_TO_FACE[number];
 
 // ---- Sticker texture factory ----
 
 const _textureCache = new Map<string, THREE.CanvasTexture>();
 let _maxAnisotropy = 1;
 
-function makeStickerTexture(colourHex: string): THREE.CanvasTexture {
-  if (_textureCache.has(colourHex)) return _textureCache.get(colourHex)!;
+function makeStickerTexture(
+  colourHex: string,
+  plasticHex: string,
+  opacity: number,
+  pad: number,
+  radius: number,
+  isCenterPiece: boolean,
+  centerShape: 'square' | 'circle',
+): THREE.CanvasTexture {
+  const shape = (isCenterPiece && centerShape === 'circle') ? 'circle' : 'rect';
+  const key = `${colourHex}|${plasticHex}|${opacity}|${pad}|${radius}|${shape}`;
+  if (_textureCache.has(key)) return _textureCache.get(key)!;
 
-  const size = 256, pad = 10, radius = 8;
+  const size = 256;
   const canvas = document.createElement('canvas');
   canvas.width  = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d')!;
 
-  ctx.fillStyle = '#141414';
+  if (opacity < 1) {
+    const pr = parseInt(plasticHex.slice(1, 3), 16);
+    const pg = parseInt(plasticHex.slice(3, 5), 16);
+    const pb = parseInt(plasticHex.slice(5, 7), 16);
+    ctx.fillStyle = `rgba(${pr},${pg},${pb},${opacity})`;
+  } else {
+    ctx.fillStyle = plasticHex;
+  }
   ctx.fillRect(0, 0, size, size);
 
-  const x = pad, y = pad, w = size - pad * 2, h = size - pad * 2;
   ctx.fillStyle = colourHex;
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + w - radius, y);
-  ctx.arcTo(x + w, y,     x + w, y + radius,     radius);
-  ctx.lineTo(x + w, y + h - radius);
-  ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
-  ctx.lineTo(x + radius, y + h);
-  ctx.arcTo(x, y + h, x, y + h - radius,          radius);
-  ctx.lineTo(x, y + radius);
-  ctx.arcTo(x, y,     x + radius, y,               radius);
-  ctx.closePath();
-  ctx.fill();
+  if (shape === 'circle') {
+    const cx = size / 2, cy = size / 2, r = (size / 2) - pad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    const x = pad, y = pad, w = size - pad * 2, h = size - pad * 2;
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + w - radius, y);
+    ctx.arcTo(x + w, y,     x + w, y + radius,     radius);
+    ctx.lineTo(x + w, y + h - radius);
+    ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
+    ctx.lineTo(x + radius, y + h);
+    ctx.arcTo(x, y + h, x, y + h - radius,          radius);
+    ctx.lineTo(x, y + radius);
+    ctx.arcTo(x, y,     x + radius, y,               radius);
+    ctx.closePath();
+    ctx.fill();
+  }
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = _maxAnisotropy;
-  _textureCache.set(colourHex, tex);
+  _textureCache.set(key, tex);
   return tex;
+}
+
+function dimHex(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const mix = (c: number) => Math.round(c * 0.5 + 160 * 0.5).toString(16).padStart(2, '0');
+  return `#${mix(r)}${mix(g)}${mix(b)}`;
 }
 
 // ---- Cubelet types ----
@@ -84,12 +105,9 @@ const LOCAL_DIRS: THREE.Vector3[] = [
 ];
 const _slotDir = new THREE.Vector3();
 
-const BLACK_MATERIAL = new THREE.MeshStandardMaterial({
-  color: 0x141414, roughness: 0.9, metalness: 0.0,
-});
-
 interface Cubelet {
   mesh: THREE.Mesh<RoundedBoxGeometry, THREE.Material[]>;
+  geometry: RoundedBoxGeometry;
   pos: Vec3;
   homePos: Vec3;
   isOutward: boolean[];
@@ -109,6 +127,10 @@ function buildCubeletPositions(): Vec3[] {
 
 function outwardSlots({ x, y, z }: Vec3): boolean[] {
   return [x===1, x===-1, y===1, y===-1, z===1, z===-1];
+}
+
+function isCenter({ x, y, z }: Vec3): boolean {
+  return Math.abs(x) + Math.abs(y) + Math.abs(z) === 1;
 }
 
 // ---- Move axis / filter for animation ----
@@ -135,6 +157,7 @@ export const MOVE_AXIS: Record<string, MoveAxisDef> = {
 };
 
 export interface CubeRenderer3DOptions {
+  theme?: CubeTheme | ThemePresetName;
   gap?: number;
   animSpeed?: number;
   debug?: boolean;
@@ -142,7 +165,8 @@ export interface CubeRenderer3DOptions {
 }
 
 export class CubeRenderer3D {
-  private _gap: number;
+  private _theme: CubeTheme;
+  private _plasticMaterial: THREE.Material;
   private _animSpeed: number;
   private _debug: boolean;
   private _container: HTMLElement | null;
@@ -157,9 +181,17 @@ export class CubeRenderer3D {
   private _animating: boolean;
   private _debugLog: string[];
   private _offscreenCanvas: HTMLCanvasElement | null;
+  private _activeVisMap: VisMap | null;
 
-  constructor({ gap = 0.02, animSpeed = 300, debug = false, canvas = null }: CubeRenderer3DOptions = {}) {
-    this._gap      = gap;
+  constructor({ theme, gap, animSpeed = 300, debug = false, canvas = null }: CubeRenderer3DOptions = {}) {
+    let resolved: CubeTheme;
+    if (typeof theme === 'string') resolved = getThemePreset(theme);
+    else if (theme) resolved = cloneTheme(theme);
+    else resolved = cloneTheme(DEFAULT_THEME);
+    if (gap !== undefined) resolved = { ...resolved, gap };
+    this._theme = resolved;
+    this._plasticMaterial = this._makePlasticMaterial();
+
     this._animSpeed = animSpeed;
     this._debug    = debug;
 
@@ -175,6 +207,7 @@ export class CubeRenderer3D {
     this._animating = false;
     this._debugLog  = [];
     this._offscreenCanvas = canvas ?? null;
+    this._activeVisMap    = null;
   }
 
   // ---- Logging ----
@@ -285,27 +318,50 @@ export class CubeRenderer3D {
     this._camera!.updateProjectionMatrix();
   }
 
+  // ---- Material factories ----
+
+  private _makePlasticMaterial(): THREE.Material {
+    const { plasticColour, plasticOpacity, materialType, roughness, metalness } = this._theme;
+    const colorInt = parseInt(plasticColour.slice(1), 16);
+    const transparent = plasticOpacity < 1;
+    if (materialType === 'standard') {
+      return new THREE.MeshStandardMaterial({ color: colorInt, roughness, metalness, transparent, opacity: plasticOpacity });
+    }
+    return new THREE.MeshBasicMaterial({ color: colorInt, transparent, opacity: plasticOpacity });
+  }
+
+  private _makeStickerMaterial(colourHex: string, isCenterPiece: boolean): THREE.Material {
+    const { plasticColour, plasticOpacity, stickerPad, stickerRadius, centerShape, materialType, roughness, metalness } = this._theme;
+    const tex = makeStickerTexture(colourHex, plasticColour, plasticOpacity, stickerPad, stickerRadius, isCenterPiece, centerShape);
+    const transparent = plasticOpacity < 1;
+    if (materialType === 'standard') {
+      return new THREE.MeshStandardMaterial({ map: tex, roughness, metalness, transparent });
+    }
+    return new THREE.MeshBasicMaterial({ map: tex, transparent });
+  }
+
   // ---- Cubelet geometry ----
 
   private _buildCubelets(): void {
     const positions = buildCubeletPositions();
-    const size = 1 - this._gap;
-    const geo = new RoundedBoxGeometry(size, size, size, 2, 0.03);
+    const { gap, bevel } = this._theme;
+    const size = 1 - gap;
+    const effColours = effectiveColours(this._theme);
 
     for (const pos of positions) {
-      const isOutward = outwardSlots(pos);
+      const isOutward  = outwardSlots(pos);
+      const centerPiece = isCenter(pos);
+      const geo = new RoundedBoxGeometry(size, size, size, 2, bevel);
 
       const materials: THREE.Material[] = SLOT_TO_FACE.map((face, slot) => {
-        if (!isOutward[slot]) return BLACK_MATERIAL;
-        return new THREE.MeshBasicMaterial({
-          map: makeStickerTexture(FACE_COLOURS_HEX[face]),
-        });
+        if (!isOutward[slot]) return this._plasticMaterial;
+        return this._makeStickerMaterial(effColours[face], centerPiece);
       });
 
       const mesh = new THREE.Mesh(geo, materials) as THREE.Mesh<RoundedBoxGeometry, THREE.Material[]>;
       mesh.position.set(pos.x, pos.y, pos.z);
       this._scene!.add(mesh);
-      this._cubelets.push({ mesh, pos: { ...pos }, homePos: { ...pos }, isOutward });
+      this._cubelets.push({ mesh, geometry: geo, pos: { ...pos }, homePos: { ...pos }, isOutward });
     }
     this._log(`built ${this._cubelets.length} cubelets`);
   }
@@ -313,6 +369,7 @@ export class CubeRenderer3D {
   // ---- State ----
 
   resetToSolved(): void {
+    this._activeVisMap = null;
     for (const cubelet of this._cubelets) {
       const { mesh, homePos } = cubelet;
       mesh.position.set(homePos.x, homePos.y, homePos.z);
@@ -325,11 +382,19 @@ export class CubeRenderer3D {
   }
 
   restoreColours(): void {
-    for (const { mesh, homePos } of this._cubelets) {
+    const effColours = effectiveColours(this._theme);
+    const { plasticColour, plasticOpacity, stickerPad, stickerRadius, centerShape } = this._theme;
+    for (const cubelet of this._cubelets) {
+      const { mesh, homePos } = cubelet;
       const homeOut = outwardSlots(homePos);
+      const centerPiece = isCenter(homePos);
       for (let slot = 0; slot < 6; slot++) {
         if (!homeOut[slot]) continue;
-        const tex = makeStickerTexture(FACE_COLOURS_HEX[SLOT_TO_FACE[slot]]);
+        const face = SLOT_TO_FACE[slot];
+        const tex = makeStickerTexture(
+          effColours[face], plasticColour, plasticOpacity,
+          stickerPad, stickerRadius, centerPiece, centerShape,
+        );
         const mat = mesh.material[slot] as THREE.MeshBasicMaterial;
         if (mat.map !== tex) {
           mat.map = tex;
@@ -471,17 +536,22 @@ export class CubeRenderer3D {
   // ---- Stickering ----
 
   applyStickering(visibilityMap: VisMap): void {
+    this._activeVisMap = visibilityMap;
+    const effColours = effectiveColours(this._theme);
+    const { plasticColour, plasticOpacity, stickerPad, stickerRadius, centerShape } = this._theme;
+
     this._cubelets.forEach(({ mesh, homePos }) => {
       const vis = visibilityMap.get(`${homePos.x},${homePos.y},${homePos.z}`);
       if (!vis) return;
       const homeOut = outwardSlots(homePos);
+      const centerPiece = isCenter(homePos);
       for (let slot = 0; slot < 6; slot++) {
         if (!homeOut[slot]) continue;
         const level = vis[slot];
         if (level === 2) continue;
         const face = SLOT_TO_FACE[slot];
-        const hex  = level === 1 ? FACE_DIM_COLOURS_HEX[face] : FACE_COLOURS_HEX.X;
-        const tex  = makeStickerTexture(hex);
+        const hex  = level === 1 ? dimHex(effColours[face]) : plasticColour;
+        const tex  = makeStickerTexture(hex, plasticColour, plasticOpacity, stickerPad, stickerRadius, centerPiece, centerShape);
         const mat  = mesh.material[slot] as THREE.MeshBasicMaterial;
         if (mat.map !== tex) {
           mat.map = tex;
@@ -493,8 +563,9 @@ export class CubeRenderer3D {
   }
 
   getWorldFaceMap(): Map<string, string> {
-    const FACE_BY_HEX = Object.fromEntries(
-      Object.entries(FACE_COLOURS_HEX).map(([f, h]) => [h, f])
+    const effColours = effectiveColours(this._theme);
+    const FACE_BY_EFF_HEX = Object.fromEntries(
+      (['U', 'R', 'F', 'D', 'L', 'B'] as const).map(f => [effColours[f], f])
     );
     const result = new Map<string, string>();
     for (const { mesh } of this._cubelets) {
@@ -520,17 +591,82 @@ export class CubeRenderer3D {
 
         const mat = mesh.material[slot];
         let color: string;
-        if (mat === BLACK_MATERIAL) {
+        if (mat === this._plasticMaterial) {
           color = 'plastic';
         } else {
-          const entry = [..._textureCache.entries()].find(([,t]) => t === (mat as THREE.MeshBasicMaterial).map);
-          const hex   = entry?.[0];
-          color = hex ? (FACE_BY_HEX[hex] ?? hex) : 'unknown';
+          const entry = [..._textureCache.entries()].find(([, t]) => t === (mat as THREE.MeshBasicMaterial).map);
+          const cacheKey = entry?.[0];
+          const hex = cacheKey ? cacheKey.split('|')[0] : undefined;
+          color = hex ? (FACE_BY_EFF_HEX[hex] ?? hex) : 'unknown';
         }
         result.set(`${wx},${wy},${wz}:${face}`, color);
       }
     }
     return result;
+  }
+
+  // ---- Theme ----
+
+  get theme(): CubeTheme { return cloneTheme(this._theme); }
+
+  setTheme(theme: CubeTheme | ThemePresetName): void {
+    if (this._animating) this.abortAnimation();
+
+    const prev = this._theme;
+    const next = typeof theme === 'string' ? getThemePreset(theme) : cloneTheme(theme);
+    this._theme = next;
+
+    // Dispose all cached textures — they'll be rebuilt with new theme params
+    for (const [, tex] of _textureCache) tex.dispose();
+    _textureCache.clear();
+
+    const geoChanged          = prev.gap !== next.gap || prev.bevel !== next.bevel;
+    const materialTypeChanged = prev.materialType !== next.materialType;
+    const plasticChanged      = prev.plasticColour !== next.plasticColour ||
+                                prev.plasticOpacity !== next.plasticOpacity;
+
+    if (plasticChanged || materialTypeChanged) {
+      const oldPlastic = this._plasticMaterial;
+      this._plasticMaterial = this._makePlasticMaterial();
+      for (const cubelet of this._cubelets) {
+        const homeOut = outwardSlots(cubelet.homePos);
+        for (let slot = 0; slot < 6; slot++) {
+          if (!homeOut[slot]) cubelet.mesh.material[slot] = this._plasticMaterial;
+        }
+      }
+      oldPlastic.dispose();
+    }
+
+    if (geoChanged) {
+      const { gap, bevel } = next;
+      const size = 1 - gap;
+      for (const cubelet of this._cubelets) {
+        const oldGeo = cubelet.geometry;
+        const geo = new RoundedBoxGeometry(size, size, size, 2, bevel);
+        cubelet.mesh.geometry = geo;
+        cubelet.geometry = geo;
+        oldGeo.dispose();
+      }
+    }
+
+    if (materialTypeChanged) {
+      const effColours = effectiveColours(this._theme);
+      for (const cubelet of this._cubelets) {
+        const homeOut = outwardSlots(cubelet.homePos);
+        const centerPiece = isCenter(cubelet.homePos);
+        for (let slot = 0; slot < 6; slot++) {
+          if (!homeOut[slot]) continue;
+          const face = SLOT_TO_FACE[slot];
+          const oldMat = cubelet.mesh.material[slot] as THREE.MeshBasicMaterial;
+          cubelet.mesh.material[slot] = this._makeStickerMaterial(effColours[face], centerPiece);
+          oldMat.dispose();
+        }
+      }
+    }
+
+    this.restoreColours();
+    if (this._activeVisMap) this.applyStickering(this._activeVisMap);
+    this._log('setTheme');
   }
 
   // ---- Camera ----

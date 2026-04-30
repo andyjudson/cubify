@@ -116,26 +116,25 @@ describe('toSVG — colour rendering on solved cube', () => {
     expect(svg.toLowerCase()).toContain('#1a7c2a');
   });
 
-  it('contains background black (#111111)', () => {
+  it('contains background plastic colour (#141414 from DEFAULT_THEME)', () => {
     const svg = CubeRenderer2D.toSVG(solved, new Map());
-    expect(svg).toContain('#111111');
+    expect(svg).toContain('#141414');
   });
 });
 
 // ── OLL stickering mask ───────────────────────────────────────────────────────
 
-describe('toSVG — OLL stickering produces grey for hidden stickers', () => {
-  it('Sune OLL: SVG contains grey (#444444) for hidden stickers', () => {
+describe('toSVG — OLL stickering produces plastic colour for hidden stickers', () => {
+  it('Sune OLL: SVG contains plastic colour (#141414) for hidden stickers', () => {
     const state  = buildState(SUNE_ALG);
     const visMap = buildVisMap(state, OLL_MASK);
     const svg = CubeRenderer2D.toSVG(state, visMap, { size: 400 });
-    // Hidden pieces use grey = #444444
-    expect(svg).toContain('#444444');
+    // Hidden pieces use plasticColour from DEFAULT_THEME
+    expect(svg).toContain('#141414');
   });
 
-  it('full mask: SVG does not contain grey (#444444)', () => {
+  it('full mask: SVG does not contain legacy grey (#444444)', () => {
     const svg = CubeRenderer2D.toSVG(solved, new Map(), { size: 400 });
-    // Full colour — no grey stickers (background is #111111, not #444444)
     expect(svg).not.toContain('#444444');
   });
 });
