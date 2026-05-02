@@ -64,6 +64,22 @@ TechLab/
 
 Override with `CFOP_APP_DIR=/path/to/cfop/cfop-app`.
 
+## React Usage
+
+cubify has no React dependency — the library is plain ES modules. For React apps, wrap the imperative API using `useRef` + `useEffect`:
+
+```tsx
+// <CubePlayer> — animated algorithm player
+<CubePlayer alg="R U R' U R U2 R'" stickering="oll" theme="modern"
+            playing={isPlaying} onComplete={() => setPlaying(false)}
+            style={{ width: 320, height: 320 }} />
+
+// <CubeState> — static snapshot (no animation)
+<CubeState alg={scramble} style={{ width: 120, height: 120 }} />
+```
+
+See [`specs/029-cubify-react/quickstart.md`](specs/029-cubify-react/quickstart.md) for full usage examples, prop reference, and Vite alias setup. The reference implementation lives in `cfop-app/src/lib/cubify/`.
+
 ## Reference Docs
 
 | Doc | Content |

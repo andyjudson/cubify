@@ -12,7 +12,7 @@ Project context for Claude Code. See `specs/spec.md` for the feature ledger.
 
 ## Current Status
 
-Features 022–024, 026–028 complete. Features 025, 029–031 planned.
+Features 022–028 complete. Features 029–031 planned.
 
 ## Reference Docs — Ground Truth
 
@@ -48,9 +48,9 @@ Key facts from `cube-mapping-lessons.md`:
 |------|------|
 | `src/index.js` | Public entry point — re-exports all public API |
 | `src/CubeState.js` | Cubing.js KPattern wrapper; `applyMove/applyAlg`, `toFaceArray()`, `invertAlg()` |
-| `src/CubeTheme.js` | Theme object, `THEME_PRESETS` (rubiks/gan/modern/minimal), `effectiveColours()`, `themeToJSON/FromJSON` — planned (025) |
-| `src/CubeRenderer3D.js` | Three.js 3D renderer; `setState()`, `animateMove()`, `setSpeed()`, `setStickering()`, `snapshotAt()`, `setTheme()` — theme API planned (025) |
-| `src/CubeRenderer2D.js` | Canvas 2D top-down view; `setTheme()` planned (025) |
+| `src/CubeTheme.js` | Theme object, `THEME_PRESETS` (rubiks/modern/minimal), `DEFAULT_THEME`, `effectiveColours()`, `themeToJSON/FromJSON` |
+| `src/CubeRenderer3D.js` | Three.js 3D renderer; `setState()`, `animateMove()`, `setSpeed()`, `setStickering()`, `snapshotAt()`, `setTheme()` |
+| `src/CubeRenderer2D.js` | Canvas 2D top-down view; `toSVG()`, `update()`, `setTheme()` |
 | `src/CubeStickering.js` | Orbit-string mask parsing; `MASK_PRESETS` (15 presets); chars -/I/D/O/S/P |
 | `src/CubePlayer.js` | Animation engine; `loadAlg()`, `play/pause/jumpTo/reset`, `setSpeed()`, `setStickering()`, events |
 | `src/CubeExporter.js` | `toPNG(alg, { style: '2d'\|'3d' })`; 2D via canvas, 3D via CubeRenderer3D |
@@ -63,7 +63,7 @@ Key facts from `cube-mapping-lessons.md`:
 | File | Role |
 |------|------|
 | `cubify-harness/index.html` | Interactive harness; imports from `../src/` |
-| `cubify-harness/test/` | Vitest suite — 138 tests, no headed browser (`npm test`) |
+| `test/` | Vitest suite — 167 tests, 10 skipped, no headed browser (`npm test`) |
 | `cubify-harness/verify-perms.mjs` | 18-test permutation cross-check suite against cubing.js ground truth |
 
 ## cubify-scripts Architecture
@@ -143,7 +143,9 @@ When automating or screenshotting a third-party web component:
 See `specs/017-cubify-agent-skill/research.md` for the full debugging record.
 
 ## Recent Changes
-- 028-cubify-library (complete): Library extracted to `src/` at repo root. `src/index.js` public entry. `CubeScramble.js` (pure JS scramble generator). `CubeRenderer3D.setStickering(presetOrString)`, `snapshotAt(size)`. `CubePlayer.setupMoves` getter. `types/cubify.d.ts` TypeScript definitions. Harness + tests rewired to `../src/` / `../../src/`. `/cubify` skill moved to `.claude/commands/cubify.md` in this repo.
+- 029-cubify-react (planning): React wrapper components. `<CubePlayer>` and `<CubeState>` live in `cfop-app/src/lib/cubify/`. Vite alias `cubify` → `../../../cubify/src/index.ts`. No React in core library (constitution). See `specs/029-cubify-react/plan.md`.
+- 025-cubify-theming (complete): `CubeTheme` interface + `THEME_PRESETS` (rubiks/modern/minimal) + `DEFAULT_THEME`. Both renderers accept `setTheme()`. Harness Theming tab with two-column layout, preset buttons, per-face colour pickers, sliders. Hidden stickers use fixed `#888888` grey. 167 Vitest tests.
+- 028-cubify-library (complete): Library extracted to `src/` at repo root. `src/index.js` public entry. `CubeScramble.js` (pure JS scramble generator). `CubeRenderer3D.setStickering(presetOrString)`, `snapshotAt(size)`. `CubePlayer.setupMoves` getter. `types/index.d.ts` TypeScript definitions. Harness + tests rewired to `../src/`.
 - 027-cubify-tests (complete): Vitest suite (138 tests, 10 skipped). `test/cube-state.test.js`, `cube-stickering.test.js`, `cube-player.test.js` (mock renderer), `cube-exporter.test.js`, `cube-renderer-2d-svg.test.js` (migrated from demo/), `cube-renderer-3d.test.js` (MOVE_AXIS constants). `MOVE_AXIS` exported from CubeRenderer3D.js. `npm test` runs without headed browser.
 - 024-cubify-animation (complete): `CubePlayer.js` (new) — animation engine owning `CubeRenderer3D`; `loadAlg(notation, setup, {anchor})`, `play/pause/jumpTo/reset`, `setSpeed(scale)`, `setStickering(str)`, event emitter (`move`, `complete`, `reset`). Harness fully wired to CubePlayer events; `liveState` (Moves tab) remains harness-local; stickering not reapplied during animated play — only on jumpTo/reset/loadAlg.
 - 026-cubify-export: `CubeRenderer2D.js` (Canvas 2D + transparent option), `CubeExporter.js` (toPNG routing), harness Export 2D / Export 3D buttons (288px, transparent background). `CubeRenderer3D` gains `alpha + preserveDrawingBuffer`.

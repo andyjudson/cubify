@@ -17,7 +17,6 @@
  */
 
 import { cube3x3x3 } from 'cubing/puzzles';
-import { Alg } from 'cubing/alg';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 
 // ---- Exported types for consumers (CubeStickering, CubeRenderer2D, CubeExporter) ----
@@ -42,12 +41,14 @@ interface PatternData {
   [orbitName: string]: OrbitData | undefined;
 }
 
-// Lazily initialised KPuzzle
-let _kpuzzle: KPuzzle | null = null;
-async function getKPuzzle(): Promise<KPuzzle> {
-  if (!_kpuzzle) _kpuzzle = await cube3x3x3.kpuzzle();
-  return _kpuzzle!;
+// KPuzzle — single load, Promise cached to prevent race on parallel callers
+let _kpuzzlePromise: Promise<KPuzzle> | null = null;
+function getKPuzzle(): Promise<KPuzzle> {
+  if (!_kpuzzlePromise) _kpuzzlePromise = cube3x3x3.kpuzzle();
+  return _kpuzzlePromise;
 }
+// Pre-warm on module import so the puzzle is ready before any component mounts
+getKPuzzle();
 
 // ---- Piece → sticker colour lookup tables ----
 //
@@ -110,7 +111,7 @@ export class CubeState {
 
   applyAlg(moves: string[] | string): CubeState {
     const algStr = Array.isArray(moves) ? moves.join(' ') : moves;
-    return new CubeState(this._kPattern.applyAlg(new Alg(algStr)));
+    return new CubeState(this._kPattern.applyAlg(algStr));
   }
 
   static async fromAlg(notation: string): Promise<CubeState> {
@@ -182,6 +183,13 @@ export class CubeState {
       if (m.endsWith('2')) return m;
       return m + "'";
     });
+  }
+
+  // Build a setup string: rotation (e.g. 'z2') + inverse of alg.
+  // Use this when storing cases as { alg, rotation } rather than hardcoding the full setup.
+  static setupFromAlg(alg: string, rotation?: string): string {
+    const inv = CubeState.invertAlg(alg.split(' ')).join(' ');
+    return rotation ? `${rotation} ${inv}` : inv;
   }
 
   toRawPattern(): RawPattern {

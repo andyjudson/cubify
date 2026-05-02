@@ -10,9 +10,10 @@ export interface FaceColours {
   D: string;
   L: string;
   B: string;
+  [key: string]: string;
 }
 
-export type ThemePresetName = 'rubiks' | 'modern' | 'minimal';
+export type ThemePresetName = 'default' | 'gan' | 'rubiks' | 'speed';
 
 export interface CubeTheme {
   colours: FaceColours;
@@ -37,46 +38,9 @@ const CLASSIC: FaceColours = {
   D: '#ffd000', L: '#e06000', B: '#0f4fad',
 };
 
-const TWISTY: FaceColours = {
-  U: '#ffffff', R: '#ef3030', F: '#22aa44',
-  D: '#ffdd00', L: '#ff8800', B: '#1155cc',
-};
-
-const PASTEL: FaceColours = {
-  U: '#f5f5f5', R: '#e57373', F: '#81c784',
-  D: '#fff176', L: '#ffb74d', B: '#64b5f6',
-};
-
-// ---- Named presets ----
-
-export const THEME_PRESETS: Record<ThemePresetName, CubeTheme> = {
-  rubiks: {
-    colours: CLASSIC,
-    brightness: 1.0, saturation: 1.0,
-    plasticColour: '#141414', plasticOpacity: 1,
-    gap: 0.02, bevel: 0.03,
-    stickerPad: 24, stickerRadius: 32,
-    centerShape: 'square',
-    materialType: 'standard', roughness: 0.85, metalness: 0,
-  },
-  modern: {
-    colours: CLASSIC,
-    brightness: 1.25, saturation: 1.15,
-    plasticColour: '#ffffff', plasticOpacity: 0.9,
-    gap: 0.005, bevel: 0.035,
-    stickerPad: 5, stickerRadius: 26,
-    centerShape: 'square',
-    materialType: 'standard', roughness: 0.85, metalness: 0,
-  },
-  minimal: {
-    colours: TWISTY,
-    brightness: 1.0, saturation: 1.0,
-    plasticColour: '#2a2a2a', plasticOpacity: 1,
-    gap: 0.02, bevel: 0.04,
-    stickerPad: 14, stickerRadius: 16,
-    centerShape: 'square',
-    materialType: 'basic', roughness: 0.9, metalness: 0,
-  },
+const GAN: FaceColours = {
+  U: '#ffffff', R: '#f02222', F: '#00bb40',
+  D: '#ffe000', L: '#ff6200', B: '#1a68cc',
 };
 
 // ---- Default theme (library default — the current "speed" look) ----
@@ -89,6 +53,39 @@ export const DEFAULT_THEME: CubeTheme = {
   stickerPad: 10, stickerRadius: 8,
   centerShape: 'square',
   materialType: 'basic', roughness: 0.9, metalness: 0,
+};
+
+// ---- Named presets ----
+
+export const THEME_PRESETS: Record<ThemePresetName, CubeTheme> = {
+  default: DEFAULT_THEME,
+  rubiks: {
+    colours: CLASSIC,
+    brightness: 1.0, saturation: 1.0,
+    plasticColour: '#141414', plasticOpacity: 1,
+    gap: 0.02, bevel: 0.03,
+    stickerPad: 24, stickerRadius: 32,
+    centerShape: 'square',
+    materialType: 'standard', roughness: 0.85, metalness: 0,
+  },
+  gan: {
+    colours: GAN,
+    brightness: 1.2, saturation: 2,
+    plasticColour: '#ebebeb', plasticOpacity: 0.9,
+    gap: 0.01, bevel: 0.08,
+    stickerPad: 5, stickerRadius: 20,
+    centerShape: 'square',
+    materialType: 'standard', roughness: 0.3, metalness: 0.05,
+  },
+  speed: {
+    colours: CLASSIC,
+    brightness: 1.35, saturation: 1.25,
+    plasticColour: '#232323', plasticOpacity: 0.9,
+    gap: 0.02, bevel: 0.06,
+    stickerPad: 14, stickerRadius: 16,
+    centerShape: 'square',
+    materialType: 'basic', roughness: 0.9, metalness: 0,
+  },
 };
 
 // ---- Helpers ----
@@ -146,7 +143,7 @@ function hslToHex(h: number, s: number, l: number): string {
     g = hue2rgb(p, q, h);
     b = hue2rgb(p, q, h - 1 / 3);
   }
-  const toHex = (n: number) => Math.round(Math.clamp ? Math.clamp(n, 0, 1) * 255 : Math.min(255, Math.max(0, Math.round(n * 255)))).toString(16).padStart(2, '0');
+  const toHex = (n: number) => Math.min(255, Math.max(0, Math.round(n * 255))).toString(16).padStart(2, '0');
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 

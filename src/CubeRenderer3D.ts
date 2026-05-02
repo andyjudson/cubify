@@ -10,14 +10,13 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { CubeStickering, MASK_PRESETS, type VisMap } from './CubeStickering.js';
 import {
-  type CubeTheme, type FaceColours, type ThemePresetName,
+  type CubeTheme, type ThemePresetName,
   DEFAULT_THEME, effectiveColours, getThemePreset, cloneTheme,
 } from './CubeTheme.js';
 
 // ---- Colours ----
 
 const SLOT_TO_FACE = ['R', 'L', 'U', 'D', 'F', 'B'] as const;
-type SlotFace = typeof SLOT_TO_FACE[number];
 
 // ---- Sticker texture factory ----
 
@@ -87,7 +86,7 @@ function dimHex(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
-  const mix = (c: number) => Math.round(c * 0.5 + 160 * 0.5).toString(16).padStart(2, '0');
+  const mix = (c: number) => Math.round(c * 0.5 + 110 * 0.5).toString(16).padStart(2, '0');
   return `#${mix(r)}${mix(g)}${mix(b)}`;
 }
 
@@ -169,7 +168,6 @@ export class CubeRenderer3D {
   private _plasticMaterial: THREE.Material;
   private _animSpeed: number;
   private _debug: boolean;
-  private _container: HTMLElement | null;
   private _renderer: THREE.WebGLRenderer | null;
   private _scene: THREE.Scene | null;
   private _camera: THREE.PerspectiveCamera | null;
@@ -195,7 +193,6 @@ export class CubeRenderer3D {
     this._animSpeed = animSpeed;
     this._debug    = debug;
 
-    this._container = null;
     this._renderer  = null;
     this._scene     = null;
     this._camera    = null;
@@ -223,10 +220,7 @@ export class CubeRenderer3D {
   // ---- Mount / unmount ----
 
   mount(container: HTMLElement): void {
-    this._container = container;
-
     this._scene = new THREE.Scene();
-    this._scene.background = new THREE.Color(0x141414);
 
     this._camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
     this._camera.position.set(5.5, 4.5, 5.5);
@@ -243,6 +237,7 @@ export class CubeRenderer3D {
     const rendererOpts: THREE.WebGLRendererParameters = { antialias: true, alpha: true, preserveDrawingBuffer: true };
     if (this._offscreenCanvas) rendererOpts.canvas = this._offscreenCanvas;
     this._renderer = new THREE.WebGLRenderer(rendererOpts);
+    this._renderer.setClearColor(0x000000, 0);
     this._renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     _maxAnisotropy = this._renderer.capabilities.getMaxAnisotropy();
     if (!this._offscreenCanvas) container.appendChild(this._renderer.domElement);
@@ -250,6 +245,7 @@ export class CubeRenderer3D {
     this._controls = new OrbitControls(this._camera, this._renderer.domElement);
     this._controls.enableDamping  = true;
     this._controls.enablePan      = false;
+    this._controls.enableZoom     = false;
     this._controls.dampingFactor  = 0.08;
     this._controls.minDistance    = 9;
     this._controls.maxDistance    = 12;
@@ -550,7 +546,7 @@ export class CubeRenderer3D {
         const level = vis[slot];
         if (level === 2) continue;
         const face = SLOT_TO_FACE[slot];
-        const hex  = level === 1 ? dimHex(effColours[face]) : '#888888';
+        const hex  = level === 1 ? dimHex(effColours[face]) : '#666666';
         const tex  = makeStickerTexture(hex, plasticColour, plasticOpacity, stickerPad, stickerRadius, centerPiece, centerShape);
         const mat  = mesh.material[slot] as THREE.MeshBasicMaterial;
         if (mat.map !== tex) {
@@ -669,15 +665,9 @@ export class CubeRenderer3D {
     this._log('setTheme');
   }
 
-  // ---- Camera ----
-
-  resetCamera(): void {
-    this._camera!.position.set(5.5, 4.5, 5.5);
-    this._camera!.lookAt(0, 0, 0);
-    this._controls?.reset();
-  }
-
   setSpeed(ms: number): void { this._animSpeed = ms; }
+
+  resetCamera(): void { this._controls?.reset(); }
 
   setStickering(presetOrString: string): void {
     const preset = MASK_PRESETS.find(p => p.label === presetOrString);

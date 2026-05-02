@@ -5,11 +5,11 @@ import {
   type CubeTheme, type ThemePresetName,
 } from '../src/CubeTheme.js';
 
-const PRESET_NAMES: ThemePresetName[] = ['rubiks', 'modern', 'minimal'];
+const PRESET_NAMES: ThemePresetName[] = ['default', 'gan', 'rubiks', 'speed'];
 
 describe('THEME_PRESETS', () => {
-  it('has exactly 3 named presets', () => {
-    expect(Object.keys(THEME_PRESETS)).toEqual(PRESET_NAMES);
+  it('has exactly 4 named presets', () => {
+    expect(Object.keys(THEME_PRESETS).sort()).toEqual(PRESET_NAMES);
   });
 
   for (const name of PRESET_NAMES) {
@@ -22,17 +22,17 @@ describe('THEME_PRESETS', () => {
     expect(validateTheme(DEFAULT_THEME)).toBeNull();
   });
 
-  it('modern preset has white plastic and partial opacity', () => {
-    expect(THEME_PRESETS.modern.plasticColour).toBe('#ffffff');
-    expect(THEME_PRESETS.modern.plasticOpacity).toBe(0.9);
+  it('gan preset has light plastic and partial opacity', () => {
+    expect(THEME_PRESETS.gan.plasticColour).toBe('#ebebeb');
+    expect(THEME_PRESETS.gan.plasticOpacity).toBe(0.9);
   });
 
   it('rubiks preset uses standard material', () => {
     expect(THEME_PRESETS.rubiks.materialType).toBe('standard');
   });
 
-  it('minimal preset uses Twisty colours (U is white)', () => {
-    expect(THEME_PRESETS.minimal.colours.U).toBe('#ffffff');
+  it('speed preset uses basic material', () => {
+    expect(THEME_PRESETS.speed.materialType).toBe('basic');
   });
 });
 
@@ -50,9 +50,9 @@ describe('getThemePreset', () => {
 
 describe('cloneTheme', () => {
   it('produces a deep-enough clone (colours object is new reference)', () => {
-    const t = cloneTheme(THEME_PRESETS.modern);
+    const t = cloneTheme(THEME_PRESETS.gan);
     t.colours.U = '#000000';
-    expect(THEME_PRESETS.modern.colours.U).toBe('#ffffff');
+    expect(THEME_PRESETS.gan.colours.U).toBe('#ffffff');
   });
 });
 

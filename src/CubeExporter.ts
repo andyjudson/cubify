@@ -55,7 +55,7 @@ export class CubeExporter {
     return dataURL;
   }
 
-  private static async _render3D(state: CubeState, visMap: VisMap, setupMoves: string[], size: number): Promise<string> {
+  private static async _render3D(_state: CubeState, visMap: VisMap, setupMoves: string[], size: number): Promise<string> {
     const canvas = document.createElement('canvas');
     canvas.width  = size;
     canvas.height = size;

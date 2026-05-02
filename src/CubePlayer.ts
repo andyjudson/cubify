@@ -7,7 +7,7 @@
 
 import { CubeRenderer3D } from './CubeRenderer3D.js';
 import { CubeState } from './CubeState.js';
-import { CubeStickering } from './CubeStickering.js';
+import { CubeStickering, MASK_PRESETS } from './CubeStickering.js';
 import { AlgParser } from './AlgParser.js';
 
 export type PlayerEventName = 'move' | 'complete' | 'reset';
@@ -33,7 +33,6 @@ export class CubePlayer {
 
   private _moves: string[];
   private _setupMoves: string[];
-  private _anchor: 'start' | 'end';
   private _stepIndex: number;
   private _isPlaying: boolean;
   private _baseState: CubeState | null;
@@ -52,13 +51,15 @@ export class CubePlayer {
 
     this._moves      = [];
     this._setupMoves = [];
-    this._anchor     = 'start';
     this._stepIndex  = 0;
     this._isPlaying  = false;
     this._baseState  = null;
     this._generation = 0;
 
     this._listeners = new Map();
+
+    // Eagerly warm up _baseState so loadAlg() runs synchronously on first call
+    CubeState.solved().then(s => { if (!this._baseState) this._baseState = s; });
   }
 
   // ── Event emitter ─────────────────────────────────────────────────────────
@@ -86,12 +87,11 @@ export class CubePlayer {
 
   // ── Core API ───────────────────────────────────────────────────────────────
 
-  async loadAlg(notation: string, setup: string | null = null, { anchor = 'start' }: LoadAlgOptions = {}): Promise<void> {
+  async loadAlg(notation: string, setup: string | null = null, { anchor: _anchor = 'start' }: LoadAlgOptions = {}): Promise<void> {
     this.pause();
 
     this._moves      = notation ? AlgParser.parse(notation) : [];
     this._setupMoves = setup    ? AlgParser.parse(setup)    : [];
-    this._anchor     = anchor;
     this._stepIndex  = 0;
 
     if (!this._baseState) this._baseState = await CubeState.solved();
@@ -159,8 +159,10 @@ export class CubePlayer {
   private _reapplyStickering(): void {
     this._renderer.restoreColours();
     if (this._stickering && this._baseState) {
+      const preset = MASK_PRESETS.find(p => p.label === this._stickering);
+      const str    = preset ? preset.str : this._stickering;
       const raw    = this._stateAt(this._stepIndex).toRawPattern();
-      const visMap = CubeStickering.fromOrbitStringWithState(this._stickering, raw);
+      const visMap = CubeStickering.fromOrbitStringWithState(str, raw);
       this._renderer.applyStickering(visMap);
     }
   }
@@ -179,8 +181,10 @@ export class CubePlayer {
     this._renderer.animateMove(move, () => {
       if (this._generation !== gen) return;
       this._stepIndex++;
-      const state = this._stateAt(this._stepIndex);
-      this.emit('move', { index: this._stepIndex, move, state });
+      if (this._baseState) {
+        const state = this._stateAt(this._stepIndex);
+        this.emit('move', { index: this._stepIndex, move, state });
+      }
       setTimeout(() => this._playNext(), this._gapMs);
     });
   }
