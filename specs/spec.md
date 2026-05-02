@@ -141,15 +141,22 @@ Extract cubify-harness core into a clean standalone library with a documented pu
 
 ## Feature 029: cubify-react
 
-### Status: Planned 📋
+### Status: Complete ✅
 
 ### Scope
 Thin React wrapper components around the cubify library for use in cfop-app.
 
-### Goals
-- `<CubePlayer>` React component: `playing/stepIndex/alg/stickering` props, `onMove/onComplete`
-- `<CubeState>` display-only component: no animation, mount + setState
-- TypeScript-typed; manages mount/unmount lifecycle, no boilerplate in consumers
+### Completed
+- `<CubePlayer>` — `alg`, `setup`, `stickering`, `theme`, `playing`, `speed`, `style` props; `onMove`, `onReset`, `onComplete` events; imperative `CubePlayerHandle` ref (`reset`, `resetCamera`)
+- `<CubePlayerControls>` — play/pause, reset, camera reset, speed buttons
+- `<CubeMoveTape>` — move sequence with active/done highlight; 640px max-width wraps Sexy ×6 to 2 lines
+- `<CubeState>` — display-only static snapshot; `alg`, `setup`, `stickering`, `theme`, `style` props
+- All components TypeScript-typed with full prop interfaces; mount/unmount lifecycle handled internally
+- `CubifyPage` harness in cfop-app: case selector (Sune OLL, T Perm PLL, Sexy ×6), mask dropdown, theme toggle buttons, playback controls
+- Cubify nav entry added to cfop-app between About and Notation
+- Vite alias `cubify` → `../../../cubify/src/index.ts`; tsconfig paths aligned
+- Core library fully rewritten in TypeScript; 168 Vitest tests
+- Theme presets updated: `modern` → `gan` (vivid GAN stickerless colours, white plastic); `minimal` → `speed` (CLASSIC colours, dark plastic, basic material)
 
 ---
 
@@ -198,6 +205,6 @@ Full adoption of cubify in cfop-app — scrambles, alg parsing, and 3D visualisa
 | 026 | cubify-image-export | Complete ✅ |
 | 027 | cubify-tests | Complete ✅ |
 | 028 | cubify-library | Complete ✅ |
-| 029 | cubify-react | Planned 📋 |
+| 029 | cubify-react | Complete ✅ |
 | 030 | cubify-scripts | Planned 📋 |
 | 031 | cfop-migration | Planned 📋 |

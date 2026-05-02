@@ -12,7 +12,7 @@ Project context for Claude Code. See `specs/spec.md` for the feature ledger.
 
 ## Current Status
 
-Features 022–028 complete. Features 029–031 planned.
+Features 022–029 complete. Features 030–031 planned.
 
 ## Reference Docs — Ground Truth
 
@@ -48,7 +48,7 @@ Key facts from `cube-mapping-lessons.md`:
 |------|------|
 | `src/index.js` | Public entry point — re-exports all public API |
 | `src/CubeState.js` | Cubing.js KPattern wrapper; `applyMove/applyAlg`, `toFaceArray()`, `invertAlg()` |
-| `src/CubeTheme.js` | Theme object, `THEME_PRESETS` (rubiks/modern/minimal), `DEFAULT_THEME`, `effectiveColours()`, `themeToJSON/FromJSON` |
+| `src/CubeTheme.js` | Theme object, `THEME_PRESETS` (default/rubiks/gan/speed), `DEFAULT_THEME`, `effectiveColours()`, `themeToJSON/FromJSON` |
 | `src/CubeRenderer3D.js` | Three.js 3D renderer; `setState()`, `animateMove()`, `setSpeed()`, `setStickering()`, `snapshotAt()`, `setTheme()` |
 | `src/CubeRenderer2D.js` | Canvas 2D top-down view; `toSVG()`, `update()`, `setTheme()` |
 | `src/CubeStickering.js` | Orbit-string mask parsing; `MASK_PRESETS` (15 presets); chars -/I/D/O/S/P |
@@ -143,8 +143,8 @@ When automating or screenshotting a third-party web component:
 See `specs/017-cubify-agent-skill/research.md` for the full debugging record.
 
 ## Recent Changes
-- 029-cubify-react (planning): React wrapper components. `<CubePlayer>` and `<CubeState>` live in `cfop-app/src/lib/cubify/`. Vite alias `cubify` → `../../../cubify/src/index.ts`. No React in core library (constitution). See `specs/029-cubify-react/plan.md`.
-- 025-cubify-theming (complete): `CubeTheme` interface + `THEME_PRESETS` (rubiks/modern/minimal) + `DEFAULT_THEME`. Both renderers accept `setTheme()`. Harness Theming tab with two-column layout, preset buttons, per-face colour pickers, sliders. Hidden stickers use fixed `#888888` grey. 167 Vitest tests.
+- 029-cubify-react (complete): TypeScript rewrite of core library. React wrappers `<CubePlayer>`, `<CubeState>`, `<CubePlayerControls>`, `<CubeMoveTape>` in `cfop-app/src/lib/cubify/`. Vite alias `cubify` → `../../../cubify/src/index.ts`. CubifyPage interactive harness with case selector, mask/theme controls, playback. 168 Vitest tests.
+- 025-cubify-theming (complete): `CubeTheme` interface + `THEME_PRESETS` (default/rubiks/gan/speed) + `DEFAULT_THEME`. `gan` — vivid GAN stickerless colours, white plastic, saturation 2. `speed` — CLASSIC colours, dark plastic, basic material. Both renderers accept `setTheme()`. 168 Vitest tests.
 - 028-cubify-library (complete): Library extracted to `src/` at repo root. `src/index.js` public entry. `CubeScramble.js` (pure JS scramble generator). `CubeRenderer3D.setStickering(presetOrString)`, `snapshotAt(size)`. `CubePlayer.setupMoves` getter. `types/index.d.ts` TypeScript definitions. Harness + tests rewired to `../src/`.
 - 027-cubify-tests (complete): Vitest suite (138 tests, 10 skipped). `test/cube-state.test.js`, `cube-stickering.test.js`, `cube-player.test.js` (mock renderer), `cube-exporter.test.js`, `cube-renderer-2d-svg.test.js` (migrated from demo/), `cube-renderer-3d.test.js` (MOVE_AXIS constants). `MOVE_AXIS` exported from CubeRenderer3D.js. `npm test` runs without headed browser.
 - 024-cubify-animation (complete): `CubePlayer.js` (new) — animation engine owning `CubeRenderer3D`; `loadAlg(notation, setup, {anchor})`, `play/pause/jumpTo/reset`, `setSpeed(scale)`, `setStickering(str)`, event emitter (`move`, `complete`, `reset`). Harness fully wired to CubePlayer events; `liveState` (Moves tab) remains harness-local; stickering not reapplied during animated play — only on jumpTo/reset/loadAlg.
