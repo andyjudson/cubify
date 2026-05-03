@@ -17,7 +17,7 @@ export class AlgParser {
       .trim();
 
     const moves: string[] = [];
-    const re = /([UDRLFBMESxyz](?:w)?|[udrlf b])('|2)?/g;
+    const re = /([UDRLFBMESxyz]w?|[udrlfb])('|2)?/g;
     let match: RegExpExecArray | null;
     while ((match = re.exec(cleaned)) !== null) {
       const base = match[1].trim();

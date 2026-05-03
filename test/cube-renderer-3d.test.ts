@@ -124,6 +124,76 @@ describe('MOVE_AXIS filter functions', () => {
   });
 });
 
+// ── Wide moves ────────────────────────────────────────────────────────────────
+
+describe('MOVE_AXIS wide moves', () => {
+  it('f shares axis and dir with F', () => {
+    expect(MOVE_AXIS.f.dir).toBe(MOVE_AXIS.F.dir);
+    expect(MOVE_AXIS.f.axis.z).toBe(1);
+  });
+
+  it('b shares axis and dir with B', () => {
+    expect(MOVE_AXIS.b.dir).toBe(MOVE_AXIS.B.dir);
+    expect(MOVE_AXIS.b.axis.z).toBe(1);
+  });
+
+  it('r shares axis and dir with R', () => {
+    expect(MOVE_AXIS.r.dir).toBe(MOVE_AXIS.R.dir);
+    expect(MOVE_AXIS.r.axis.x).toBe(1);
+  });
+
+  it('l shares axis and dir with L', () => {
+    expect(MOVE_AXIS.l.dir).toBe(MOVE_AXIS.L.dir);
+    expect(MOVE_AXIS.l.axis.x).toBe(1);
+  });
+
+  it('u shares axis and dir with U', () => {
+    expect(MOVE_AXIS.u.dir).toBe(MOVE_AXIS.U.dir);
+    expect(MOVE_AXIS.u.axis.y).toBe(1);
+  });
+
+  it('d shares axis and dir with D', () => {
+    expect(MOVE_AXIS.d.dir).toBe(MOVE_AXIS.D.dir);
+    expect(MOVE_AXIS.d.axis.y).toBe(1);
+  });
+
+  it('f filter selects z=0 AND z=1 (face + S slice)', () => {
+    expect(MOVE_AXIS.f.filter({ x: 0, y: 0, z:  1 })).toBe(true);
+    expect(MOVE_AXIS.f.filter({ x: 0, y: 0, z:  0 })).toBe(true);
+    expect(MOVE_AXIS.f.filter({ x: 0, y: 0, z: -1 })).toBe(false);
+  });
+
+  it('b filter selects z=0 AND z=-1 (face + S\' slice)', () => {
+    expect(MOVE_AXIS.b.filter({ x: 0, y: 0, z: -1 })).toBe(true);
+    expect(MOVE_AXIS.b.filter({ x: 0, y: 0, z:  0 })).toBe(true);
+    expect(MOVE_AXIS.b.filter({ x: 0, y: 0, z:  1 })).toBe(false);
+  });
+
+  it('r filter selects x=0 AND x=1 (face + M\' slice)', () => {
+    expect(MOVE_AXIS.r.filter({ x:  1, y: 0, z: 0 })).toBe(true);
+    expect(MOVE_AXIS.r.filter({ x:  0, y: 0, z: 0 })).toBe(true);
+    expect(MOVE_AXIS.r.filter({ x: -1, y: 0, z: 0 })).toBe(false);
+  });
+
+  it('l filter selects x=0 AND x=-1 (face + M slice)', () => {
+    expect(MOVE_AXIS.l.filter({ x: -1, y: 0, z: 0 })).toBe(true);
+    expect(MOVE_AXIS.l.filter({ x:  0, y: 0, z: 0 })).toBe(true);
+    expect(MOVE_AXIS.l.filter({ x:  1, y: 0, z: 0 })).toBe(false);
+  });
+
+  it('u filter selects y=0 AND y=1 (face + E\' slice)', () => {
+    expect(MOVE_AXIS.u.filter({ x: 0, y:  1, z: 0 })).toBe(true);
+    expect(MOVE_AXIS.u.filter({ x: 0, y:  0, z: 0 })).toBe(true);
+    expect(MOVE_AXIS.u.filter({ x: 0, y: -1, z: 0 })).toBe(false);
+  });
+
+  it('d filter selects y=0 AND y=-1 (face + E slice)', () => {
+    expect(MOVE_AXIS.d.filter({ x: 0, y: -1, z: 0 })).toBe(true);
+    expect(MOVE_AXIS.d.filter({ x: 0, y:  0, z: 0 })).toBe(true);
+    expect(MOVE_AXIS.d.filter({ x: 0, y:  1, z: 0 })).toBe(false);
+  });
+});
+
 // ── Canvas-dependent tests (skipped — require WebGL) ─────────────────────────
 
 describe.skip('CubeRenderer3D WebGL tests — requires headed browser (Playwright)', () => {

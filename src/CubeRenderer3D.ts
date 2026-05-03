@@ -141,19 +141,36 @@ export interface MoveAxisDef {
 }
 
 export const MOVE_AXIS: Record<string, MoveAxisDef> = {
+  // Single-layer face moves
   U: { axis: new THREE.Vector3(0,  1, 0), dir: -1, filter: p => p.y ===  1 },
   D: { axis: new THREE.Vector3(0,  1, 0), dir:  1, filter: p => p.y === -1 },
   R: { axis: new THREE.Vector3(1,  0, 0), dir: -1, filter: p => p.x ===  1 },
   L: { axis: new THREE.Vector3(1,  0, 0), dir:  1, filter: p => p.x === -1 },
   F: { axis: new THREE.Vector3(0,  0, 1), dir: -1, filter: p => p.z ===  1 },
   B: { axis: new THREE.Vector3(0,  0, 1), dir:  1, filter: p => p.z === -1 },
+  // Slice moves
   M: { axis: new THREE.Vector3(1,  0, 0), dir:  1, filter: p => p.x ===  0 },
   E: { axis: new THREE.Vector3(0,  1, 0), dir:  1, filter: p => p.y ===  0 },
   S: { axis: new THREE.Vector3(0,  0, 1), dir: -1, filter: p => p.z ===  0 },
+  // Whole-cube rotations
   X: { axis: new THREE.Vector3(1,  0, 0), dir: -1, filter: () => true },
   Y: { axis: new THREE.Vector3(0,  1, 0), dir: -1, filter: () => true },
   Z: { axis: new THREE.Vector3(0,  0, 1), dir: -1, filter: () => true },
+  // Wide moves (2-layer): lowercase key = face + adjacent slice, same direction as face
+  f: { axis: new THREE.Vector3(0,  0, 1), dir: -1, filter: p => p.z >=  0 },
+  b: { axis: new THREE.Vector3(0,  0, 1), dir:  1, filter: p => p.z <=  0 },
+  r: { axis: new THREE.Vector3(1,  0, 0), dir: -1, filter: p => p.x >=  0 },
+  l: { axis: new THREE.Vector3(1,  0, 0), dir:  1, filter: p => p.x <=  0 },
+  u: { axis: new THREE.Vector3(0,  1, 0), dir: -1, filter: p => p.y >=  0 },
+  d: { axis: new THREE.Vector3(0,  1, 0), dir:  1, filter: p => p.y <=  0 },
 };
+
+/** Resolve a parsed move base token to its MOVE_AXIS key. Handles lowercase wide moves and Xw notation. */
+function getMoveKey(base: string): string {
+  if (base.length === 2 && base[1] === 'w') return base[0].toLowerCase();
+  if (base.length === 1 && /[udrlf b]/.test(base)) return base;
+  return base.toUpperCase();
+}
 
 export interface CubeRenderer3DOptions {
   theme?: CubeTheme | ThemePresetName;
@@ -404,7 +421,7 @@ export class CubeRenderer3D {
     for (const move of moves) {
       const base = move.replace(/'|2/g, '');
       const mod  = move.endsWith("'") ? -1 : move.endsWith('2') ? 2 : 1;
-      const def  = MOVE_AXIS[base.toUpperCase()];
+      const def  = MOVE_AXIS[getMoveKey(base)];
       if (!def) continue;
 
       const totalAngle = (Math.PI / 2) * def.dir * mod;
@@ -429,7 +446,7 @@ export class CubeRenderer3D {
   applyOrientation(move: string): void {
     const base = move.replace(/'|2/g, '');
     const mod  = move.endsWith("'") ? -1 : move.endsWith('2') ? 2 : 1;
-    const def  = MOVE_AXIS[base.toUpperCase()];
+    const def  = MOVE_AXIS[getMoveKey(base)];
     if (!def) return;
 
     const angle = (Math.PI / 2) * def.dir * mod;
@@ -457,7 +474,7 @@ export class CubeRenderer3D {
 
     const base = move.replace(/'|2/g, '');
     const mod  = move.endsWith("'") ? -1 : move.endsWith('2') ? 2 : 1;
-    const def  = MOVE_AXIS[base.toUpperCase()];
+    const def  = MOVE_AXIS[getMoveKey(base)];
 
     if (!def) {
       onDone?.();
