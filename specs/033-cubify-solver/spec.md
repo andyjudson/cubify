@@ -33,11 +33,19 @@ The existing case selector, mask, and theme controls remain unchanged — scramb
 
 ## Technical Notes
 
-- cubing.js solver: `experimentalSolve3x3x3IgnoringCenters` — marked experimental but stable enough for Lucas to use in TwistyPlayer's own scramble verification
-- Solver takes a `KPattern`, returns a solution alg string; async (may take a few hundred ms)
+- The goal is **not** to wrap `experimentalSolve3x3x3IgnoringCenters` as a black box — it is to
+  understand and reuse the underlying search algorithm from the cubing.js source directly
+- The local cubing.js clone at `../github.clone/cubing.js` is the starting point for this research
+- cubing.js almost certainly uses IDA* (iterative deepening A*) over a move graph with precomputed
+  pruning tables — understanding that structure is what enables granular queries:
+  - Full solve from current state
+  - Solve from here (mid-solve, partial state)
+  - Best N next moves (branching factor at current node, ranked by distance-to-solved)
+- This lower-level reuse is what makes the hint system meaningful — not "here is move 7 of the
+  precomputed solution" but "from this state, these are the 3 moves that reduce the search depth
+  the most"
 - `CubeScramble.random()` is already in cubify — no cubing.js worker dependency for the scramble side
-- Solver itself may require the cubing.js worker; needs testing in the Vite context
-- `player.state` exposes the live KPattern at any point — the solve button reads this directly
+- `player.state` exposes the live KPattern at any point — the solver reads this directly
 
 ---
 
