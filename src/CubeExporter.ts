@@ -23,7 +23,7 @@ export class CubeExporter {
   static async toPNG(algOrState: string | CubeState, { style = '2d', stickering = null, setupAlg = null, size = 400 }: ExportOptions = {}): Promise<string> {
     const { state, setupMoves } = await CubeExporter._resolve(algOrState, setupAlg);
     const visMap: VisMap = stickering
-      ? CubeStickering.fromOrbitStringWithState(stickering, state.toRawPattern())
+      ? CubeStickering.fromOrbitString(stickering)
       : new Map();
 
     if (style === '3d') return CubeExporter._render3D(state, visMap, setupMoves, size);

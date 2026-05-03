@@ -2,7 +2,7 @@
   "name": "cubify-scripts",
   "version": "1.0.0",
   "type": "module",
-  "description": "Standalone CLI for generating cube state images via cubing.js + Playwright",
+  "description": "CLI for generating cube state images via cubify CubeExporter + Playwright",
   "scripts": {
     "cubify": "node cubify.mjs"
   },

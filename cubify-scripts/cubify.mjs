@@ -1,31 +1,22 @@
-import { resolve, basename, dirname } from 'path';
-import { fileURLToPath, pathToFileURL } from 'url';
-import { readFileSync } from 'fs';
+import { resolve, basename, dirname } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { ensureOutputDir } from './lib/output.mjs';
-import { renderCube } from './lib/renderer.mjs';
+import { render } from './lib/renderer.mjs';
 import { lookupCase } from './lib/lookup.mjs';
-import { maskForCase } from './lib/masks.mjs';
+import { getMask } from './lib/masks.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CFOP_APP_DIR = process.env.CFOP_APP_DIR || resolve(__dirname, '../../cfop/cfop-app');
 
-// --- Setup derivation ---
-// For OLL/PLL: experimentalSetupAnchor='end' means the player shows the START of the alg
-// by default (i.e. setup + inv(alg)), giving the recognition pattern.
-// We only need z2 to orient yellow on top — cubing.js handles the inversion.
-// An explicit --setup flag always overrides this.
-
-async function getAlg() {
-  const algPath = pathToFileURL(resolve(CFOP_APP_DIR, 'node_modules/cubing/dist/lib/cubing/alg/index.js')).href;
-  const mod = await import(algPath);
-  return mod.Alg;
+function cleanAlg(notation) {
+  return (notation ?? '').replace(/[()[\]]/g, '').replace(/\s+/g, ' ').trim();
 }
 
 function deriveSetupAlg(method, alg, explicitSetup) {
   if (explicitSetup) return explicitSetup;
   if (method === 'oll' || method === 'pll') return 'z2';
   if (method === 'f2l') {
-    // y-prefixed algs target the FL slot; compensate in setup to normalise display to FR slot
     const leadingY = alg && alg.match(/^(y'?)\s/);
     return leadingY ? `z2 ${leadingY[1]}` : 'z2';
   }
@@ -42,7 +33,7 @@ if (args.length === 0) {
   console.error('  node cubify.mjs --case <case-id>');
   console.error('  node cubify.mjs --file <path-to-json>');
   console.error('');
-  console.error('Optional flags: --2d, --3d, --setup <alg>');
+  console.error('Flags: --2d, --3d, --setup <alg>, --stickering <label|orbitstring>, --masked, --dim');
   process.exit(1);
 }
 
@@ -50,24 +41,30 @@ let mode = null;
 let caseId = null;
 let filePath = null;
 let rawAlgTokens = [];
-let force2d = false;
-let force3d = false;
+let style = '3d';
 let setupAlg = '';
+let stickeringFlag = null;
+let masked = false;
+let dim = false;
 
 for (let i = 0; i < args.length; i++) {
   const arg = args[i];
   if (arg === '--case') {
-    mode = 'case';
-    caseId = args[++i];
+    mode = 'case'; caseId = args[++i];
   } else if (arg === '--file') {
-    mode = 'file';
-    filePath = args[++i];
+    mode = 'file'; filePath = args[++i];
   } else if (arg === '--2d') {
-    force2d = true;
+    style = '2d';
   } else if (arg === '--3d') {
-    force3d = true;
+    style = '3d';
   } else if (arg === '--setup') {
     setupAlg = args[++i] || '';
+  } else if (arg === '--stickering') {
+    stickeringFlag = args[++i];
+  } else if (arg === '--masked') {
+    masked = true;
+  } else if (arg === '--dim') {
+    dim = true;
   } else if (!arg.startsWith('--')) {
     rawAlgTokens.push(arg);
   }
@@ -80,26 +77,15 @@ if (!mode) {
   process.exit(1);
 }
 
-// --- Type-to-config mapping ---
-
-// maskField: the 'mask' field value from JSON ('edge' | 'corner' | undefined)
-function typeToConfig(method, maskField) {
-  // All output formats are PNG — Playwright screenshot only supports PNG.
-  // OLL/PLL use 2D top-layer visualization; others use 3D perspective.
-  const orbits = maskForCase(method, maskField);
-  switch (method) {
-    case 'oll':   return { visualization: 'experimental-2D-LL', mask: orbits, outputFormat: 'png' };
-    case 'pll':   return { visualization: 'experimental-2D-LL', mask: orbits, outputFormat: 'png' };
-    case 'f2l':   return { visualization: 'PG3D',               mask: orbits, outputFormat: 'png' };
-    case 'cross': return { visualization: 'PG3D',               mask: orbits, outputFormat: 'png' };
-    default:      return { visualization: 'PG3D',               mask: orbits, outputFormat: 'png' };
-  }
+function resolveExplicitStickering() {
+  if (!stickeringFlag) return null;
+  return dim ? stickeringFlag + '-dim' : stickeringFlag;
 }
 
-function applyForceFlags(config) {
-  if (force2d) { config.visualization = 'experimental-2D-LL'; config.outputFormat = 'png'; }
-  if (force3d) { config.visualization = 'PG3D';               config.outputFormat = 'png'; }
-  return config;
+function resolveCaseStickering(caseEntry) {
+  if (stickeringFlag) return resolveExplicitStickering();
+  if (masked) return getMask(caseEntry.method ?? 'default', caseEntry.group ?? '', caseEntry.mask ?? null);
+  return null;
 }
 
 // --- Run ---
@@ -107,24 +93,12 @@ function applyForceFlags(config) {
 const outputDir = ensureOutputDir();
 
 if (mode === 'alg') {
-  const alg = rawAlgTokens.join(' ');
-
-  // Validate via cubing.js Alg parser
-  try {
-    const Alg = await getAlg();
-    Alg.fromString(alg);
-  } catch (err) {
-    console.error(`Error: Invalid algorithm "${alg}" — ${err.message}`);
-    process.exit(1);
-  }
-
+  const alg = cleanAlg(rawAlgTokens.join(' '));
   const timestamp = Date.now();
-  const config = applyForceFlags(typeToConfig('default', undefined));
-  const ext = config.outputFormat;
-  const outputPath = resolve(outputDir, `cubify-${timestamp}.${ext}`);
-  const resolvedSetup = deriveSetupAlg('default', alg, setupAlg);
+  const outputPath = resolve(outputDir, `cubify-${timestamp}.png`);
+  const resolvedSetup = deriveSetupAlg('default', alg, setupAlg) || null;
 
-  await renderCube({ ...config, alg, setupAlg: resolvedSetup, outputPath });
+  await render(alg, { style, output: outputPath, stickering: resolveExplicitStickering(), setupAlg: resolvedSetup });
   console.log(outputPath);
 
 } else if (mode === 'case') {
@@ -137,22 +111,18 @@ if (mode === 'alg') {
   }
 
   const caseType = caseEntry.method ?? 'default';
-  const config = applyForceFlags(typeToConfig(caseType, caseEntry.mask));
-  const ext = config.outputFormat;
-  const outputPath = resolve(outputDir, `${caseId}.${ext}`);
+  const outputPath = resolve(outputDir, `${caseId}.png`);
+  const resolvedSetup = deriveSetupAlg(caseType, caseEntry.notation, setupAlg || caseEntry.setup || '') || null;
 
-  const resolvedSetup = deriveSetupAlg(caseType, caseEntry.notation, setupAlg || caseEntry.setup || '');
-
-  await renderCube({
-    ...config,
-    alg: caseEntry.notation,
+  await render(cleanAlg(caseEntry.notation), {
+    style,
+    output: outputPath,
+    stickering: resolveCaseStickering(caseEntry),
     setupAlg: resolvedSetup,
-    outputPath,
   });
   console.log(outputPath);
 
 } else if (mode === 'file') {
-  // Resolve path — bare filenames default to cfop-app/public/data/; paths with slashes resolve from cwd
   const resolvedPath = (filePath.startsWith('/') || filePath.includes('/'))
     ? resolve(filePath)
     : resolve(CFOP_APP_DIR, 'public/data', filePath);
@@ -170,16 +140,14 @@ if (mode === 'alg') {
   const results = [];
   for (const c of cases) {
     const caseType = c.method ?? 'default';
-    const config = applyForceFlags(typeToConfig(caseType, c.mask));
-    const ext = config.outputFormat;
-    const outputPath = resolve(outputDir, `${c.id}.${ext}`);
+    const outputPath = resolve(outputDir, `${c.id}.png`);
     try {
-      const resolvedSetup = deriveSetupAlg(caseType, c.notation, setupAlg || c.setup || '');
-      await renderCube({
-        ...config,
-        alg: c.notation,
+      const resolvedSetup = deriveSetupAlg(caseType, c.notation, setupAlg || c.setup || '', style) || null;
+      await render(cleanAlg(c.notation), {
+        style,
+        output: outputPath,
+        stickering: resolveCaseStickering(c),
         setupAlg: resolvedSetup,
-        outputPath,
       });
       results.push({ ok: true, outputPath, id: c.id });
     } catch (err) {
@@ -187,7 +155,7 @@ if (mode === 'alg') {
     }
   }
 
-  const ok = results.filter(r => r.ok);
+  const ok   = results.filter(r => r.ok);
   const fail = results.filter(r => !r.ok);
   console.log(`✓ Batch complete: ${ok.length}/${cases.length} images written to ${outputDir}/`);
   ok.forEach(r => console.log(`  ${basename(r.outputPath)}`));

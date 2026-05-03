@@ -12,7 +12,7 @@ Project context for Claude Code. See `specs/spec.md` for the feature ledger.
 
 ## Current Status
 
-Features 022–029 complete. Features 030–031 planned.
+Features 022–030 complete. Features 031–032 planned. cfop-migration tracked in cfop repo as Feature 022.
 
 ## Reference Docs — Ground Truth
 
@@ -41,6 +41,7 @@ Key facts from `cube-mapping-lessons.md`:
 - **Mask travels with the cubelet** — grey sticker materials are baked into Three.js mesh materials at `applyStickering()`. When a move animates the mesh, materials travel with it — no reapplication needed.
 - **Never reapply mask in animation callbacks** — call `applyStickering()` only on case load, mask change, or state reset.
 - **Identity-based rendering** — the vis map is keyed by `homePos` (piece identity, never changes through moves).
+- **`CubeExporter.toPNG` stickering must use slot-based visMap** — `getVisLevel` in `CubeRenderer2D` looks up by solved-state orbit position keys, so the visMap must be built with `fromOrbitString` (null rawPattern). Calling `fromOrbitStringWithState(str, state.toRawPattern())` rekeys the map by current piece home positions, causing mismatches after any cube rotation (z2 etc.) and making U face look all-dim. `CubeExporter.toPNG` must call `fromOrbitString(stickering)` only.
 
 ## Library Architecture (`src/`)
 
@@ -71,17 +72,15 @@ Key facts from `cube-mapping-lessons.md`:
 | File | Role |
 |------|------|
 | `cubify.mjs` | Entry point; arg parsing; routes to case/file/alg modes |
-| `lib/renderer.mjs` | Playwright headful Chromium + esbuild IIFE bundle; screenshot capture |
+| `lib/renderer.mjs` | Playwright + Vite dev server (port 5175); navigates to `cubify-harness/renderer.html`; calls `window.cubifyRender()`; writes PNG |
 | `lib/lookup.mjs` | JSON case lookup from cfop repo data files |
-| `lib/masks.mjs` | Orbit string derivation from method + mask field |
-| `lib/output.mjs` | Output directory management |
+| `lib/masks.mjs` | `getMask(method, group, mask)` → MASK_PRESETS label |
+| `lib/output.mjs` | Output to `.tmp/` at cubify repo root |
 
 ### cubify-scripts path config
 
 Scripts depend on the `cfop` repo for:
-- `node_modules/cubing/` (for esbuild bundling and Alg parsing)
 - `public/data/*.json` (algorithm JSON files)
-- Playwright Chromium (`npx playwright install chromium` from cfop-app)
 
 Default path: `../../cfop/cfop-app` (sibling repo layout). Override with `CFOP_APP_DIR` env var.
 
@@ -95,17 +94,23 @@ export CFOP_APP_DIR=/path/to/cfop/cfop-app
 node cubify-scripts/cubify.mjs --case oll_sune
 ```
 
+### renderer.html
+
+`cubify-harness/renderer.html` exposes `window.cubifyRender(alg, options)`. When `options.setupAlg` is provided, it **pre-computes** the full sequence as `[setupAlg, ...invertAlg(alg)]` and passes `null` as alg — because `CubeExporter._resolve` applies `setupAlg` AFTER `invAlg`, not before.
+
 ## cubify Skill
 
 The `/cubify` skill is in `.claude/commands/cubify.md`. Run directly with:
 ```bash
 node cubify-scripts/cubify.mjs <alg>
-node cubify-scripts/cubify.mjs --case oll_sune
-node cubify-scripts/cubify.mjs --file algs-cfop-oll.json
+node cubify-scripts/cubify.mjs --case oll_sune --masked --2d
+node cubify-scripts/cubify.mjs --file algs-cfop-oll.json --masked --2d
 ```
-- Requires `headless: false` (WebGL blocked in headless Chromium on macOS)
-- Requires Playwright Chromium: `cd $CFOP_APP_DIR && npx playwright install chromium`
-- Output: `.claude/tmp/cubify/` (gitignored)
+- 2D renders: `headless: true` (works fine)
+- 3D renders: `headless: false` required (WebGL blocked in headless Chromium on macOS)
+- Requires Playwright Chromium: `cd cubify-scripts && npx playwright install chromium`
+- Output: `.tmp/` at cubify repo root (gitignored)
+- z2 is correctly applied for OLL/PLL/F2L cases — stickering works correctly after the `fromOrbitString` fix in `CubeExporter`
 
 ## Spec Workflow
 

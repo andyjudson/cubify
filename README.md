@@ -48,18 +48,20 @@ Interactive browser dev environment — algorithm selector, play/step controls, 
 Node.js CLI for on-demand cube image generation. Used as the `/cubify` Claude Code skill.
 
 ```bash
-node cubify-scripts/cubify.mjs R U R' U'
-node cubify-scripts/cubify.mjs --case oll_sune
-node cubify-scripts/cubify.mjs --file algs-cfop-oll.json
+node cubify-scripts/cubify.mjs "R U R' U R U2 R'"
+node cubify-scripts/cubify.mjs --case oll_sune --masked --2d
+node cubify-scripts/cubify.mjs --file algs-cfop-oll.json --masked --2d
 ```
 
-Requires Playwright headful Chromium (WebGL blocked in headless on macOS) and the [cfop](https://github.com/andyjudson/cfop) repo for cubing.js and algorithm data.
+Flags: `--2d` / `--3d`, `--masked` (auto-derive stickering from case method/group), `--stickering <label>`, `--dim`, `--setup <alg>`.
+
+Requires Playwright headful Chromium (WebGL blocked in headless on macOS) and the [cfop](https://github.com/andyjudson/cfop) repo for algorithm data.
 
 **Default layout** (repos side by side in the same parent directory):
 ```
 TechLab/
 ├── cubify/    ← this repo
-└── cfop/      ← cfop repo (provides cubing.js + data)
+└── cfop/      ← cfop repo (provides algorithm JSON data)
 ```
 
 Override with `CFOP_APP_DIR=/path/to/cfop/cfop-app`.
@@ -103,4 +105,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Status**: Features 022–029 complete (+ wide move support) • 030–032 planned
+**Status**: Features 022–030 complete (+ wide move support) • 031–032 planned

@@ -163,7 +163,7 @@ Thin React wrapper components around the cubify library for use in cfop-app.
 
 ## Feature 030: cubify-scripts
 
-### Status: Planned 📋
+### Status: Complete ✅
 
 ### Scope
 Migrate `cubify-scripts/` from TwistyPlayer to the cubify `CubeExporter` API. Remove the esbuild step and cfop-app rendering dependency. Add stickering controls to the CLI and agent skill.
@@ -195,29 +195,7 @@ Publish `@andyjudson/cubify` and `@andyjudson/cubify-react` to GitHub Packages. 
 
 ---
 
-## Feature 032: cubify-cfop-migration
-
-### Status: Planned 📋
-
-### Scope
-Full adoption of cubify in cfop-app — scrambles, alg parsing, and 3D visualisation. Absorbs what was previously split as "decouple" (alg imports) and "migration" (TwistyPlayer replacement): they are one coherent delivery.
-
-### Goals
-- Scramble generation: `CubeScramble.random()` replaces `randomScrambleForEvent`
-- Alg parsing: `AlgParser.parse()` replaces `Alg`/`Move` imports in scrambler + VisualizerModal
-- Visualisation: `<CubePlayer>` replaces TwistyPlayer in VisualizerModal
-- Scramble preview: `<CubeState>` replaces TwistyPlayer in ScrambleCubePreview
-- `useCubePlayer()` hook extracted from `CubifyPage` — encapsulates `playerRef`, `playing`, `stepIndex`, `speed`, and the `handleResetButton`/`handlePlayerReset` split; shared by VisualizerModal and any future consumer
-- No cubing.js imports in cfop-app source; IntersectionObserver workarounds removed
-- Prerequisites: 029 (React wrapper) ✅, 031 (packages) 📋
-
-### Notes
-- `CubifyPage` in cfop-app is the working reference harness for this migration; the state/handler pattern (83–114) is the boilerplate to be encapsulated in `useCubePlayer()`
-- Theme presets: `default`, `rubiks`, `speed-dark`, `speed-light` — all tuned and stable
-
----
-
-## Feature 033: cubify-solver
+## Feature 032: cubify-solver
 
 ### Status: Planned 📋
 
@@ -229,7 +207,7 @@ Interactive scramble and solve on the CubifyPage harness. `CubeScramble.random()
 - **Solve** button — reads `player.state`, calls cubing.js solver, animates solution
 - Loading state while solver computes
 - Phase 2: user move tracking via `onMove` events, progress feedback, hint system
-- Prerequisites: 029 (React wrapper) ✅, 032 (cfop-migration) 📋
+- Prerequisites: 029 (React wrapper) ✅
 
 ---
 
@@ -245,7 +223,6 @@ Interactive scramble and solve on the CubifyPage harness. `CubeScramble.random()
 | 027 | cubify-tests | Complete ✅ |
 | 028 | cubify-library | Complete ✅ |
 | 029 | cubify-react | Complete ✅ |
-| 030 | cubify-scripts | Planned 📋 |
+| 030 | cubify-scripts | Complete ✅ |
 | 031 | cubify-packages | Planned 📋 |
-| 032 | cfop-migration | Planned 📋 |
-| 033 | cubify-solver | Planned 📋 |
+| 032 | cubify-solver | Planned 📋 |

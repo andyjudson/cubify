@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+</head>
+<body>
+<script type="module">
+  import { CubeExporter, CubeState, MASK_PRESETS } from '../src/index.js';
+
+  window.cubifyRender = async function(alg, options = {}) {
+    let stickering = options.stickering || null;
+    if (stickering) {
+      const preset = MASK_PRESETS.find(p => p.label === stickering);
+      if (preset) stickering = preset.str;
+    }
+
+    // CubeExporter._resolve applies setupAlg AFTER invAlg (solved → invAlg → setup).
+    // For case recognition images we need: solved → setup → invAlg (e.g. z2 first, then undo the case alg).
+    // Pre-compute the full move sequence here and pass it as setupAlg with a null alg.
+    let renderAlg = alg || null;
+    let renderSetupAlg = null;
+    if (options.setupAlg) {
+      const algMoves = alg ? alg.trim().split(/\s+/).filter(Boolean) : [];
+      const invMoves = CubeState.invertAlg(algMoves);
+      renderSetupAlg = [options.setupAlg, ...invMoves].join(' ');
+      renderAlg = null;
+    }
+
+    return CubeExporter.toPNG(renderAlg, {
+      style:    options.style ?? '3d',
+      stickering,
+      setupAlg: renderSetupAlg,
+      size:     options.size  ?? 288,
+    });
+  };
+</script>
+</body>
+</html>

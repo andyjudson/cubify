@@ -1,6 +1,7 @@
 # /cubify — Cube State Image Generator
 
-Generate a cube state image from an algorithm, a named case, or a batch JSON file.
+Generate a PNG of a cube state from an algorithm, a named case, or a batch JSON file.
+Uses cubify `CubeExporter.toPNG()` via Playwright + Vite dev server.
 
 ## Usage
 
@@ -10,60 +11,77 @@ Generate a cube state image from an algorithm, a named case, or a batch JSON fil
 /cubify --file <path>
 ```
 
-### Optional flags
+### Flags
 
-- `--2d` — force 2D top-layer visualization
-- `--3d` — force 3D perspective visualization (default)
-- `--setup <alg>` — apply setup moves before the algorithm
+| Flag | Description |
+|------|-------------|
+| `--3d` | 3D perspective PNG (default when neither flag is given) |
+| `--2d` | 2D cube net PNG |
+| `--setup <alg>` | Apply setup moves before the algorithm |
+| `--stickering <label\|orbitstring>` | MASK_PRESETS label (e.g. `oll-face-dim`) or raw orbit string |
+| `--masked` | Auto-derive mask from case method + group (dim already baked in) |
+| `--dim` | Append `-dim` to explicit `--stickering` label; no-op with `--masked` |
 
-> **Coming in Feature 030 (cubify-scripts migration):**
-> - `--stickering <preset|orbitstring>` — apply a MASK_PRESET label (e.g. `oll`, `f2l`) or raw orbit string
-> - `--masked` — auto-derive mask from the case method
-> - `--dim` — use the dim variant of the derived/specified mask
+**`--stickering` vs `--masked`**: Use `--masked` for case exports — it reads `method + group + mask` from the JSON and picks the right label automatically. Use `--stickering` to override with a specific preset for ad-hoc renders.
 
 ## How to run
 
-Parse the arguments from the user's message after `/cubify` and run:
+Parse the arguments from the user's message after `/cubify` and run from the repo root:
 
 ```bash
 node cubify-scripts/cubify.mjs [args]
 ```
 
-Run from the repo root (`/Users/Andy/Documents/TechLab/cubify`).
+Repo root: `/Users/Andy/Documents/TechLab/cubify`
 
-### Input mode detection
+## Input modes
 
-1. **Raw alg** — no leading `--case` or `--file` flag:
-   `node cubify-scripts/cubify.mjs R U R' U'`
+**Raw alg** — no leading flag:
+```bash
+node cubify-scripts/cubify.mjs "R U R' U R U2 R'"
+```
 
-2. **Case lookup** — `--case <id>`:
-   `node cubify-scripts/cubify.mjs --case oll_sune`
+**Case lookup** — `--case <id>`:
+```bash
+node cubify-scripts/cubify.mjs --case oll_sune --masked --2d
+```
 
-3. **Batch file** — `--file <path>`:
-   `node cubify-scripts/cubify.mjs --file algs-cfop-oll.json`
+**Batch file** — `--file <path>` (bare filename resolves relative to `cfop-app/public/data/`):
+```bash
+node cubify-scripts/cubify.mjs --file algs-cfop-oll.json --masked --2d
+```
+
+## Stickering labels (MASK_PRESETS)
+
+| Label | Use for |
+|-------|---------|
+| `oll-face-dim` | OLL 1-look, OLL 2-look corner stage |
+| `oll-cross-dim` | OLL 2-look edge stage (`mask: "edge"` in JSON) |
+| `pll-face-dim` | PLL full permutation (Adjacent Swap, Diagonal Swap, G Perms) |
+| `pll-corn-dim` | PLL corners-only cases + 2-look corner stage |
+| `pll-edge-dim` | PLL edges-only cases + 2-look edge stage |
+| `f2l-dim` | F2L cases |
+| `full` | No masking (all stickers visible) |
 
 ## Output
 
-On success the script prints the absolute path(s) of the written image(s) to stdout.
+On success the script prints the absolute path(s) of the written PNG(s) to stdout.
 Report the path back to the user so they can open it.
 
 For batch runs, print the summary line and first few filenames.
 
 ## Error handling
 
-If the script exits with code 1 (input error) or 2 (render error), show the error message to the user and suggest a fix:
-- Invalid alg: check notation and try again
 - Unknown case ID: the error message lists available IDs
 - Chromium not found: `cd cubify-scripts && npx playwright install chromium`
-- Missing file: check the path is relative to `cfop-app/public/data/` or provide an absolute path
+- Missing file: check path is relative to `cfop-app/public/data/` or provide absolute path
+- Vite timeout: ensure `npm install` has been run at cubify root
 
 ## Notes
 
-- All output is transparent PNG — `omitBackground: true` on Playwright screenshot; images blend with any app theme
-- View mode (2D/3D) and mask are auto-selected from case type: OLL/PLL → 2D top-layer view, F2L/Cross/BGR → 3D perspective view
-- OLL masking: no `mask` field = 1-look (show all top edges + corners); `mask: "edge"` = 2-look edge stage (corners hidden)
-- F2L setup: `z2` applied automatically; y-prefixed algs get `z2 y` to normalise to FR slot; mid-alg rotations need explicit `setup` field in JSON
-- PLL/BGR setup: `z2` orients yellow on top; add `y`/`y2`/`y'` to setup to put green front — verify empirically per case
-- Output files are written to `.claude/tmp/cubify/` within the repo
-- The renderer opens a visible Chromium window briefly — this is expected (WebGL requires headful mode on macOS)
-- After any batch regeneration, copy outputs to `cfop-app/public/assets/cfop_<method>/` to update the app
+- Output is transparent PNG written to `.tmp/` within the cubify repo root
+- A visible Chromium window opens briefly — expected; WebGL requires headful mode on macOS
+- If the cubify Vite dev server is already running (harness open), it is reused automatically
+- After batch regeneration, copy outputs to `cfop-app/public/assets/cfop_<method>/` to update the app
+- OLL/PLL cases: `z2` setup applied automatically to orient yellow on top
+- F2L cases: `z2` setup applied; y-prefixed algs get `z2 y` to normalise to FR slot

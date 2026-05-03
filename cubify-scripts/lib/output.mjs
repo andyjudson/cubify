@@ -3,7 +3,7 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUTPUT_DIR = resolve(__dirname, '../../.claude/tmp/cubify');
+const OUTPUT_DIR = resolve(__dirname, '../../.tmp');
 
 export function ensureOutputDir() {
   if (!existsSync(OUTPUT_DIR)) {

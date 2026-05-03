@@ -1,4 +1,4 @@
-# Feature 033 — cubify-solver (scramble + solve)
+# Feature 032 — cubify-solver (scramble + solve)
 
 ## Summary
 
