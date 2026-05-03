@@ -189,8 +189,13 @@ Full adoption of cubify in cfop-app — scrambles, alg parsing, and 3D visualisa
 - Alg parsing: `AlgParser.parse()` replaces `Alg`/`Move` imports in scrambler + VisualizerModal
 - Visualisation: `<CubePlayer>` replaces TwistyPlayer in VisualizerModal
 - Scramble preview: `<CubeState>` replaces TwistyPlayer in ScrambleCubePreview
+- `useCubePlayer()` hook extracted from `CubifyPage` — encapsulates `playerRef`, `playing`, `stepIndex`, `speed`, and the `handleResetButton`/`handlePlayerReset` split; shared by VisualizerModal and any future consumer
 - No cubing.js imports in cfop-app source; IntersectionObserver workarounds removed
 - Prerequisites: 029 (React wrapper), 028 (library API)
+
+### Notes
+- `CubifyPage` in cfop-app is the working reference harness for this migration; the state/handler pattern (83–114) is the boilerplate to be encapsulated in `useCubePlayer()`
+- Theme presets: `default`, `rubiks`, `speed-dark`, `speed-light` — all tuned and stable
 
 ---
 

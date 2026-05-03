@@ -5,7 +5,7 @@ import {
   type CubeTheme, type ThemePresetName,
 } from '../src/CubeTheme.js';
 
-const PRESET_NAMES: ThemePresetName[] = ['default', 'gan', 'rubiks', 'speed'];
+const PRESET_NAMES: ThemePresetName[] = ['default', 'rubiks', 'speed-dark', 'speed-light'];
 
 describe('THEME_PRESETS', () => {
   it('has exactly 4 named presets', () => {
@@ -22,17 +22,21 @@ describe('THEME_PRESETS', () => {
     expect(validateTheme(DEFAULT_THEME)).toBeNull();
   });
 
-  it('gan preset has light plastic and partial opacity', () => {
-    expect(THEME_PRESETS.gan.plasticColour).toBe('#ebebeb');
-    expect(THEME_PRESETS.gan.plasticOpacity).toBe(0.9);
+  it('speed-dark preset has dark plastic', () => {
+    expect(THEME_PRESETS['speed-dark'].plasticColour).toBe('#232323');
+  });
+
+  it('speed-light preset has light plastic and partial opacity', () => {
+    expect(THEME_PRESETS['speed-light'].plasticColour).toBe('#ebebeb');
+    expect(THEME_PRESETS['speed-light'].plasticOpacity).toBe(0.9);
   });
 
   it('rubiks preset uses standard material', () => {
     expect(THEME_PRESETS.rubiks.materialType).toBe('standard');
   });
 
-  it('speed preset uses basic material', () => {
-    expect(THEME_PRESETS.speed.materialType).toBe('basic');
+  it('speed-dark preset uses basic material', () => {
+    expect(THEME_PRESETS['speed-dark'].materialType).toBe('basic');
   });
 });
 
@@ -50,9 +54,9 @@ describe('getThemePreset', () => {
 
 describe('cloneTheme', () => {
   it('produces a deep-enough clone (colours object is new reference)', () => {
-    const t = cloneTheme(THEME_PRESETS.gan);
+    const t = cloneTheme(THEME_PRESETS['speed-dark']);
     t.colours.U = '#000000';
-    expect(THEME_PRESETS.gan.colours.U).toBe('#ffffff');
+    expect(THEME_PRESETS['speed-dark'].colours.U).toBe('#ffffff');
   });
 });
 

@@ -13,7 +13,7 @@ export interface FaceColours {
   [key: string]: string;
 }
 
-export type ThemePresetName = 'default' | 'gan' | 'rubiks' | 'speed';
+export type ThemePresetName = 'default' | 'rubiks' | 'speed-dark' | 'speed-light';
 
 export interface CubeTheme {
   colours: FaceColours;
@@ -36,11 +36,6 @@ export interface CubeTheme {
 const CLASSIC: FaceColours = {
   U: '#ffffff', R: '#c41e1e', F: '#1a7c2a',
   D: '#ffd000', L: '#e06000', B: '#0f4fad',
-};
-
-const GAN: FaceColours = {
-  U: '#ffffff', R: '#f02222', F: '#00bb40',
-  D: '#ffe000', L: '#ff6200', B: '#1a68cc',
 };
 
 // ---- Default theme (library default — the current "speed" look) ----
@@ -68,19 +63,19 @@ export const THEME_PRESETS: Record<ThemePresetName, CubeTheme> = {
     centerShape: 'square',
     materialType: 'standard', roughness: 0.85, metalness: 0,
   },
-  gan: {
-    colours: GAN,
-    brightness: 1.2, saturation: 2,
-    plasticColour: '#ebebeb', plasticOpacity: 0.9,
-    gap: 0.01, bevel: 0.08,
-    stickerPad: 5, stickerRadius: 20,
-    centerShape: 'square',
-    materialType: 'standard', roughness: 0.3, metalness: 0.05,
-  },
-  speed: {
+  'speed-dark': {
     colours: CLASSIC,
     brightness: 1.35, saturation: 1.25,
     plasticColour: '#232323', plasticOpacity: 0.9,
+    gap: 0.02, bevel: 0.06,
+    stickerPad: 14, stickerRadius: 16,
+    centerShape: 'square',
+    materialType: 'basic', roughness: 0.9, metalness: 0,
+  },
+  'speed-light': {
+    colours: CLASSIC,
+    brightness: 1.4, saturation: 1.2,
+    plasticColour: '#ebebeb', plasticOpacity: 0.9,
     gap: 0.02, bevel: 0.06,
     stickerPad: 14, stickerRadius: 16,
     centerShape: 'square',
