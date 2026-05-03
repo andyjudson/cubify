@@ -217,6 +217,22 @@ Full adoption of cubify in cfop-app — scrambles, alg parsing, and 3D visualisa
 
 ---
 
+## Feature 033: cubify-solver
+
+### Status: Planned 📋
+
+### Scope
+Interactive scramble and solve on the CubifyPage harness. `CubeScramble.random()` generates the scramble; cubing.js `experimentalSolve3x3x3IgnoringCenters` computes the solution from the live KPattern state. Phase 1 is two buttons — Scramble and Solve. Phase 2 adds move tracking and hints.
+
+### Goals
+- **Scramble** button — `CubeScramble.random()`, loads as setup, resets to scrambled state instantly
+- **Solve** button — reads `player.state`, calls cubing.js solver, animates solution
+- Loading state while solver computes
+- Phase 2: user move tracking via `onMove` events, progress feedback, hint system
+- Prerequisites: 029 (React wrapper) ✅, 032 (cfop-migration) 📋
+
+---
+
 ## Status Summary
 
 | Feature | Name | Status |
@@ -232,3 +248,4 @@ Full adoption of cubify in cfop-app — scrambles, alg parsing, and 3D visualisa
 | 030 | cubify-scripts | Planned 📋 |
 | 031 | cubify-packages | Planned 📋 |
 | 032 | cfop-migration | Planned 📋 |
+| 033 | cubify-solver | Planned 📋 |
