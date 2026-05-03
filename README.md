@@ -103,4 +103,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Status**: Features 022–029 complete (+ wide move support) • 030–031 planned
+**Status**: Features 022–029 complete (+ wide move support) • 030–032 planned

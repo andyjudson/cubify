@@ -178,7 +178,24 @@ Migrate `cubify-scripts/` from TwistyPlayer to the cubify `CubeExporter` API. Re
 
 ---
 
-## Feature 031: cubify-cfop-migration
+## Feature 031: cubify-packages
+
+### Status: Planned 📋
+
+### Scope
+Publish `@andyjudson/cubify` and `@andyjudson/cubify-react` to GitHub Packages. Replaces the local Vite path alias with a versioned import, unblocking the cfop-app deploy pipeline on a fresh clone.
+
+### Goals
+- Build step: `tsc` → `dist/` with ES modules + declarations for both packages
+- `@andyjudson/cubify` — core library, no React dependency
+- `@andyjudson/cubify-react` — React wrappers (moved from `cfop-app/src/lib/cubify/`), peer-depends on React + `@andyjudson/cubify`; no CSS framework dependency
+- `publish.yml` GitHub Actions workflow — triggers on version tag, publishes to `npm.pkg.github.com`
+- `cfop-app` `.npmrc` + import path updates; `deploy.yml` authenticates to GitHub Packages
+- Prerequisites: 029 (React wrapper) ✅, 030 (scripts) ✅
+
+---
+
+## Feature 032: cubify-cfop-migration
 
 ### Status: Planned 📋
 
@@ -192,7 +209,7 @@ Full adoption of cubify in cfop-app — scrambles, alg parsing, and 3D visualisa
 - Scramble preview: `<CubeState>` replaces TwistyPlayer in ScrambleCubePreview
 - `useCubePlayer()` hook extracted from `CubifyPage` — encapsulates `playerRef`, `playing`, `stepIndex`, `speed`, and the `handleResetButton`/`handlePlayerReset` split; shared by VisualizerModal and any future consumer
 - No cubing.js imports in cfop-app source; IntersectionObserver workarounds removed
-- Prerequisites: 029 (React wrapper), 028 (library API)
+- Prerequisites: 029 (React wrapper) ✅, 031 (packages) 📋
 
 ### Notes
 - `CubifyPage` in cfop-app is the working reference harness for this migration; the state/handler pattern (83–114) is the boilerplate to be encapsulated in `useCubePlayer()`
@@ -213,4 +230,5 @@ Full adoption of cubify in cfop-app — scrambles, alg parsing, and 3D visualisa
 | 028 | cubify-library | Complete ✅ |
 | 029 | cubify-react | Complete ✅ |
 | 030 | cubify-scripts | Planned 📋 |
-| 031 | cfop-migration | Planned 📋 |
+| 031 | cubify-packages | Planned 📋 |
+| 032 | cfop-migration | Planned 📋 |
