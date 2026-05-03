@@ -244,6 +244,7 @@
     <!-- Moves panel -->
     <div id="tools-moves-panel" class="tools-panel">
       <div class="validator-row" id="move-buttons-face"></div>
+      <div class="validator-row" id="move-buttons-wide"></div>
       <div class="validator-row" id="move-buttons-other"></div>
       <div class="validator-input-row">
         <input id="move-input" class="input is-small" type="text"
@@ -867,6 +868,7 @@
 
   // ---- Moves tab ----
   const MOVE_BUTTONS_FACE  = ['U',"U'",'R',"R'",'F',"F'",'D',"D'",'L',"L'",'B',"B'"];
+  const MOVE_BUTTONS_WIDE  = ['u',"u'",'r',"r'",'f',"f'",'d',"d'",'l',"l'",'b',"b'"];
   const MOVE_BUTTONS_OTHER = ['M',"M'",'S',"S'",'E',"E'",'x',"x'",'y',"y'",'z',"z'"];
 
   function buildMoveButtons(moves, containerId) {
@@ -881,6 +883,7 @@
     });
   }
   buildMoveButtons(MOVE_BUTTONS_FACE,  'move-buttons-face');
+  buildMoveButtons(MOVE_BUTTONS_WIDE,  'move-buttons-wide');
   buildMoveButtons(MOVE_BUTTONS_OTHER, 'move-buttons-other');
 
   function applyLiveMove(mv, onDone) {
