@@ -152,11 +152,12 @@ Thin React wrapper components around the cubify library for use in cfop-app.
 - `<CubeMoveTape>` — move sequence with active/done highlight; 640px max-width wraps Sexy ×6 to 2 lines
 - `<CubeState>` — display-only static snapshot; `alg`, `setup`, `stickering`, `theme`, `style` props
 - All components TypeScript-typed with full prop interfaces; mount/unmount lifecycle handled internally
-- `CubifyPage` harness in cfop-app: case selector (Sune OLL, T Perm PLL, Sexy ×6), mask dropdown, theme toggle buttons, playback controls
+- `CubifyPage` harness in cfop-app: grouped case selector (2-Look OLL/PLL + Fun), mask dropdown, theme toggle buttons, playback controls, collapsible About panel
 - Cubify nav entry added to cfop-app between About and Notation
 - Vite alias `cubify` → `../../../cubify/src/index.ts`; tsconfig paths aligned
-- Core library fully rewritten in TypeScript; 168 Vitest tests
-- Theme presets updated: `modern` → `gan` (vivid GAN stickerless colours, white plastic); `minimal` → `speed` (CLASSIC colours, dark plastic, basic material)
+- Core library fully rewritten in TypeScript; 181 Vitest tests
+- Theme presets: `speed-dark` (dark plastic, basic material) and `speed-light` (light plastic) replacing earlier `gan`/`speed` iterations
+- Wide move support added to `CubeRenderer3D`: `f/b/r/l/u/d` and `Xw` notation — both layers rotate as a single simultaneous pivot; `getMoveKey()` helper added; `AlgParser` regex cleaned up; 12 new tests
 
 ---
 
