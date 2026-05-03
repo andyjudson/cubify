@@ -53,6 +53,10 @@ The existing case selector, mask, and theme controls remain unchanged — scramb
 
 - Feature 029 (React wrapper) ✅
 - Feature 032 (cfop-migration) 📋 — cubing.js imports cleaned up; solver import strategy clearer after migration
+- `specs/cubing-js-solver.md` — research document produced by reading the local cubing.js clone;
+  covers pruning table structure, IDA* search depth/branching, node representation, and
+  distance-to-solved scoring. Same pattern as `cubing-js-architecture.md` and
+  `cubing-js-stickering.md`. Must exist before implementation begins.
 
 ---
 
