@@ -3,3 +3,4 @@ dist/
 types/
 .claude/tmp/
 .tmp/
+cubify-scripts/data

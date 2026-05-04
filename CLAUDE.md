@@ -79,20 +79,13 @@ Key facts from `cube-mapping-lessons.md`:
 
 ### cubify-scripts path config
 
-Scripts depend on the `cfop` repo for:
-- `public/data/*.json` (algorithm JSON files)
-
-Default path: `../../cfop/cfop-app` (sibling repo layout). Override with `CFOP_APP_DIR` env var.
+Algorithm JSON is read via the `cubify-scripts/data` symlink (gitignored), which points to `cfop-app/public/data/`. Create it once with:
 
 ```bash
-# Default layout (repos side by side):
-# /TechLab/cubify/cubify-scripts/
-# /TechLab/cfop/cfop-app/
-
-# Or override:
-export CFOP_APP_DIR=/path/to/cfop/cfop-app
-node cubify-scripts/cubify.mjs --case oll_sune
+ln -s /path/to/cfop/cfop-app/public/data cubify-scripts/data
 ```
+
+Override with `CFOP_APP_DIR=/path/to/cfop/cfop-app` env var if needed.
 
 ### renderer.html
 

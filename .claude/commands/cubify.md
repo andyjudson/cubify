@@ -27,12 +27,14 @@ Uses cubify `CubeExporter.toPNG()` via Playwright + Vite dev server.
 ## How to run
 
 Parse the arguments from the user's message after `/cubify` and run from the repo root:
-
 ```bash
 node cubify-scripts/cubify.mjs [args]
 ```
 
-Repo root: `/Users/Andy/Documents/TechLab/cubify`
+Playwright Chromium must be installed (one-time setup):
+```bash
+cd cubify-scripts && npx playwright install chromium
+```
 
 ## Input modes
 
@@ -46,7 +48,7 @@ node cubify-scripts/cubify.mjs "R U R' U R U2 R'"
 node cubify-scripts/cubify.mjs --case oll_sune --masked --2d
 ```
 
-**Batch file** — `--file <path>` (bare filename resolves relative to `cfop-app/public/data/`):
+**Batch file** — `--file <path>` (bare filename resolves relative to `cubify-scripts/data/`):
 ```bash
 node cubify-scripts/cubify.mjs --file algs-cfop-oll.json --masked --2d
 ```

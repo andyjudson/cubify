@@ -3,8 +3,7 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const CFOP_APP_DIR = process.env.CFOP_APP_DIR || resolve(__dirname, '../../../cfop/cfop-app');
-const DATA_DIR = resolve(CFOP_APP_DIR, 'public/data');
+const DATA_DIR = process.env.CFOP_APP_DIR ? resolve(process.env.CFOP_APP_DIR, 'public/data') : resolve(__dirname, '../data');
 
 const DATA_FILES = [
   'algs-cfop-oll.json',

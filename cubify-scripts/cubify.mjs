@@ -7,7 +7,7 @@ import { lookupCase } from './lib/lookup.mjs';
 import { getMask } from './lib/masks.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const CFOP_APP_DIR = process.env.CFOP_APP_DIR || resolve(__dirname, '../../cfop/cfop-app');
+const DATA_DIR = process.env.CFOP_APP_DIR ? resolve(process.env.CFOP_APP_DIR, 'public/data') : resolve(__dirname, 'data');
 
 function cleanAlg(notation) {
   return (notation ?? '').replace(/[()[\]]/g, '').replace(/\s+/g, ' ').trim();
@@ -125,7 +125,7 @@ if (mode === 'alg') {
 } else if (mode === 'file') {
   const resolvedPath = (filePath.startsWith('/') || filePath.includes('/'))
     ? resolve(filePath)
-    : resolve(CFOP_APP_DIR, 'public/data', filePath);
+    : resolve(DATA_DIR, filePath);
 
   let cases;
   try {

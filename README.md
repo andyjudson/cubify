@@ -55,16 +55,17 @@ node cubify-scripts/cubify.mjs --file algs-cfop-oll.json --masked --2d
 
 Flags: `--2d` / `--3d`, `--masked` (auto-derive stickering from case method/group), `--stickering <label>`, `--dim`, `--setup <alg>`.
 
-Requires Playwright headful Chromium (WebGL blocked in headless on macOS) and the [cfop](https://github.com/andyjudson/cfop) repo for algorithm data.
+Requires headful Chromium (WebGL blocked in headless on macOS). Install once with:
 
-**Default layout** (repos side by side in the same parent directory):
-```
-TechLab/
-├── cubify/    ← this repo
-└── cfop/      ← cfop repo (provides algorithm JSON data)
+```bash
+cd cubify-scripts && npx playwright install chromium
 ```
 
-Override with `CFOP_APP_DIR=/path/to/cfop/cfop-app`.
+Algorithm data is read via a `cubify-scripts/data` symlink (gitignored). Create it once:
+
+```bash
+ln -s /path/to/cfop/cfop-app/public/data cubify-scripts/data
+```
 
 ## React Usage
 
