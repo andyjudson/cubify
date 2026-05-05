@@ -12,7 +12,8 @@ The long-term destination is cfop-app: a personal CFOP learning tool. All featur
 
 ## Technology Choices
 
-- **Core library**: Vanilla ES Modules — no build step, no bundler required for the library itself
+- **Core library**: TypeScript ES Modules — `tsc` build to `dist/` required for npm packaging (feature 031+); source remains Vite-served `.ts` for harness/dev
+- **Package distribution**: npm workspaces (`packages/cubify/`, `packages/cubify-react/`); published to GitHub Packages as `@andyjudson/cubify` and `@andyjudson/cubify-react`
 - **3D rendering**: Three.js (WebGL); `CubeRenderer3D` owns the scene graph
 - **Puzzle logic**: cubing.js (`KPattern`, `KPuzzle`, `cube3x3x3`) — wrapped by `CubeState`, never exposed directly to consumers after feature 028
 - **Dev server**: Vite (required — bare specifiers cannot be opened directly in a browser)

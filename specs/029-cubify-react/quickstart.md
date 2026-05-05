@@ -1,5 +1,9 @@
 # Quickstart — Feature 029: cubify-react
 
+> **Superseded by Feature 031.** The Vite alias + local path setup below is replaced by `@andyjudson/cubify` and `@andyjudson/cubify-react` npm packages. See [`specs/031-cubify-packages/quickstart.md`](../031-cubify-packages/quickstart.md) for current install and usage instructions, including the `CUBIFY_LOCAL=1` local dev workflow.
+>
+> This document is retained as a record of the pre-packaging implementation.
+
 ## Setup
 
 ### 1. Add Vite alias in `cfop-app/vite.config.ts`
