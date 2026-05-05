@@ -131,32 +131,39 @@ export default defineConfig({
 
 ## 5. Local development workflow (cubify + cfop-app simultaneously)
 
-When making changes to the cubify library and testing them in cfop-app **without publishing**, set `CUBIFY_LOCAL=1`. This bypasses the npm registry and aliases directly to the local TypeScript source — no build step needed.
+When making changes to the cubify library and testing them in cfop-app **without publishing**, create a `.env.local` file in `cfop-app/`. This is gitignored by Vite by default and never committed.
 
-The cfop-app `vite.config.ts` checks this env var:
+**One-time setup:**
+```bash
+echo "CUBIFY_LOCAL=1" >> cfop-app/.env.local
+```
+
+After that, `npm run dev` works exactly as before — Vite loads `.env.local` automatically and the aliases bypass the npm registry entirely, pointing straight at the local TypeScript source with full HMR.
+
+The `vite.config.ts` uses Vite's `loadEnv()` to read it:
 
 ```ts
-const CUBIFY_LOCAL = process.env.CUBIFY_LOCAL === '1';
+import { defineConfig, loadEnv } from 'vite';
 
-export default defineConfig({
-  resolve: {
-    alias: CUBIFY_LOCAL ? {
-      '@andyjudson/cubify':
-        resolve(__dirname, '../../cubify/packages/cubify/src/index.ts'),
-      '@andyjudson/cubify-react':
-        resolve(__dirname, '../../cubify/packages/cubify-react/src/index.ts'),
-    } : {},
-    dedupe: ['cubing'],
-  },
-})
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const CUBIFY_LOCAL = env.CUBIFY_LOCAL === '1';
+
+  return {
+    resolve: {
+      alias: CUBIFY_LOCAL ? {
+        '@andyjudson/cubify':
+          resolve(__dirname, '../../cubify/packages/cubify/src/index.ts'),
+        '@andyjudson/cubify-react':
+          resolve(__dirname, '../../cubify/packages/cubify-react/src/index.ts'),
+      } : {},
+      dedupe: ['cubing'],
+    },
+  };
+});
 ```
 
-Run with:
-```bash
-CUBIFY_LOCAL=1 npm run dev
-```
-
-Remove the env var to switch back to the installed packages. CI never sets it.
+CI and fresh clones never have `.env.local` so always use the published packages.
 
 ---
 

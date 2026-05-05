@@ -265,33 +265,37 @@ Add to `dependencies`:
 
 ---
 
-**T16** — Update `cfop-app/vite.config.ts` with `CUBIFY_LOCAL` dev override
+**T16** — Update `cfop-app/vite.config.ts` with `.env.local` dev override
 
-Replace the hard-coded `cubify` alias with a `CUBIFY_LOCAL`-conditional block. Production (and CI) use the installed packages; local cross-repo development sets `CUBIFY_LOCAL=1` to bypass the registry entirely:
+Replace the hard-coded `cubify` alias with a `CUBIFY_LOCAL`-conditional block using Vite's `loadEnv()`. Local developers create a gitignored `.env.local` once; CI and fresh clones never have the file so always use the published packages:
 
 ```ts
-const CUBIFY_LOCAL = process.env.CUBIFY_LOCAL === '1';
+import { defineConfig, loadEnv } from 'vite';
 
-export default defineConfig({
-  resolve: {
-    alias: CUBIFY_LOCAL ? {
-      '@andyjudson/cubify':
-        resolve(__dirname, '../../cubify/packages/cubify/src/index.ts'),
-      '@andyjudson/cubify-react':
-        resolve(__dirname, '../../cubify/packages/cubify-react/src/index.ts'),
-    } : {},
-    dedupe: ['cubing'],
-  },
-})
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const CUBIFY_LOCAL = env.CUBIFY_LOCAL === '1';
+
+  return {
+    resolve: {
+      alias: CUBIFY_LOCAL ? {
+        '@andyjudson/cubify':
+          resolve(__dirname, '../../cubify/packages/cubify/src/index.ts'),
+        '@andyjudson/cubify-react':
+          resolve(__dirname, '../../cubify/packages/cubify-react/src/index.ts'),
+      } : {},
+      dedupe: ['cubing'],
+    },
+  };
+});
 ```
 
-Local dev workflow:
+Local dev setup (one-time):
 ```bash
-CUBIFY_LOCAL=1 npm run dev   # aliases bypass npm, point straight at source
-npm run dev                  # uses installed @andyjudson/* packages
+echo "CUBIFY_LOCAL=1" >> cfop-app/.env.local
 ```
 
-No `.env` file needed — the env var is set per-run. This means CI never picks it up accidentally.
+After that `npm run dev` just works — Vite loads `.env.local` automatically. `.env.local` is gitignored by Vite by default so it never gets committed.
 
 ---
 
@@ -391,4 +395,4 @@ In `CLAUDE.md` (cubify repo): document the `CUBIFY_LOCAL=1` local dev workflow i
 
 5. **`GITHUB_TOKEN` for both publish and install** — no additional secrets. Has `packages:write` in cubify CI and implicit `packages:read` in cfop deploy CI.
 
-6. **`CUBIFY_LOCAL=1` preserves the local dev workflow** — removing the Vite alias entirely would break simultaneous cubify + cfop-app development. The conditional alias restores the pre-031 dev experience (no build step, live TypeScript source) when set. CI never sets it so production always uses the published packages.
+6. **`.env.local` preserves the local dev workflow** — removing the Vite alias entirely would break simultaneous cubify + cfop-app development. A gitignored `cfop-app/.env.local` containing `CUBIFY_LOCAL=1` restores the pre-031 dev experience (no build step, live TypeScript source, HMR). Vite loads `.env.local` automatically; CI and fresh clones never have the file so always use the published packages.
