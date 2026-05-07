@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: read
-  packages: write
+  packages: write  # write implies read; explicit for clarity
 
 jobs:
   publish:

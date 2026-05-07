@@ -162,6 +162,19 @@ bash scripts/version-bump.sh <version>   # bumps both packages, commits, tags
 git push && git push --tags              # triggers publish.yml CI
 ```
 
+## GitHub Packages — Lessons Learned (031)
+
+**`workspace:*` is pnpm/yarn syntax — not supported by npm.** Use the actual version range (`^1.0.0`) in devDependencies for sibling workspace packages. npm workspace resolution picks up the local version when it satisfies the range.
+
+**Any workflow that installs from GitHub Packages needs `packages: read` in its permissions block.** Specifying an explicit `permissions:` key in a GitHub Actions workflow restricts `GITHUB_TOKEN` to exactly those scopes — all others are dropped. Without `packages: read`, `npm ci` gets a 403 even for packages you own.
+
+**Never use `npm install <tarball>` to work around a missing token.** It resolves correctly locally but writes `file:/path/to/tarball.tgz` into `package-lock.json`. CI runners don't have that path and fail with `ENOENT`. Use `npm link` instead if you need a local install without publishing — it doesn't touch the lock file.
+
+**Local installs from GitHub Packages need a classic PAT with `read:packages`.** The `gh` CLI OAuth token (`gho_...`) does not have this scope. Add to `~/.zprofile`:
+```bash
+export NPM_AUTH_TOKEN=<your-pat>
+```
+
 ## Playwright / Web Component Automation
 
 When automating or screenshotting a third-party web component:
