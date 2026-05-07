@@ -1,27 +1,13 @@
 {
-  "name": "cubify",
-  "version": "0.1.0",
-  "description": "Clean-room 3×3 cube rendering and logic library",
-  "type": "module",
-  "main": "./src/index.ts",
-  "types": "./types/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./src/index.ts",
-      "types": "./types/index.d.ts"
-    }
-  },
+  "name": "cubify-workspace",
+  "private": true,
+  "workspaces": ["packages/*"],
   "scripts": {
+    "build": "npm run build --workspaces",
     "test": "vitest run",
     "test:watch": "vitest",
     "dev": "cd cubify-harness && vite",
-    "build": "cd cubify-harness && vite build",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
-  },
-  "license": "MIT",
-  "peerDependencies": {
-    "cubing": "^0.63.3",
-    "three": "^0.170.0"
+    "typecheck": "npm run typecheck --workspaces"
   },
   "devDependencies": {
     "cubing": "^0.63.3",

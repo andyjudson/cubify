@@ -1,0 +1,28 @@
+name: Publish to GitHub Packages
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://npm.pkg.github.com
+      - run: npm ci
+      - run: npm run build --workspace=packages/cubify
+      - run: npm run build --workspace=packages/cubify-react
+      - run: npm publish --workspace=packages/cubify
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm publish --workspace=packages/cubify-react
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,36 @@
+{
+  "name": "@andyjudson/cubify",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Clean-room 3×3 cube rendering and logic library",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/andyjudson/cubify.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "peerDependencies": {
+    "cubing": "^0.63.3",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "cubing": "^0.63.3",
+    "three": "^0.170.0",
+    "typescript": "^6.0.3"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

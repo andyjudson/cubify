@@ -400,12 +400,12 @@
 </div>
 
 <script type="module">
-  import { CubeState } from '../src/CubeState.js';
-  import { AlgParser } from '../src/AlgParser.js';
-  import { CubePlayer } from '../src/CubePlayer.js';
-  import { CubeRenderer2D } from '../src/CubeRenderer2D.js';
-  import { CubeStickering, MASK_PRESETS } from '../src/CubeStickering.js';
-  import { THEME_PRESETS, DEFAULT_THEME, cloneTheme, themeToJSON, themeFromJSON } from '../src/CubeTheme.js';
+  import { CubeState } from '../packages/cubify/src/CubeState.js';
+  import { AlgParser } from '../packages/cubify/src/AlgParser.js';
+  import { CubePlayer } from '../packages/cubify/src/CubePlayer.js';
+  import { CubeRenderer2D } from '../packages/cubify/src/CubeRenderer2D.js';
+  import { CubeStickering, MASK_PRESETS } from '../packages/cubify/src/CubeStickering.js';
+  import { THEME_PRESETS, DEFAULT_THEME, cloneTheme, themeToJSON, themeFromJSON } from '../packages/cubify/src/CubeTheme.js';
 
   // Warm up kpuzzle early (cached after first call)
   const _solvedBase = await CubeState.solved();
