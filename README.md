@@ -1,32 +1,61 @@
 # cubify
 
-Clean-room 3×3 cube rendering and logic library. Built to understand and eventually replace Cubing.js TwistyPlayer in the Learning CFOP app with a dependency-free renderer — no IntersectionObserver constraints, no shadow DOM, no baked-in controls, and css themes.
+Clean-room 3×3 cube rendering and logic library. Built to understand and eventually replace Cubing.js TwistyPlayer in the Learning CFOP app with a dependency-free renderer — no IntersectionObserver constraints, no shadow DOM, no baked-in controls, and CSS themes.
 
-## Library (`src/`)
+## Packages
 
-Clean public API — import from `src/index.js` or consume as an npm package.
+This repo is an npm workspace publishing two packages to [GitHub Packages](https://github.com/andyjudson?tab=packages):
+
+| Package | Description |
+|---------|-------------|
+| `@andyjudson/cubify` | Core cube library — state, rendering, animation, export |
+| `@andyjudson/cubify-react` | React wrappers — `<CubePlayer>`, `<CubeState>`, `<CubeMoveTape>`, `<CubePlayerControls>` |
+
+## Install
+
+```bash
+# .npmrc (add to your project)
+@andyjudson:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NPM_AUTH_TOKEN}
+
+# Install
+npm install @andyjudson/cubify three cubing
+npm install @andyjudson/cubify-react react react-dom react-icons  # if using React
+```
+
+GitHub Packages requires auth even for public packages. Use a GitHub PAT with `read:packages` scope locally; in CI use `GITHUB_TOKEN`.
+
+See [`specs/031-cubify-packages/quickstart.md`](specs/031-cubify-packages/quickstart.md) for full setup, usage examples, and local dev workflow.
+
+## Library API (`@andyjudson/cubify`)
 
 | Module | Description |
 |--------|-------------|
 | `CubeState` | cubing.js KPattern wrapper — `applyMove/applyAlg`, `toFaceArray()`, `isSolved()`, `invertAlg()` |
-| `CubeScramble` | Pure JS scramble generator — `CubeScramble.random(length?)`, no cubing.js dependency |
+| `CubeScramble` | Pure JS scramble generator — `CubeScramble.random(length?)` |
 | `AlgParser` | WCA notation parser (face turns, wide moves, slice moves, rotations) |
-| `CubeStickering` | CFOP orbit-string masking — `fromOrbitStringWithState()` with full char set (-/I/D/O/S/P); `MASK_PRESETS` (15 presets) |
-| `CubeTheme` | Theme system — `THEME_PRESETS` (default/rubiks/speed-dark/speed-light), `DEFAULT_THEME`, `effectiveColours()`, `themeToJSON/themeFromJSON` |
-| `CubeRenderer2D` | Top-down 2D renderer — `toSVG()` (static, no DOM), canvas `update()` / `toDataURL()`, `setTheme()` |
-| `CubeRenderer3D` | Three.js 3D renderer — `animateMove()` (full wide-move support), `setSpeed()`, `applyStickering()`, `snapshotAt()`, `setTheme()` |
-| `CubePlayer` | Animation engine — `loadAlg()`, `play/pause/jumpTo/reset`, `setSpeed()`, `setStickering()`; events (`move`, `complete`, `reset`) |
+| `CubeStickering` | CFOP orbit-string masking; `MASK_PRESETS` (15 presets); chars -/I/D/O/S/P |
+| `CubeTheme` | Theme system — `THEME_PRESETS` (default/rubiks/speed-dark/speed-light), `DEFAULT_THEME` |
+| `CubeRenderer2D` | Top-down 2D renderer — `toSVG()`, canvas `update()`, `setTheme()` |
+| `CubeRenderer3D` | Three.js 3D renderer — `animateMove()`, `setSpeed()`, `applyStickering()`, `snapshotAt()` |
+| `CubePlayer` | Animation engine — `loadAlg()`, `play/pause/jumpTo/reset`, events (`move`, `complete`, `reset`) |
 | `CubeExporter` | `toPNG(alg, { style: '2d'\|'3d' })` — transparent PNG export |
-
-TypeScript definitions: [`types/index.d.ts`](types/index.d.ts)
 
 ## Development
 
 ```bash
-npm install        # install all dependencies
-npm test           # run Vitest suite (181 pass, 10 skip)
-npm run dev        # start Vite dev server (cubify-harness/index.html)
-npm run typecheck  # tsc type-check + emit declarations to types/
+npm install                               # install workspace deps
+npm test                                  # Vitest suite (181 pass, 10 skip)
+npm run dev                               # Vite dev server → cubify-harness/index.html
+npm run build --workspace=packages/cubify          # tsc build → packages/cubify/dist/
+npm run build --workspace=packages/cubify-react    # tsc build → packages/cubify-react/dist/
+```
+
+## Publishing
+
+```bash
+bash scripts/version-bump.sh 1.1.0   # bumps both packages, commits, tags
+git push && git push --tags           # triggers publish.yml CI → GitHub Packages
 ```
 
 ## cubify-harness
@@ -38,12 +67,10 @@ Interactive browser dev environment — algorithm selector, play/step controls, 
 | File | Description |
 |------|-------------|
 | `cubify-harness/index.html` | Interactive harness UI |
-| `test/` | Vitest suite — 181 tests, no headed browser |
-| `cubify-harness/verify-perms.mjs` | 18-test permutation cross-check against cubing.js ground truth (`npx tsx verify-perms.mjs`) |
+| `packages/cubify/test/` | Vitest suite — 181 tests, no headed browser |
+| `cubify-harness/verify-perms.mjs` | 18-test permutation cross-check against cubing.js ground truth |
 
-**Design goals:** Clean public API, CSS custom property theming, no hidden dependencies, MIT licensed.
-
-### cubify-scripts
+## cubify-scripts
 
 Node.js CLI for on-demand cube image generation. Used as the `/cubify` Claude Code skill.
 
@@ -53,46 +80,21 @@ node cubify-scripts/cubify.mjs --case oll_sune --masked --2d
 node cubify-scripts/cubify.mjs --file algs-cfop-oll.json --masked --2d
 ```
 
-Flags: `--2d` / `--3d`, `--masked` (auto-derive stickering from case method/group), `--stickering <label>`, `--dim`, `--setup <alg>`.
-
-Requires headful Chromium (WebGL blocked in headless on macOS). Install once with:
+Requires headful Chromium (WebGL blocked in headless on macOS):
 
 ```bash
 cd cubify-scripts && npx playwright install chromium
-```
-
-Algorithm data is read via a `cubify-scripts/data` symlink (gitignored). Create it once:
-
-```bash
 ln -s /path/to/cfop/cfop-app/public/data cubify-scripts/data
 ```
-
-## React Usage
-
-cubify has no React dependency — the library is plain ES modules. For React apps, wrap the imperative API using `useRef` + `useEffect`:
-
-```tsx
-// <CubePlayer> — animated algorithm player
-<CubePlayer alg="R U R' U R U2 R'" stickering="oll" theme="speed"
-            playing={isPlaying} onComplete={() => setPlaying(false)}
-            style={{ width: 320, height: 320 }} />
-
-// <CubeState> — static snapshot (no animation)
-<CubeState alg={scramble} style={{ width: 120, height: 120 }} />
-```
-
-See [`specs/029-cubify-react/quickstart.md`](specs/029-cubify-react/quickstart.md) for full usage examples, prop reference, and Vite alias setup. The reference implementation lives in `cfop-app/src/lib/cubify/`.
 
 ## Reference Docs
 
 | Doc | Content |
 |-----|---------|
-| [`specs/cubify.md`](specs/cubify.md) | Library architecture — package layout, tsconfig, declaration generation, public API |
-| [`specs/cubing-js-architecture.md`](specs/cubing-js-architecture.md) | Cubing.js KPuzzle/KPattern data model, orbit slot ordering, move application |
-| [`specs/cubing-js-stickering.md`](specs/cubing-js-stickering.md) | Cubing.js Stickering architecture, orbit string char semantics |
-| [`specs/cube-physical-rules.md`](specs/cube-physical-rules.md) | Physical cube geometry, CFOP conventions, masking philosophy |
-| [`specs/cube-mapping-lessons.md`](specs/cube-mapping-lessons.md) | Hard-won implementation gotchas (slot ordering, orientation formula, animation) |
-| [`specs/cube-concepts.md`](specs/cube-concepts.md) | Face state and KPattern concepts overview |
+| [`specs/031-cubify-packages/quickstart.md`](specs/031-cubify-packages/quickstart.md) | Install, import paths, local dev workflow |
+| [`specs/cubing-js-architecture.md`](specs/cubing-js-architecture.md) | Cubing.js KPuzzle/KPattern data model |
+| [`specs/cube-mapping-lessons.md`](specs/cube-mapping-lessons.md) | Hard-won implementation gotchas |
+| [`specs/cube-physical-rules.md`](specs/cube-physical-rules.md) | Physical cube geometry, CFOP conventions |
 
 ## Built With
 
@@ -106,4 +108,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Status**: Features 022–030 complete (+ wide move support) • 031–032 planned
+**Status**: Features 022–031 complete • 032 planned

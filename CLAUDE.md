@@ -5,14 +5,15 @@ Project context for Claude Code. See `specs/spec.md` for the feature ledger.
 ## Project Scope
 
 - **Repo:** `cubify` — a clean-room 3×3 cube rendering and logic library
-- **Library:** `src/` — canonical library source; public entry point is `src/index.js`
-- **Harness:** `cubify-harness/` — browser test harness + Vitest suite; imports from `../src/`
+- **Library:** `packages/cubify/src/` — canonical library source; public entry point is `packages/cubify/src/index.ts`
+- **React wrappers:** `packages/cubify-react/src/` — React components published as `@andyjudson/cubify-react`
+- **Harness:** `cubify-harness/` — browser test harness + Vitest suite; imports from `../packages/cubify/src/`
 - **Scripts:** `cubify-scripts/` — Node.js CLI for cube image generation (`/cubify` skill)
 - This repo has no deployed app. All work is local development and library development.
 
 ## Current Status
 
-Features 022–030 complete. Features 031–032 planned. cfop-migration tracked in cfop repo as Feature 022.
+Features 022–031 complete. Feature 032 planned. cfop-migration tracked in cfop repo as Feature 022.
 
 ## Reference Docs — Ground Truth
 
@@ -43,28 +44,41 @@ Key facts from `cube-mapping-lessons.md`:
 - **Identity-based rendering** — the vis map is keyed by `homePos` (piece identity, never changes through moves).
 - **`CubeExporter.toPNG` stickering must use slot-based visMap** — `getVisLevel` in `CubeRenderer2D` looks up by solved-state orbit position keys, so the visMap must be built with `fromOrbitString` (null rawPattern). Calling `fromOrbitStringWithState(str, state.toRawPattern())` rekeys the map by current piece home positions, causing mismatches after any cube rotation (z2 etc.) and making U face look all-dim. `CubeExporter.toPNG` must call `fromOrbitString(stickering)` only.
 
-## Library Architecture (`src/`)
+## Library Architecture (`packages/cubify/src/`)
 
 | File | Role |
 |------|------|
-| `src/index.js` | Public entry point — re-exports all public API |
-| `src/CubeState.js` | Cubing.js KPattern wrapper; `applyMove/applyAlg`, `toFaceArray()`, `invertAlg()` |
-| `src/CubeTheme.js` | Theme object, `THEME_PRESETS` (default/rubiks/gan/speed), `DEFAULT_THEME`, `effectiveColours()`, `themeToJSON/FromJSON` |
-| `src/CubeRenderer3D.js` | Three.js 3D renderer; `setState()`, `animateMove()`, `setSpeed()`, `setStickering()`, `snapshotAt()`, `setTheme()` |
-| `src/CubeRenderer2D.js` | Canvas 2D top-down view; `toSVG()`, `update()`, `setTheme()` |
-| `src/CubeStickering.js` | Orbit-string mask parsing; `MASK_PRESETS` (15 presets); chars -/I/D/O/S/P |
-| `src/CubePlayer.js` | Animation engine; `loadAlg()`, `play/pause/jumpTo/reset`, `setSpeed()`, `setStickering()`, events |
-| `src/CubeExporter.js` | `toPNG(alg, { style: '2d'\|'3d' })`; 2D via canvas, 3D via CubeRenderer3D |
-| `src/CubeScramble.js` | Pure JS scramble generator; `CubeScramble.random(length?)` |
-| `src/AlgParser.js` | WCA notation parser; wide moves, slice moves, x/y/z rotations |
-| `types/cubify.d.ts` | TypeScript type definitions for the public API |
+| `src/index.ts` | Public entry point — re-exports all public API |
+| `src/CubeState.ts` | Cubing.js KPattern wrapper; `applyMove/applyAlg`, `toFaceArray()`, `invertAlg()` |
+| `src/CubeTheme.ts` | Theme object, `THEME_PRESETS` (default/rubiks/gan/speed), `DEFAULT_THEME`, `effectiveColours()`, `themeToJSON/FromJSON` |
+| `src/CubeRenderer3D.ts` | Three.js 3D renderer; `setState()`, `animateMove()`, `setSpeed()`, `setStickering()`, `snapshotAt()`, `setTheme()` |
+| `src/CubeRenderer2D.ts` | Canvas 2D top-down view; `toSVG()`, `update()`, `setTheme()` |
+| `src/CubeStickering.ts` | Orbit-string mask parsing; `MASK_PRESETS` (15 presets); chars -/I/D/O/S/P |
+| `src/CubePlayer.ts` | Animation engine; `loadAlg()`, `play/pause/jumpTo/reset`, `setSpeed()`, `setStickering()`, events |
+| `src/CubeExporter.ts` | `toPNG(alg, { style: '2d'\|'3d' })`; 2D via canvas, 3D via CubeRenderer3D |
+| `src/CubeScramble.ts` | Pure JS scramble generator; `CubeScramble.random(length?)` |
+| `src/AlgParser.ts` | WCA notation parser; wide moves, slice moves, x/y/z rotations |
+
+Build: `npm run build --workspace=packages/cubify` → `packages/cubify/dist/` (JS + declarations).
+
+## React Package (`packages/cubify-react/src/`)
+
+| File | Role |
+|------|------|
+| `src/index.ts` | Re-exports all React components and types |
+| `src/CubePlayerComponent.tsx` | `<CubePlayer>` React wrapper; `CubePlayerHandle` ref interface |
+| `src/CubePlayerControls.tsx` | Playback controls component |
+| `src/CubeMoveTape.tsx` | Move tape / step indicator component |
+| `src/CubeStateComponent.tsx` | `<CubeState>` static render component |
+
+Build: `npm run build --workspace=packages/cubify-react` → `packages/cubify-react/dist/`.
 
 ## cubify-harness
 
 | File | Role |
 |------|------|
-| `cubify-harness/index.html` | Interactive harness; imports from `../src/` |
-| `test/` | Vitest suite — 167 tests, 10 skipped, no headed browser (`npm test`) |
+| `cubify-harness/index.html` | Interactive harness; imports from `../packages/cubify/src/` |
+| `packages/cubify/test/` | Vitest suite — 181 tests, 10 skipped, no headed browser (`npm test`) |
 | `cubify-harness/verify-perms.mjs` | 18-test permutation cross-check suite against cubing.js ground truth |
 
 ## cubify-scripts Architecture
@@ -129,6 +143,25 @@ npm run dev -- --host 127.0.0.1 --port 5174
 - Iterate in small steps
 - Before any merge/push: run `verify-perms.mjs` cross-check suite
 
+## Local Dev (cubify + cfop-app simultaneously)
+
+`cfop-app/vite.config.ts` supports a `CUBIFY_LOCAL=1` flag that aliases `@andyjudson/cubify` and `@andyjudson/cubify-react` to the local TypeScript sources — no build step, live HMR. `cfop-app/.env.local` (gitignored) holds the flag.
+
+```bash
+# One-time setup in cfop repo:
+echo "CUBIFY_LOCAL=1" >> cfop-app/.env.local
+# Then just:
+cd cfop-app && npm run dev
+```
+
+CI and fresh clones never have `.env.local`, so they always use the published packages from GitHub Packages.
+
+To publish a new version from cubify repo:
+```bash
+bash scripts/version-bump.sh <version>   # bumps both packages, commits, tags
+git push && git push --tags              # triggers publish.yml CI
+```
+
 ## Playwright / Web Component Automation
 
 When automating or screenshotting a third-party web component:
@@ -141,7 +174,8 @@ When automating or screenshotting a third-party web component:
 See `specs/017-cubify-agent-skill/research.md` for the full debugging record.
 
 ## Recent Changes
-- 029-cubify-react (complete): TypeScript rewrite of core library. React wrappers `<CubePlayer>`, `<CubeState>`, `<CubePlayerControls>`, `<CubeMoveTape>` in `cfop-app/src/lib/cubify/`. Vite alias `cubify` → `../../../cubify/src/index.ts`. CubifyPage interactive harness with case selector, mask/theme controls, playback. 168 Vitest tests.
+- 031-cubify-packages (complete): Repo restructured as npm workspace (`packages/cubify/` + `packages/cubify-react/`). `src/` + `test/` moved to `packages/cubify/`. React wrappers moved from `cfop-app/src/lib/cubify/` to `packages/cubify-react/src/`. Both packages build via `tsc -p tsconfig.build.json` → `dist/`. `.github/workflows/publish.yml` tag-triggered publish to GitHub Packages. `cfop-app` migrated to `@andyjudson/cubify` + `@andyjudson/cubify-react`; `CUBIFY_LOCAL=1` local dev alias via `.env.local`. 181 Vitest tests.
+- 029-cubify-react (complete): TypeScript rewrite of core library. React wrappers `<CubePlayer>`, `<CubeState>`, `<CubePlayerControls>`, `<CubeMoveTape>`. CubifyPage interactive harness with case selector, mask/theme controls, playback. 168 Vitest tests.
 - 025-cubify-theming (complete): `CubeTheme` interface + `THEME_PRESETS` (default/rubiks/gan/speed) + `DEFAULT_THEME`. `gan` — vivid GAN stickerless colours, white plastic, saturation 2. `speed` — CLASSIC colours, dark plastic, basic material. Both renderers accept `setTheme()`. 168 Vitest tests.
 - 028-cubify-library (complete): Library extracted to `src/` at repo root. `src/index.js` public entry. `CubeScramble.js` (pure JS scramble generator). `CubeRenderer3D.setStickering(presetOrString)`, `snapshotAt(size)`. `CubePlayer.setupMoves` getter. `types/index.d.ts` TypeScript definitions. Harness + tests rewired to `../src/`.
 - 027-cubify-tests (complete): Vitest suite (138 tests, 10 skipped). `test/cube-state.test.js`, `cube-stickering.test.js`, `cube-player.test.js` (mock renderer), `cube-exporter.test.js`, `cube-renderer-2d-svg.test.js` (migrated from demo/), `cube-renderer-3d.test.js` (MOVE_AXIS constants). `MOVE_AXIS` exported from CubeRenderer3D.js. `npm test` runs without headed browser.

@@ -31,7 +31,7 @@ npm install three cubing          # peer deps
 
 # React wrappers (optional, if using React)
 npm install @andyjudson/cubify-react
-npm install react react-dom        # peer deps (if not already installed)
+npm install react react-dom react-icons  # peer deps (if not already installed)
 ```
 
 ---
@@ -186,4 +186,4 @@ Full list: `import { MASK_PRESETS } from '@andyjudson/cubify'`
 
 ## Reference implementation
 
-See `cfop-app/src/` for a full React app using both packages. The `CubifyPage` component demonstrates case selection, stickering, theme switching, and playback controls.
+`cfop-app/src/pages/CubifyPage.tsx` (cfop repo) is the reference consumer — case selector, stickering, theme switching, and full playback controls. The React wrappers source is at `packages/cubify-react/src/` in this repo.
