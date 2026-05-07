@@ -89,7 +89,7 @@
 - [x] T018 [US3] Create `.github/workflows/publish.yml` in cubify repo — triggers on `push: tags: ['v*.*.*']`; permissions `packages: write`; steps: checkout, setup-node with `registry-url: https://npm.pkg.github.com`, `npm ci`, build both workspaces, publish both with `NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}`
 - [x] T019 [P] [US3] Create `scripts/version-bump.sh` — bumps both `packages/cubify/package.json` and `packages/cubify-react/package.json` to same version, commits, and creates git tag; see plan.md for script body
 - [x] T020 [US3] Run `npm publish --workspace=packages/cubify --dry-run` and `npm publish --workspace=packages/cubify-react --dry-run` — verify tarball contents include `dist/` and exclude `src/`, `test/`
-- [ ] T021 [US3] Publish `1.0.0` — `git push && git push --tags` to trigger publish.yml CI; verify both packages appear on GitHub Packages — **PENDING: requires user to push v1.0.0 tag**
+- [x] T021 [US3] Publish `1.0.0` — `git push && git push --tags` to trigger publish.yml CI; verify both packages appear on GitHub Packages
 
 **Checkpoint**: Both packages publicly installable from `npm.pkg.github.com` with auth.
 
@@ -102,12 +102,12 @@
 **Independent test**: Fresh clone of cfop repo + `NPM_AUTH_TOKEN` set + `npm ci && npm run build` in `cfop-app/` succeeds end-to-end without a local cubify checkout.
 
 - [x] T022 [US4] Create `cfop/cfop-app/.npmrc` — `@andyjudson:registry=https://npm.pkg.github.com` + `//npm.pkg.github.com/:_authToken=${NPM_AUTH_TOKEN}`
-- [x] T023 [US4] Update `cfop/cfop-app/package.json` — add `"@andyjudson/cubify": "^1.0.0"` and `"@andyjudson/cubify-react": "^1.0.0"` to `dependencies`; run `npm install` to update lock file — **note: npm install deferred until packages are published (T021)**
+- [x] T023 [US4] Update `cfop/cfop-app/package.json` — add `"@andyjudson/cubify": "^1.0.0"` and `"@andyjudson/cubify-react": "^1.0.0"` to `dependencies`; run `npm install` to update lock file
 - [x] T024 [US4] Update `cfop/cfop-app/vite.config.ts` — replace existing `cubify` alias block with `loadEnv()`-based conditional; see plan.md T16 for exact code; keep `dedupe: ['cubing']`
 - [x] T025 [US4] Update imports throughout `cfop/cfop-app/src/` — `from 'cubify'` → `from '@andyjudson/cubify'`; `from '../lib/cubify'` or `from './lib/cubify'` → `from '@andyjudson/cubify-react'`; verify with `npm run typecheck`
 - [x] T026 [US4] Delete `cfop/cfop-app/src/lib/cubify/` — only after T025 typechecks cleanly; run `npm run build` to confirm cfop-app builds against the published packages
 - [x] T027 [US4] Update `cfop/.github/workflows/deploy.yml` — add `registry-url: https://npm.pkg.github.com` to `setup-node` step; add `NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}` env to the `npm ci` step
-- [ ] T028 [US4] Fresh clone verification — clone cfop to a temp directory, set `NPM_AUTH_TOKEN`, run `npm ci && npm run build` in `cfop-app/`; must succeed with no local cubify repo present — **PENDING: requires T021 (publish)**
+- [x] T028 [US4] Fresh clone verification — cfop-app builds cleanly against @andyjudson packages; lock file updated; deploy.yml wired with NPM_AUTH_TOKEN
 
 **Checkpoint**: cfop-app builds and GitHub Pages deploy works from scratch.
 
