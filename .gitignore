@@ -5,3 +5,5 @@ types/
 .claude/tmp/
 .tmp/
 cubify-scripts/data
+.specify/scripts
+.specify/feature.json
