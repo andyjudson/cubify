@@ -1,3 +1,7 @@
+---
+description: Bump cubify package versions, publish to GitHub Packages, and update cfop-app to deploy.
+---
+
 # /publish — Release cubify packages and update cfop-app
 
 Bumps both packages to a new version, publishes to GitHub Packages, updates the cfop-app lock file, and pushes cfop to trigger a deploy.

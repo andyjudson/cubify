@@ -1,3 +1,7 @@
+---
+description: Generate a PNG of a cube state from an algorithm, named case, or batch JSON file.
+---
+
 # /cubify — Cube State Image Generator
 
 Generate a PNG of a cube state from an algorithm, a named case, or a batch JSON file.
