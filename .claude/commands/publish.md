@@ -49,5 +49,6 @@ The push triggers `deploy.yml`, which runs `npm ci` against the updated lock fil
 ## Notes
 
 - Published versions are immutable — `npm publish` will reject a re-publish at the same version. Always bump before publishing.
+- If step 1 was already done manually, skip it — running `/publish` again at the same version will fail at the tag step. Go straight to step 2 once CI is green.
 - `CUBIFY_LOCAL=1` in `cfop-app/.env.local` bypasses the registry entirely for local dev — changes there are immediate without any of these steps.
 - CI uses `GITHUB_TOKEN` for both publishing (cubify) and installing (cfop) — no extra secrets needed.
