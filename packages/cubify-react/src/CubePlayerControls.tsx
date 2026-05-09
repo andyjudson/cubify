@@ -12,13 +12,13 @@ import {
 
 export interface CubePlayerControlsProps {
   playing: boolean;
+  stepIndex?: number;   // current position (0 = start, moveCount = end)
+  moveCount?: number;   // total moves in the loaded alg
   speed?: number;
   onPlayToggle: () => void;
   onReset: () => void;
-  onStepBack?: () => void;
+  onStepBackward?: () => void;
   onStepForward?: () => void;
-  stepBackDisabled?: boolean;
-  stepForwardDisabled?: boolean;
   onCameraReset?: () => void;
   onSpeedChange?: (speed: number) => void;
   style?: CSSProperties;
@@ -59,18 +59,21 @@ const BTN_DISABLED: CSSProperties = {
 
 export function CubePlayerControls({
   playing,
+  stepIndex = 0,
+  moveCount = 0,
   speed = 1,
   onPlayToggle,
   onReset,
-  onStepBack,
+  onStepBackward,
   onStepForward,
-  stepBackDisabled,
-  stepForwardDisabled,
   onCameraReset,
   onSpeedChange,
   style,
   className,
 }: CubePlayerControlsProps) {
+  const stepBackwardDisabled    = playing || stepIndex <= 0;
+  const stepForwardDisabled = playing || !moveCount || stepIndex >= moveCount;
+
   const nudgeSpeed = (delta: number) => {
     if (!onSpeedChange) return;
     const next = Math.round(Math.min(SPEED_MAX, Math.max(SPEED_MIN, speed + delta)) / SPEED_STEP) * SPEED_STEP;
@@ -86,8 +89,8 @@ export function CubePlayerControls({
         <MdReplay />
       </button>
 
-      {onStepBack && (
-        <button style={stepBackDisabled ? BTN_DISABLED : BTN} title="Step back" onClick={onStepBack} disabled={stepBackDisabled}>
+      {onStepBackward && (
+        <button style={stepBackwardDisabled ? BTN_DISABLED : BTN} title="Step backward" onClick={onStepBackward} disabled={stepBackwardDisabled}>
           <MdSkipPrevious />
         </button>
       )}

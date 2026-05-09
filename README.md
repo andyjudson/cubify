@@ -1,6 +1,6 @@
 # cubify
 
-Clean-room 3×3 cube rendering and logic library. Built to understand and eventually replace Cubing.js TwistyPlayer in the Learning CFOP app with a dependency-free renderer — no IntersectionObserver constraints, no shadow DOM, no baked-in controls, and CSS themes.
+Cubify is a 3×3 cube rendering library for CFOP apps. Delegates permutation state and move application to cubing.js, then owns the rendering layer — typed theme system, stickering API for CFOP case visualisation, and React wrappers that expose cube state as a first-class value.
 
 ## Packages
 
@@ -25,7 +25,7 @@ npm install @andyjudson/cubify-react react react-dom react-icons  # if using Rea
 
 GitHub Packages requires auth even for public packages. Use a GitHub PAT with `read:packages` scope locally; in CI use `GITHUB_TOKEN`.
 
-See [`specs/031-cubify-packages/quickstart.md`](specs/031-cubify-packages/quickstart.md) for full setup, usage examples, and local dev workflow.
+See [`specs/cubify.md`](specs/cubify.md) for full setup, usage examples, local dev workflow, and architecture reference.
 
 ## Library API (`@andyjudson/cubify`)
 
@@ -91,14 +91,14 @@ ln -s /path/to/cfop/cfop-app/public/data cubify-scripts/data
 
 | Doc | Content |
 |-----|---------|
-| [`specs/031-cubify-packages/quickstart.md`](specs/031-cubify-packages/quickstart.md) | Install, import paths, local dev workflow |
+| [`specs/cubify.md`](specs/cubify.md) | Quickstart, usage examples, local dev workflow, architecture |
 | [`specs/cubing-js-architecture.md`](specs/cubing-js-architecture.md) | Cubing.js KPuzzle/KPattern data model |
 | [`specs/cube-mapping-lessons.md`](specs/cube-mapping-lessons.md) | Hard-won implementation gotchas |
 | [`specs/cube-physical-rules.md`](specs/cube-physical-rules.md) | Physical cube geometry, CFOP conventions |
 
 ## Built With
 
-- **[cubing.js](https://github.com/cubing/cubing.js)** (Lucas Garron) — KPattern state model
+- **[cubing.js](https://github.com/cubing/cubing.js)** (Lucas Garron) — KPuzzle/KPattern permutation state model, WCA alg parsing, move application, and the 3×3 puzzle definition that cubify builds its rendering layer on top of
 - **Three.js** — 3D rendering
 - **Playwright** (cubify-scripts only) — headful Chromium screenshot capture
 

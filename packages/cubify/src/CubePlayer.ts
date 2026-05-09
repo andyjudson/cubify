@@ -35,6 +35,7 @@ export class CubePlayer {
   private _setupMoves: string[];
   private _stepIndex: number;
   private _isPlaying: boolean;
+  private _steppingForward: boolean;
   private _baseState: CubeState | null;
   private _generation: number;
 
@@ -49,12 +50,13 @@ export class CubePlayer {
     this._gapMs       = gapMs;
     this._stickering  = null;
 
-    this._moves      = [];
-    this._setupMoves = [];
-    this._stepIndex  = 0;
-    this._isPlaying  = false;
-    this._baseState  = null;
-    this._generation = 0;
+    this._moves           = [];
+    this._setupMoves      = [];
+    this._stepIndex       = 0;
+    this._isPlaying       = false;
+    this._steppingForward = false;
+    this._baseState       = null;
+    this._generation      = 0;
 
     this._listeners = new Map();
 
@@ -111,6 +113,9 @@ export class CubePlayer {
   }
 
   pause(): void {
+    if (this._renderer.isAnimating && this._stepIndex < this._moves.length) {
+      this._stepIndex++;
+    }
     this._isPlaying = false;
     this._generation++;
   }
@@ -124,6 +129,32 @@ export class CubePlayer {
     this.pause();
     this.jumpTo(0);
     this.emit('reset', {});
+  }
+
+  stepForward(): void {
+    if (this._isPlaying || this._stepIndex >= this._moves.length) return;
+    this._steppingForward = true;
+    this._isPlaying = true;
+    this._playNext();
+  }
+
+  stepBackward(): void {
+    if (this._isPlaying || this._stepIndex <= 0) return;
+    this._isPlaying = true;
+    this._generation++;
+    this._renderer.abortAnimation();
+    const move = this._moves[this._stepIndex - 1];
+    const invertedMove = CubeState.invertAlg([move])[0];
+    const gen = this._generation;
+    this._renderer.animateMove(invertedMove, () => {
+      if (this._generation !== gen) return;
+      this._isPlaying = false;
+      this._stepIndex--;
+      if (this._baseState) {
+        const state = this._stateAt(this._stepIndex);
+        this.emit('move', { index: this._stepIndex, move, state });
+      }
+    });
   }
 
   setSpeed(scale: number): void {
@@ -180,12 +211,15 @@ export class CubePlayer {
     const gen  = this._generation;
     this._renderer.animateMove(move, () => {
       if (this._generation !== gen) return;
+      const stepping = this._steppingForward;
+      this._steppingForward = false;
       this._stepIndex++;
+      if (stepping) this._isPlaying = false;
       if (this._baseState) {
         const state = this._stateAt(this._stepIndex);
         this.emit('move', { index: this._stepIndex, move, state });
       }
-      setTimeout(() => this._playNext(), this._gapMs);
+      if (!stepping) setTimeout(() => this._playNext(), this._gapMs);
     });
   }
 }

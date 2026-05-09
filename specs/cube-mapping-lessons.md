@@ -356,3 +356,36 @@ return visArray[homeVisSlot];                      // vis level for that home st
 - `oll-face` + z2 (D-home pieces at U-slots, orientation 0/1/2): yellow shows on U-face when orientation=0, yellow shows on side strip when orientation=1 or 2, non-yellow stickers always grey ✓
 - `f2l` mask (U-layer = 'I'): all U-slot stickers return 0 (hidden) regardless of which piece is there ✓
 - `oll-cross`, `cross`, and other presets: respected correctly ✓
+
+---
+
+## 19. MASK_PRESETS labels for CFOP case display — never hand-write orbit strings
+
+**The rule**: consumers loading CFOP cases (OLL/PLL) must pass the `MASK_PRESETS` label string (e.g. `'oll-face-dim'`, `'pll-face-dim'`) to `CubePlayer`/`setStickering`, never hand-written orbit strings.
+
+**Why hand-written strings break**: `_reapplyStickering` calls `CubeStickering.fromOrbitStringWithState(str, rawPattern)` with the current KPattern state (which includes the z2 setup rotation). Slot indices in the orbit string are re-mapped through `pieces[i]` to piece home positions. A hand-written string like `EDGES:----OOOO----` targets slots 4–7 which, after `fromOrbitStringWithState` with z2 state, maps to the wrong (D-layer-home) cubelets — causing the side layers to be highlighted and the OLL face to be dim.
+
+**Correct preset labels for standard CFOP case display**:
+| Method | Preset label | Effect |
+|--------|-------------|--------|
+| OLL | `oll-face-dim` | U-layer: show primary (yellow) full, sides dim; rest dim |
+| PLL | `pll-face-dim` | U-layer: dim primary (yellow), sides full; rest dim |
+
+---
+
+## 20. CubePlayer pause() — sync _stepIndex when pausing mid-animation
+
+**The bug**: pressing pause while an animation was in flight left `_stepIndex` one behind the visual state. `pause()` incremented `_generation`, so the animation's `onDone` callback bailed out (generation check) without incrementing `_stepIndex`. But `abortAnimation()` (or the natural render-loop completion) snapped the mesh to the move's final position. Visual state = N+1, `_stepIndex` = N. Subsequent `stepBackward()` calls undid the wrong move.
+
+**The fix** (in `CubePlayer.pause()`):
+```typescript
+pause(): void {
+  if (this._renderer.isAnimating && this._stepIndex < this._moves.length) {
+    this._stepIndex++;  // mesh will land at N+1; sync before callback is killed
+  }
+  this._isPlaying = false;
+  this._generation++;
+}
+```
+
+**Why this is safe**: `_generation++` immediately follows, so the animation callback checks `gen !== _generation` and returns early — no double-increment. If pause was pressed during the gap between moves (`isAnimating === false`), `_stepIndex` is already correct and no adjustment is made.

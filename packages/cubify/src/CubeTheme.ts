@@ -44,8 +44,8 @@ export const DEFAULT_THEME: CubeTheme = {
   colours: CLASSIC,
   brightness: 1.0, saturation: 1.0,
   plasticColour: '#141414', plasticOpacity: 1,
-  gap: 0.02, bevel: 0.03,
-  stickerPad: 10, stickerRadius: 8,
+  gap: 0.030, bevel: 0.05,
+  stickerPad: 0, stickerRadius: 0,
   centerShape: 'square',
   materialType: 'basic', roughness: 0.9, metalness: 0,
 };

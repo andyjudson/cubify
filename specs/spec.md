@@ -2,7 +2,7 @@
 
 ## Overview
 
-A clean-room 3×3 cube rendering and logic library. Goal: replace cubing.js TwistyPlayer in the cfop learning app with a dependency-free, inspectable renderer with a clean public API. Built incrementally via the cubify-harness test environment.
+A 3×3 cube rendering and animation library for CFOP apps. Delegates permutation state and move application to cubing.js, then owns the rendering layer — typed theme system, stickering API, and React wrappers that expose cube state as a first-class value. Published as `@andyjudson/cubify` and `@andyjudson/cubify-react` to GitHub Packages. Built incrementally via the cubify-harness test environment.
 
 ---
 
@@ -168,30 +168,33 @@ Thin React wrapper components around the cubify library for use in cfop-app.
 ### Scope
 Migrate `cubify-scripts/` from TwistyPlayer to the cubify `CubeExporter` API. Remove the esbuild step and cfop-app rendering dependency. Add stickering controls to the CLI and agent skill.
 
-### Goals
+### Completed
 - `renderer.mjs` calls `CubeExporter.toPNG()` via Playwright — no TwistyPlayer bundle
 - `--stickering <preset|orbitstring>`, `--masked`, `--dim` CLI flags
 - `masks.mjs` returns MASK_PRESETS labels; cubify resolves orbit strings internally
 - `--2d` mode runs `CubeRenderer2D` in Node.js — no browser needed
+- `CubeExporter.toPNG` stickering fixed: `fromOrbitString(str)` (slot-based visMap) not `fromOrbitStringWithState()` — corrects U-face dim bug after z2 rotation
 - `.claude/commands/cubify.md` updated with new flags and API
-- Unblocked now — depends only on Features 026 and 028 (both complete ✅)
 
 ---
 
 ## Feature 031: cubify-packages
 
-### Status: Planned 📋
+### Status: Complete ✅
 
 ### Scope
 Publish `@andyjudson/cubify` and `@andyjudson/cubify-react` to GitHub Packages. Replaces the local Vite path alias with a versioned import, unblocking the cfop-app deploy pipeline on a fresh clone.
 
-### Goals
-- Build step: `tsc` → `dist/` with ES modules + declarations for both packages
-- `@andyjudson/cubify` — core library, no React dependency
-- `@andyjudson/cubify-react` — React wrappers (moved from `cfop-app/src/lib/cubify/`), peer-depends on React + `@andyjudson/cubify`; no CSS framework dependency
-- `publish.yml` GitHub Actions workflow — triggers on version tag, publishes to `npm.pkg.github.com`
-- `cfop-app` `.npmrc` + import path updates; `deploy.yml` authenticates to GitHub Packages
-- Prerequisites: 029 (React wrapper) ✅, 030 (scripts) ✅
+### Completed
+- Repo restructured as npm workspace — `packages/cubify/` and `packages/cubify-react/`; `src/` + `test/` moved into workspace packages
+- Both packages build via `tsc -p tsconfig.build.json` → `dist/` (JS + declarations)
+- `@andyjudson/cubify-react` — React wrappers moved from `cfop-app/src/lib/cubify/`; peer-depends on React + `@andyjudson/cubify`
+- `.github/workflows/publish.yml` — tag-triggered publish to GitHub Packages; `packages: write` permission
+- `scripts/version-bump.sh` — lockstep version bump, commit, and tag for both packages
+- v1.0.0 published; both packages live on GitHub Packages
+- `cfop-app` migrated: `.npmrc`, import paths updated, `src/lib/cubify/` deleted
+- `deploy.yml` updated with `packages: read` permission + `NPM_AUTH_TOKEN` — cfop GitHub Pages deploy green
+- `CUBIFY_LOCAL=1` in `cfop-app/.env.local` + `loadEnv()` in `vite.config.ts` — local dev aliases bypass registry with full HMR
 
 ---
 
@@ -211,6 +214,24 @@ Interactive scramble and solve on the CubifyPage harness. `CubeScramble.random()
 
 ---
 
+## Future: cubify-scramble-quality
+
+### Status: Idea 💡
+
+### Scope
+Upgrade `CubeScramble.random()` from random-move generation to random-state generation. Currently the scrambler picks random moves with axis-exclusion constraints — good for practice but not cryptographically fair. A random-state scrambler generates a random valid cube position first, then solves it to get the scramble sequence, guaranteeing uniform distribution over all ~43 quintillion possible states.
+
+### Why it matters
+With random-move generation, some cube states are statistically more likely than others — states reachable by short move sequences are overrepresented. For practice this is imperceptible and irrelevant. For competition fairness it matters (WCA uses `tnoodle` for this reason).
+
+### Approach
+Would require integrating a 3x3 solver (cubing.js `experimentalSolve3x3x3IgnoringCenters` or Kociemba) — generate random KPattern state, solve it, use the solution as the scramble. Feature 032 (cubify-solver) lays the groundwork since it brings the solver in anyway.
+
+### Prerequisite
+Feature 032 (solver) — the solver needed for random-state scrambling is the same one used for interactive solve.
+
+---
+
 ## Status Summary
 
 | Feature | Name | Status |
@@ -224,5 +245,5 @@ Interactive scramble and solve on the CubifyPage harness. `CubeScramble.random()
 | 028 | cubify-library | Complete ✅ |
 | 029 | cubify-react | Complete ✅ |
 | 030 | cubify-scripts | Complete ✅ |
-| 031 | cubify-packages | Planned 📋 |
+| 031 | cubify-packages | Complete ✅ |
 | 032 | cubify-solver | Planned 📋 |

@@ -18,6 +18,7 @@
 
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
+import { AlgParser } from './AlgParser.js';
 
 // ---- Exported types for consumers (CubeStickering, CubeRenderer2D, CubeExporter) ----
 
@@ -188,7 +189,7 @@ export class CubeState {
   // Build a setup string: rotation (e.g. 'z2') + inverse of alg.
   // Use this when storing cases as { alg, rotation } rather than hardcoding the full setup.
   static setupFromAlg(alg: string, rotation?: string): string {
-    const inv = CubeState.invertAlg(alg.split(' ')).join(' ');
+    const inv = CubeState.invertAlg(AlgParser.parse(alg)).join(' ');
     return rotation ? `${rotation} ${inv}` : inv;
   }
 

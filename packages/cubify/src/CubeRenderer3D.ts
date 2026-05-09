@@ -253,7 +253,12 @@ export class CubeRenderer3D {
 
     const rendererOpts: THREE.WebGLRendererParameters = { antialias: true, alpha: true, preserveDrawingBuffer: true };
     if (this._offscreenCanvas) rendererOpts.canvas = this._offscreenCanvas;
-    this._renderer = new THREE.WebGLRenderer(rendererOpts);
+    try {
+      this._renderer = new THREE.WebGLRenderer(rendererOpts);
+    } catch (e) {
+      this._log(`WebGL unavailable — cube rendering disabled: ${e}`);
+      return;
+    }
     this._renderer.setClearColor(0x000000, 0);
     this._renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     _maxAnisotropy = this._renderer.capabilities.getMaxAnisotropy();
