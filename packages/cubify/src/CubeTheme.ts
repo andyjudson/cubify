@@ -13,7 +13,7 @@ export interface FaceColours {
   [key: string]: string;
 }
 
-export type ThemePresetName = 'default' | 'rubiks' | 'speed-dark' | 'speed-light';
+export type ThemePresetName = 'classic' | 'rubiks' | 'speed-dark' | 'speed-light';
 
 export interface CubeTheme {
   colours: FaceColours;
@@ -33,29 +33,25 @@ export interface CubeTheme {
 
 // ---- Colour palette constants ----
 
-const CLASSIC: FaceColours = {
+const CLASSIC_COLOURS: FaceColours = {
   U: '#ffffff', R: '#c41e1e', F: '#1a7c2a',
   D: '#ffd000', L: '#e06000', B: '#0f4fad',
-};
-
-// ---- Default theme (library default — the current "speed" look) ----
-
-export const DEFAULT_THEME: CubeTheme = {
-  colours: CLASSIC,
-  brightness: 1.0, saturation: 1.0,
-  plasticColour: '#141414', plasticOpacity: 1,
-  gap: 0.030, bevel: 0.05,
-  stickerPad: 0, stickerRadius: 0,
-  centerShape: 'square',
-  materialType: 'basic', roughness: 0.9, metalness: 0,
 };
 
 // ---- Named presets ----
 
 export const THEME_PRESETS: Record<ThemePresetName, CubeTheme> = {
-  default: DEFAULT_THEME,
+  classic: {
+    colours: CLASSIC_COLOURS,
+    brightness: 1.0, saturation: 1.0,
+    plasticColour: '#141414', plasticOpacity: 1,
+    gap: 0.010, bevel: 0.010,
+    stickerPad: 0, stickerRadius: 20,
+    centerShape: 'square',
+    materialType: 'basic', roughness: 0.9, metalness: 0,
+  },
   rubiks: {
-    colours: CLASSIC,
+    colours: CLASSIC_COLOURS,
     brightness: 1.0, saturation: 1.0,
     plasticColour: '#141414', plasticOpacity: 1,
     gap: 0.02, bevel: 0.03,
@@ -64,7 +60,7 @@ export const THEME_PRESETS: Record<ThemePresetName, CubeTheme> = {
     materialType: 'standard', roughness: 0.85, metalness: 0,
   },
   'speed-dark': {
-    colours: CLASSIC,
+    colours: CLASSIC_COLOURS,
     brightness: 1.35, saturation: 1.25,
     plasticColour: '#232323', plasticOpacity: 0.9,
     gap: 0.02, bevel: 0.06,
@@ -73,7 +69,7 @@ export const THEME_PRESETS: Record<ThemePresetName, CubeTheme> = {
     materialType: 'basic', roughness: 0.9, metalness: 0,
   },
   'speed-light': {
-    colours: CLASSIC,
+    colours: CLASSIC_COLOURS,
     brightness: 1.4, saturation: 1.2,
     plasticColour: '#ebebeb', plasticOpacity: 0.9,
     gap: 0.02, bevel: 0.06,
@@ -82,6 +78,10 @@ export const THEME_PRESETS: Record<ThemePresetName, CubeTheme> = {
     materialType: 'basic', roughness: 0.9, metalness: 0,
   },
 };
+
+// ---- Library default ----
+
+export const DEFAULT_THEME: CubeTheme = THEME_PRESETS['classic'];
 
 // ---- Helpers ----
 
