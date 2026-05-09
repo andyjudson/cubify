@@ -156,11 +156,16 @@ cd cfop-app && npm run dev
 
 CI and fresh clones never have `.env.local`, so they always use the published packages from GitHub Packages.
 
-To publish a new version from cubify repo:
+To publish a new version from cubify repo, use the `/publish <version>` skill — it handles all three steps: bump + tag + CI, cfop-app lock file update, and cfop deploy push.
+
 ```bash
+# Manual equivalent:
 bash scripts/version-bump.sh <version>   # bumps both packages, commits, tags
-git push && git push --tags              # triggers publish.yml CI
+git push && git push --tags              # triggers publish.yml CI → publishes packages + creates GitHub Release
+# then update cfop-app/package-lock.json (see /publish skill for full steps)
 ```
+
+**Release notes**: `publish.yml` creates a GitHub Release automatically with `--generate-notes` (commits since last tag). There is no CHANGELOG.md — GitHub's auto-generated notes are the source of truth. Do not add a CHANGELOG; it will drift.
 
 ## GitHub Packages — Lessons Learned (031)
 
