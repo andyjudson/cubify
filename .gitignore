@@ -4,6 +4,9 @@ packages/*/dist
 types/
 .claude/tmp/
 .tmp/
-cubify-scripts/data
+
 .specify/scripts
 .specify/feature.json
+
+cubify-scripts/data
+cubify-harness/demo/out/
