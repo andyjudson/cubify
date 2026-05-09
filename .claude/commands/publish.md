@@ -25,11 +25,37 @@ bash scripts/version-bump.sh <version>
 git push && git push --tags
 ```
 
-`version-bump.sh` updates both `packages/cubify/package.json` and `packages/cubify-react/package.json`, commits, and creates the tag. The tag push triggers `publish.yml` CI, which builds and publishes both packages to GitHub Packages.
+`version-bump.sh` updates both `packages/cubify/package.json` and `packages/cubify-react/package.json`, commits, and creates the tag. The tag push triggers `publish.yml` CI, which builds and publishes both packages to GitHub Packages and creates a GitHub Release.
 
-**Wait for CI to go green** before proceeding — `npm install` in step 2 will fail if the package isn't live yet. Check: https://github.com/andyjudson/cubify/actions
+### 2. Draft release notes
 
-### 2. Update cfop-app lock file (cfop repo)
+Run this to get commits since the previous tag:
+
+```bash
+git log $(git describe --tags --abbrev=0 HEAD^)..v<version> --oneline
+```
+
+Draft a short human-friendly release summary (≤300 words) in plain language — what changed and why it matters, not just a list of commit subjects. Format:
+
+```
+<one sentence overview of the release>
+
+**Changes:**
+- <what changed, phrased for a consumer of the library>
+- ...
+```
+
+Show the draft to the user. Wait for approval, edits, or a correction. If the user provides their own text, check for typos and minor phrasing only — do not rewrite it.
+
+**Wait for CI to go green** before proceeding — `npm install` in step 3 will fail if the package isn't live yet. Check: https://github.com/andyjudson/cubify/actions
+
+Once CI is green and notes are approved, update the GitHub Release:
+
+```bash
+gh release edit v<version> --notes "<approved notes>" --repo andyjudson/cubify
+```
+
+### 3. Update cfop-app lock file (cfop repo)
 
 ```bash
 cd /Users/Andy/Documents/TechLab/cfop/cfop-app
@@ -38,7 +64,7 @@ npm install @andyjudson/cubify@<version> @andyjudson/cubify-react@<version>
 
 This rewrites `package-lock.json` to pin the new version. Requires `NPM_AUTH_TOKEN` set in the shell (`~/.zprofile`).
 
-### 3. Push cfop to deploy
+### 4. Push cfop to deploy
 
 Commit the lock file update and push:
 
