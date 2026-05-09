@@ -10,7 +10,7 @@ export interface CubeMoveTapeProps {
 export function CubeMoveTape({ moves, stepIndex, style, className }: CubeMoveTapeProps) {
   return (
     <div
-      style={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap', maxWidth: 640, margin: '0 auto', ...style }}
+      style={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap', ...style }}
       className={className}
     >
       {moves.map((mv, i) => {
