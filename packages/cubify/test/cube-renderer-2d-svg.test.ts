@@ -111,14 +111,14 @@ describe('toSVG — colour rendering on solved cube', () => {
     expect(svg.toLowerCase()).toContain('#ffffff');
   });
 
-  it('contains F face green colour (#1a7c2a)', () => {
+  it('contains F face green colour (#44ee00)', () => {
     const svg = CubeRenderer2D.toSVG(solved, new Map());
-    expect(svg.toLowerCase()).toContain('#1a7c2a');
+    expect(svg.toLowerCase()).toContain('#44ee00');
   });
 
-  it('contains background plastic colour (#141414 from DEFAULT_THEME)', () => {
+  it('contains background plastic colour (#000000 from DEFAULT_THEME)', () => {
     const svg = CubeRenderer2D.toSVG(solved, new Map());
-    expect(svg).toContain('#141414');
+    expect(svg).toContain('#000000');
   });
 });
 
@@ -163,6 +163,6 @@ describe('toSVG — face layout correctness after R', () => {
     expect(rectCount).toBe(13);
     expect(triCount).toBe(8);
     // SVG should contain green (F colour) for U right column
-    expect(svg.toLowerCase()).toContain('#1a7c2a');
+    expect(svg.toLowerCase()).toContain('#44ee00');
   });
 });

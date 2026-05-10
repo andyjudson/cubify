@@ -278,7 +278,8 @@
       <div class="control-group">
         <span class="control-label">Preset</span>
         <div class="btn-row">
-          <button class="button is-harness is-small" onclick="applyDefaultTheme()">classic</button>
+          <button class="button is-harness is-small" onclick="applyPreset('classic')">classic</button>
+          <button class="button is-harness is-small" onclick="applyPreset('alpha')">alpha</button>
           <button class="button is-harness is-small" onclick="applyPreset('rubiks')">rubik</button>
           <button class="button is-harness is-small" onclick="applyPreset('speed-dark')">dark</button>
           <button class="button is-harness is-small" onclick="applyPreset('speed-light')">light</button>
@@ -613,7 +614,7 @@
 
   function updateDebugState(state, prevFaces = null) {
     const { corners, edges, centers } = state.toRawPattern();
-    faceStatePre.textContent          = state.toString();
+    faceStatePre.textContent          = 'FACE  stickers\n' + state.toString().split('\n').map(l => '  ' + l).join('\n');
     kpatternCornersPre.textContent    = formatKPatternCorners(corners);
     kpatternEdgesPre.textContent      = formatKPatternEdges(edges);
     kpatternCentersPre.textContent    = formatKPatternCenters(centers);

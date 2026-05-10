@@ -46,7 +46,7 @@ When viewing the cube in internals mode, the inner faces of cubelets (faces poin
 
 ### User Story 3 — Central Core Mechanism (Priority: P3)
 
-A visible central core is rendered inside the cube — a sphere (or compact rounded shape) at the absolute centre, with six short cylindrical pillar arms extending outward to approximately the centre-piece position on each face. This represents the physical axle mechanism that the cubelets rotate around.
+A visible central core is rendered inside the cube — a sphere (or compact rounded shape) at the absolute centre, with six short cylindrical pillar arms extending outward to approximately the centre-piece position on each face. This is a **stylised/representational** model of the physical axle mechanism; it is intentionally smaller than the real core (~15% of cube half-size) so that no cubelet geometry needs to be cut or modified to accommodate it. Anatomically accurate geometry (where corner pieces have carved notches to clear the core) is explicitly out of scope.
 
 **Why this priority**: The core completes the "internal mechanism" illusion. It is only visible through transparent sticker panels and internal walls, so it depends on P1 and P2 being in place.
 

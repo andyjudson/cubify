@@ -13,7 +13,7 @@ export interface FaceColours {
   [key: string]: string;
 }
 
-export type ThemePresetName = 'classic' | 'rubiks' | 'speed-dark' | 'speed-light';
+export type ThemePresetName = 'classic' | 'alpha' | 'rubiks' | 'speed-dark' | 'speed-light';
 
 export interface CubeTheme {
   colours: FaceColours;
@@ -33,9 +33,16 @@ export interface CubeTheme {
 
 // ---- Colour palette constants ----
 
-const CLASSIC_COLOURS: FaceColours = {
+// Original cubify palette — muted/warm, matches old classic look
+const ALPHA_COLOURS: FaceColours = {
   U: '#ffffff', R: '#c41e1e', F: '#1a7c2a',
   D: '#ffd000', L: '#e06000', B: '#0f4fad',
+};
+
+// Twisty Player (cubing.js) palette — vivid, saturated WCA-style colours
+const CLASSIC_COLOURS: FaceColours = {
+  U: '#ffffff', R: '#ff0000', F: '#44ee00',
+  D: '#f4f400', L: '#ff8000', B: '#2266ff',
 };
 
 // ---- Named presets ----
@@ -43,6 +50,15 @@ const CLASSIC_COLOURS: FaceColours = {
 export const THEME_PRESETS: Record<ThemePresetName, CubeTheme> = {
   classic: {
     colours: CLASSIC_COLOURS,
+    brightness: 1.0, saturation: 1.0,
+    plasticColour: '#000000', plasticOpacity: 1,
+    gap: 0.020, bevel: 0,
+    stickerPad: 20, stickerRadius: 0,
+    centerShape: 'square',
+    materialType: 'basic', roughness: 0.9, metalness: 0,
+  },
+  alpha: {
+    colours: ALPHA_COLOURS,
     brightness: 1.0, saturation: 1.0,
     plasticColour: '#141414', plasticOpacity: 1,
     gap: 0.010, bevel: 0.010,
