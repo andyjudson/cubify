@@ -49,6 +49,19 @@ The existing case selector, mask, and theme controls remain unchanged — scramb
 
 ---
 
+## Watch: twips (WCA scramble generator)
+
+[`cubing/twips`](https://github.com/cubing/twips) is being developed as the official replacement for tnoodle (the current Java-based WCA scramble server). If it ships as WASM it would run directly in the browser — no backend, no worker roundtrip — and would produce proper WCA random-state scrambles (uniform distribution over cube states) rather than the random-move sequences `CubeScramble.random()` generates.
+
+Relevance to this feature:
+- Phase 1 uses `CubeScramble.random()` — good enough for harness use, not WCA quality
+- If twips exposes a WASM/JS API (watch the cubing.js integration — Lucas is likely to wire it in), it becomes the natural upgrade for Phase 1 scramble generation
+- The solver side is independent of twips; twips is scramble-only
+
+**Action**: Before implementing Phase 1, check whether `twips` or a cubing.js wrapper around it is usable yet. If yes, use it instead of `CubeScramble.random()`. If not, proceed with `CubeScramble.random()` and leave a TODO.
+
+---
+
 ## Prerequisites
 
 - Feature 029 (React wrapper) ✅
