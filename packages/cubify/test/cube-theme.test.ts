@@ -5,10 +5,10 @@ import {
   type CubeTheme, type ThemePresetName,
 } from '../src/CubeTheme.js';
 
-const PRESET_NAMES: ThemePresetName[] = ['alpha', 'classic', 'rubiks', 'speed-dark', 'speed-light'];
+const PRESET_NAMES: ThemePresetName[] = ['alpha', 'classic', 'internals', 'rubiks', 'speed-dark', 'speed-light'];
 
 describe('THEME_PRESETS', () => {
-  it('has exactly 5 named presets', () => {
+  it('has exactly 6 named presets', () => {
     expect(Object.keys(THEME_PRESETS).sort()).toEqual(PRESET_NAMES);
   });
 

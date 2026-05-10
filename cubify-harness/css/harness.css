@@ -1,0 +1,152 @@
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; padding: 0; }
+body {
+  background: #1a1a2e;
+  color: #e0e0e0;
+  padding: 12px 16px 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  gap: 8px;
+}
+
+/* ---- Main area: cube + tabbed panel ---- */
+.main-area {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Cube column */
+.cube-col {
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  flex-shrink: 0;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: #0d0d1a;
+  overflow: hidden;
+}
+
+.cube-col .tabs { flex-shrink: 0; margin: 0; padding: 6px 8px 0; }
+.cube-col .tabs ul { border-bottom-color: #333; }
+.cube-col .tabs li a { color: #888; border-bottom-color: #333; padding: 2px 10px; font-size: 0.72rem; }
+.cube-col .tabs li.is-active a { color: #fff; border-bottom-color: #4a90d9; }
+
+.cube-tab-panel { display: none; }
+.cube-tab-panel.is-active { display: block; }
+
+#cube-container {
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+}
+#cube-container canvas { display: block; width: 100% !important; height: 100% !important; }
+
+#cube-2d {
+  width: 75%;
+  aspect-ratio: 1;
+  background: #000;
+  margin: 0 auto;
+}
+#cube-2d canvas { display: block; width: 100% !important; height: 100% !important; }
+
+/* Right panel: tabbed (Simulation | Moves | Stickering) */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: #0d0d1a;
+  overflow: hidden;
+}
+
+.right-panel .tabs { flex-shrink: 0; margin: 0; padding: 6px 8px 0; }
+.right-panel .tabs ul { border-bottom-color: #333; }
+.right-panel .tabs li a { color: #888; border-bottom-color: #333; padding: 2px 10px; font-size: 0.72rem; }
+.right-panel .tabs li.is-active a { color: #fff; border-bottom-color: #4a90d9; }
+
+.tools-panel { display: none; flex: 1; flex-direction: column; padding: 8px; overflow-y: auto; gap: 8px; }
+.tools-panel.is-active { display: flex; }
+
+.control-group { display: flex; flex-direction: column; gap: 4px; }
+.control-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #666;
+}
+.btn-row { display: flex; gap: 4px; flex-wrap: wrap; }
+.th-row { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+.th-lbl { font-size: 0.68rem; color: #888; width: 56px; flex-shrink: 0; }
+.th-slider { flex: 1; min-width: 0; }
+.th-val { font-size: 0.68rem; color: #ccc; width: 34px; text-align: right; flex-shrink: 0; }
+.alg-label {
+  font-size: 0.72rem;
+  color: #888;
+  font-family: monospace;
+  min-height: 1.1em;
+}
+
+.validator-row { flex-shrink: 0; display: flex; gap: 4px; }
+.validator-row .button { flex: 1; min-width: 0; }
+#alg-buttons .button { min-width: 5.5rem; }
+.validator-input-row { flex-shrink: 0; display: flex; gap: 6px; }
+#move-status { flex-shrink: 0; font-size: 0.72rem; font-family: monospace; color: #666; }
+#orbit-status { font-size: 0.72rem; font-family: monospace; color: #666; }
+
+/* ---- Debug panel — flex child at bottom ---- */
+.debug-panel {
+  height: 200px;
+  flex-shrink: 0;
+  background: #0d0d1a;
+  border-top: 1px solid #333;
+  margin: 0 -16px;
+  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Bulma tabs overrides for dark panel */
+.debug-panel .tabs { flex-shrink: 0; margin-bottom: 6px; }
+.debug-panel .tabs ul { border-bottom-color: #333; }
+.debug-panel .tabs li a { color: #888; border-bottom-color: #333; padding: 2px 10px; font-size: 0.72rem; }
+.debug-panel .tabs li.is-active a { color: #fff; border-bottom-color: #4a90d9; }
+
+.debug-tab-panel { display: none; min-height: 0; }
+#debug-log-panel.is-active   { display: flex; flex-direction: column; }
+#debug-state-panel.is-active { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+#debug-pre, #face-state-pre, #kpattern-corners-pre, #kpattern-edges-pre, #kpattern-centers-pre {
+  flex: 1; overflow-y: auto; min-height: 0;
+  background: #222; border: 1px solid #444; border-radius: 4px; padding: 6px 8px;
+}
+#debug-pre            { font-family: monospace; font-size: 0.75rem; color: #7fc; white-space: pre; overflow-x: auto; line-height: 1.5; }
+#face-state-pre       { font-family: monospace; font-size: 0.75rem; color: #adf; white-space: pre;      line-height: 1.5; }
+#kpattern-corners-pre { font-family: monospace; font-size: 0.75rem; color: #fc9; white-space: pre;      line-height: 1.5; }
+#kpattern-edges-pre   { font-family: monospace; font-size: 0.75rem; color: #fc9; white-space: pre;      line-height: 1.5; }
+#kpattern-centers-pre { font-family: monospace; font-size: 0.75rem; color: #fc9; white-space: pre;      line-height: 1.5; }
+
+/* Bulma button size/colour tweaks for dark bg */
+.button.is-harness {
+  background: #222;
+  border-color: #444;
+  color: #ccc;
+  font-size: 0.78rem;
+}
+.button.is-harness:hover { background: #2a2a2a; color: #fff; }
+.button.is-harness.is-active,
+.button.is-harness.is-info { background: #2d5af5; border-color: #2d5af5; color: #fff; }
+.button.is-harness:disabled { opacity: 0.35; }
+.button.is-harness .material-icons { font-size: 1rem; vertical-align: middle; line-height: 1; margin-right: 3px; }
+#move-tape { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 3px; margin-top: 4px; padding-bottom: 2px; min-height: 0; }
+#move-tape:empty { display: none; }
+.move-chip { flex-shrink: 0; font-family: monospace; font-size: 0.72rem; padding: 1px 0; min-width: 2rem; text-align: center; border-radius: 3px; background: #222; border: 1px solid #444; color: #888; }
+.move-chip.is-active { background: #2d5af5; border-color: #2d5af5; color: #fff; }
+.move-chip.is-done   { color: #ccc; border-color: #555; }

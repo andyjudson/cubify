@@ -13,7 +13,7 @@ export interface FaceColours {
   [key: string]: string;
 }
 
-export type ThemePresetName = 'classic' | 'alpha' | 'rubiks' | 'speed-dark' | 'speed-light';
+export type ThemePresetName = 'classic' | 'alpha' | 'internals' | 'rubiks' | 'speed-dark' | 'speed-light';
 
 export interface CubeTheme {
   colours: FaceColours;
@@ -54,6 +54,15 @@ export const THEME_PRESETS: Record<ThemePresetName, CubeTheme> = {
     plasticColour: '#000000', plasticOpacity: 1,
     gap: 0.020, bevel: 0,
     stickerPad: 20, stickerRadius: 0,
+    centerShape: 'square',
+    materialType: 'basic', roughness: 0.9, metalness: 0,
+  },
+  internals: {
+    colours: CLASSIC_COLOURS,
+    brightness: 1.3, saturation: 2,
+    plasticColour: '#ebebeb', plasticOpacity: 0.7,
+    gap: 0.1, bevel: 0.1,
+    stickerPad: 60, stickerRadius: 0,
     centerShape: 'square',
     materialType: 'basic', roughness: 0.9, metalness: 0,
   },
