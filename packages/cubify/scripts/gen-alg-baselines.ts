@@ -9,7 +9,7 @@
 
 import { CubeState } from '../src/CubeState.js';
 
-const CASES: Array<{ id: string; alg: string; rotation: string; direct?: boolean }> = [
+const CASES: Array<{ id: string; alg: string; rotation: string }> = [
   { id: 'sune',      alg: "R U R' U R U2 R'",                           rotation: 'z2' },
   { id: 'antisune',  alg: "R U2 R' U' R U' R'",                         rotation: 'z2' },
   { id: 'h_shape',   alg: "R U R' U R U' R' U R U2 R'",                 rotation: 'z2' },
@@ -19,7 +19,7 @@ const CASES: Array<{ id: string; alg: string; rotation: string; direct?: boolean
   { id: 't_perm',    alg: "R U R' U' R' F R2 U' R' U' R U R' F'",       rotation: 'z2' },
   { id: 'ua_perm',   alg: "R2 U' R' U' R U R U R U' R",                 rotation: 'z2' },
   { id: 'h_perm',    alg: "M2 U' M2 U2 M2 U' M2",                       rotation: 'z2 y2' },
-  { id: 'superflip', alg: "U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2", rotation: '', direct: true },
+  { id: 'superflip', alg: "U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2", rotation: '' },
 ];
 
 async function main() {
@@ -29,16 +29,12 @@ async function main() {
   console.log('// Re-run only if CubeState.toFaceArray() implementation changes.\n');
   console.log('export const BASELINES: Record<string, string[][]> = {');
 
-  for (const { id, alg, rotation, direct } of CASES) {
-    const caseState = direct
-      ? solved.applyAlg(alg)
-      : solved.applyAlg(CubeState.setupFromAlg(alg, rotation));
+  for (const { id, alg, rotation } of CASES) {
+    const caseState = solved.applyAlg(CubeState.setupFromAlg(alg, rotation));
     const faces = caseState.toFaceArray();
 
     // Verify invariant before hardcoding
-    const afterAlg = direct
-      ? caseState.applyAlg(alg)          // self-inverse: apply twice = solved
-      : caseState.applyAlg(alg);
+    const afterAlg = caseState.applyAlg(alg);
     if (!afterAlg.isSolved()) {
       console.error(`ERROR: ${id} — invariant failed! Check alg/rotation.`);
       process.exit(1);
