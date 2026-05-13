@@ -205,4 +205,5 @@ See `specs/017-cubify-agent-skill/research.md` for the full debugging record.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
+at specs/033-cubify-render-internals/plan.md
 <!-- SPECKIT END -->
