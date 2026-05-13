@@ -26,9 +26,9 @@ describe('THEME_PRESETS', () => {
     expect(THEME_PRESETS['speed-dark'].plasticColour).toBe('#232323');
   });
 
-  it('speed-light preset has light plastic and partial opacity', () => {
-    expect(THEME_PRESETS['speed-light'].plasticColour).toBe('#ebebeb');
-    expect(THEME_PRESETS['speed-light'].plasticOpacity).toBe(0.9);
+  it('speed-light preset has light plastic', () => {
+    expect(THEME_PRESETS['speed-light'].plasticColour).toBe('#d6d6d6');
+    expect(THEME_PRESETS['speed-light'].plasticOpacity).toBe(1);
   });
 
   it('rubiks preset uses standard material', () => {

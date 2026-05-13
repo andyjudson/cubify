@@ -87,7 +87,7 @@ export const THEME_PRESETS: Record<ThemePresetName, CubeTheme> = {
   'speed-dark': {
     colours: CLASSIC_COLOURS,
     brightness: 1.35, saturation: 1.25,
-    plasticColour: '#232323', plasticOpacity: 0.9,
+    plasticColour: '#232323', plasticOpacity: 1,
     gap: 0.02, bevel: 0.06,
     stickerPad: 14, stickerRadius: 16,
     centerShape: 'square',
@@ -95,8 +95,8 @@ export const THEME_PRESETS: Record<ThemePresetName, CubeTheme> = {
   },
   'speed-light': {
     colours: CLASSIC_COLOURS,
-    brightness: 1.4, saturation: 1.2,
-    plasticColour: '#ebebeb', plasticOpacity: 0.9,
+    brightness: 1.35, saturation: 1.25,
+    plasticColour: '#d6d6d6', plasticOpacity: 1,
     gap: 0.02, bevel: 0.06,
     stickerPad: 14, stickerRadius: 16,
     centerShape: 'square',
