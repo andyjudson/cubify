@@ -17,6 +17,9 @@ export type { CubeRenderer2DOptions } from './CubeRenderer2D.js';
 export { CubeRenderer3D, MOVE_AXIS } from './CubeRenderer3D.js';
 export type { MoveAxisDef, CubeRenderer3DOptions } from './CubeRenderer3D.js';
 
+export { DEFAULT_INTERNALS_OPTIONS } from './CubeInternals.js';
+export type { InternalsOptions } from './CubeInternals.js';
+
 export { CubePlayer } from './CubePlayer.js';
 export type { PlayerEventName, MoveEventData, LoadAlgOptions } from './CubePlayer.js';
 

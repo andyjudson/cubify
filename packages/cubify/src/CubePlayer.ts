@@ -6,6 +6,7 @@
  */
 
 import { CubeRenderer3D } from './CubeRenderer3D.js';
+import type { InternalsOptions } from './CubeInternals.js';
 import { CubeState } from './CubeState.js';
 import { CubeStickering, MASK_PRESETS } from './CubeStickering.js';
 import { AlgParser } from './AlgParser.js';
@@ -165,6 +166,10 @@ export class CubePlayer {
   setStickering(str: string | null): void {
     this._stickering = str || null;
     if (this._baseState) this._reapplyStickering();
+  }
+
+  setInternals(enabled: boolean, options?: Partial<InternalsOptions>): void {
+    this._renderer.setInternals(enabled, options);
   }
 
   // ── Getters ────────────────────────────────────────────────────────────────

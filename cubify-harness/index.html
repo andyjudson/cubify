@@ -206,18 +206,49 @@
         </div>
       </div>
 
-      <!-- JSON export / import -->
-      <div class="control-group">
-        <div class="btn-row" style="margin-bottom:6px">
-          <button class="button is-harness is-small" onclick="exportThemeJSON()">Export JSON</button>
-          <span id="th-export-msg" style="font-size:0.72rem;color:#4a90d9;display:none">Copied!</span>
-        </div>
-        <textarea id="th-import-input" class="input is-small" rows="3"
-          placeholder="Paste theme JSON here…"
-          style="font-family:monospace;font-size:0.68rem;background:#111827;border-color:#444;color:#ddf;width:100%;resize:vertical"></textarea>
-        <div class="btn-row" style="margin-top:4px">
-          <button class="button is-harness is-small" onclick="importThemeJSON()">Apply</button>
-          <span id="th-import-error" style="font-size:0.72rem;color:#e04040;display:none"></span>
+      <!-- Internals + JSON side by side -->
+      <div class="control-group" style="padding-bottom:2px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px">
+
+          <!-- Left: Internals -->
+          <div>
+            <div style="font-size:0.65rem;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Internals</div>
+            <div style="margin-bottom:6px">
+              <button id="btn-internals" class="button is-harness is-small"><span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">toggle_off</span>Off</button>
+            </div>
+            <div class="th-row">
+              <span class="th-lbl">Stickers</span>
+              <input id="slider-sticker-opacity" type="range" min="0.3" max="1.0" step="0.05" value="0.60" class="th-slider">
+              <span id="label-sticker-opacity" class="th-val">0.60</span>
+            </div>
+            <div class="th-row">
+              <span class="th-lbl">Walls</span>
+              <input id="slider-wall-opacity" type="range" min="0.0" max="1.0" step="0.05" value="0.20" class="th-slider">
+              <span id="label-wall-opacity" class="th-val">0.20</span>
+            </div>
+            <div class="th-row">
+              <span class="th-lbl">Core</span>
+              <input id="slider-core-opacity" type="range" min="0.0" max="1.0" step="0.05" value="0.80" class="th-slider">
+              <span id="label-core-opacity" class="th-val">0.80</span>
+            </div>
+          </div>
+
+          <!-- Right: Theme JSON -->
+          <div>
+            <div style="font-size:0.65rem;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Theme JSON</div>
+            <div style="margin-bottom:6px;display:flex;align-items:center;gap:6px">
+              <button class="button is-harness is-small" onclick="exportThemeJSON()">Export</button>
+              <span id="th-export-msg" style="font-size:0.72rem;color:#4a90d9;display:none">Copied!</span>
+            </div>
+            <textarea id="th-import-input" class="input is-small" rows="4"
+              placeholder="Paste theme JSON…"
+              style="font-family:monospace;font-size:0.68rem;background:#111827;border-color:#444;color:#ddf;width:100%;resize:vertical"></textarea>
+            <div style="margin-top:4px;display:flex;align-items:center;gap:6px">
+              <button class="button is-harness is-small" onclick="importThemeJSON()">Apply</button>
+              <span id="th-import-error" style="font-size:0.72rem;color:#e04040;display:none"></span>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -320,11 +351,29 @@
     renderer2d.setTheme(currentTheme);
   }
 
+  const PRESET_INTERNALS = {
+    internals: { enabled: true, stickerOpacity: 0.60, wallOpacity: 0.20, coreOpacity: 0.80 },
+  };
+
   function applyPreset(name) {
     currentTheme = cloneTheme(THEME_PRESETS[name]);
     syncControlsToTheme(currentTheme);
     player.renderer.setTheme(currentTheme);
     renderer2d.setTheme(currentTheme);
+    const pi = PRESET_INTERNALS[name];
+    if (pi) {
+      internalsOpts.stickerOpacity = pi.stickerOpacity;
+      internalsOpts.wallOpacity    = pi.wallOpacity;
+      internalsOpts.coreOpacity    = pi.coreOpacity;
+      document.getElementById('slider-sticker-opacity').value = pi.stickerOpacity;
+      document.getElementById('label-sticker-opacity').textContent = pi.stickerOpacity.toFixed(2);
+      document.getElementById('slider-wall-opacity').value = pi.wallOpacity;
+      document.getElementById('label-wall-opacity').textContent = pi.wallOpacity.toFixed(2);
+      document.getElementById('slider-core-opacity').value = pi.coreOpacity;
+      document.getElementById('label-core-opacity').textContent = pi.coreOpacity.toFixed(2);
+      if (pi.enabled !== internalsOn) document.getElementById('btn-internals').click();
+      else if (internalsOn) applyInternals();
+    }
   }
 
   function applyFaceColour(face, value) {
@@ -332,7 +381,9 @@
   }
 
   function exportThemeJSON() {
-    const json = themeToJSON(currentTheme);
+    const obj = JSON.parse(themeToJSON(currentTheme));
+    obj.internals = { enabled: internalsOn, ...internalsOpts };
+    const json = JSON.stringify(obj, null, 2);
     navigator.clipboard.writeText(json).then(() => {
       const msg = document.getElementById('th-export-msg');
       msg.style.display = 'inline';
@@ -345,11 +396,36 @@
     const errEl = document.getElementById('th-import-error');
     errEl.style.display = 'none';
     try {
-      const imported = themeFromJSON(input);
+      const parsed = JSON.parse(input);
+      const { internals, ...themeOnly } = parsed;
+      const imported = themeFromJSON(JSON.stringify(themeOnly));
       currentTheme = imported;
       syncControlsToTheme(currentTheme);
       player.renderer.setTheme(currentTheme);
       renderer2d.setTheme(currentTheme);
+      if (internals) {
+        if (typeof internals.stickerOpacity === 'number') {
+          internalsOpts.stickerOpacity = internals.stickerOpacity;
+          document.getElementById('slider-sticker-opacity').value = internals.stickerOpacity;
+          document.getElementById('label-sticker-opacity').textContent = internals.stickerOpacity.toFixed(2);
+        }
+        if (typeof internals.wallOpacity === 'number') {
+          internalsOpts.wallOpacity = internals.wallOpacity;
+          document.getElementById('slider-wall-opacity').value = internals.wallOpacity;
+          document.getElementById('label-wall-opacity').textContent = internals.wallOpacity.toFixed(2);
+        }
+        if (typeof internals.coreOpacity === 'number') {
+          internalsOpts.coreOpacity = internals.coreOpacity;
+          document.getElementById('slider-core-opacity').value = internals.coreOpacity;
+          document.getElementById('label-core-opacity').textContent = internals.coreOpacity.toFixed(2);
+        }
+        const shouldEnable = !!internals.enabled;
+        if (shouldEnable !== internalsOn) {
+          document.getElementById('btn-internals').click();
+        } else if (internalsOn) {
+          applyInternals();
+        }
+      }
     } catch (e) {
       errEl.textContent = e.message;
       errEl.style.display = 'inline';
@@ -655,6 +731,34 @@
       appendLog(`[sim] speed: ${speedMs}ms`);
     };
   });
+
+  // ---- Internals ----
+  let internalsOn = false;
+  const internalsOpts = { stickerOpacity: 0.65, wallOpacity: 0.40, coreOpacity: 0.50 };
+
+  const applyInternals = () => player.renderer.setInternals(internalsOn, { ...internalsOpts });
+
+  document.getElementById('btn-internals').onclick = () => {
+    internalsOn = !internalsOn;
+    document.getElementById('btn-internals').innerHTML =
+      `<span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:4px">${internalsOn ? 'toggle_on' : 'toggle_off'}</span>${internalsOn ? 'On' : 'Off'}`;
+    document.getElementById('btn-internals').classList.toggle('is-info', internalsOn);
+    applyInternals();
+    appendLog(`[internals] ${internalsOn ? 'enabled' : 'disabled'}`);
+  };
+
+  const wireSlider = (id, labelId, key, decimals = 2) => {
+    document.getElementById(id).oninput = function () {
+      const val = parseFloat(this.value);
+      internalsOpts[key] = val;
+      document.getElementById(labelId).textContent = val.toFixed(decimals);
+      if (internalsOn) applyInternals();
+    };
+  };
+
+  wireSlider('slider-sticker-opacity', 'label-sticker-opacity', 'stickerOpacity');
+  wireSlider('slider-wall-opacity',    'label-wall-opacity',    'wallOpacity');
+  wireSlider('slider-core-opacity',    'label-core-opacity',    'coreOpacity');
 
   // ---- Stickering tab ----
   const orbitInput  = document.getElementById('orbit-input');

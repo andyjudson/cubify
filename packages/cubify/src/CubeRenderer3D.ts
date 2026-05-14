@@ -13,6 +13,10 @@ import {
   type CubeTheme, type ThemePresetName,
   DEFAULT_THEME, effectiveColours, getThemePreset, cloneTheme,
 } from './CubeTheme.js';
+import {
+  type InternalsOptions, DEFAULT_INTERNALS_OPTIONS,
+  buildCoreGroup, buildWallMaterial,
+} from './CubeInternals.js';
 
 // ---- Colours ----
 
@@ -197,6 +201,10 @@ export class CubeRenderer3D {
   private _debugLog: string[];
   private _offscreenCanvas: HTMLCanvasElement | null;
   private _activeVisMap: VisMap | null;
+  private _internalsEnabled: boolean;
+  private _internalsOptions: InternalsOptions;
+  private _coreGroup: THREE.Group | null;
+  private _internalsWallMaterial: THREE.Material | null;
 
   constructor({ theme, gap, animSpeed = 300, debug = false, canvas = null }: CubeRenderer3DOptions = {}) {
     let resolved: CubeTheme;
@@ -222,6 +230,10 @@ export class CubeRenderer3D {
     this._debugLog  = [];
     this._offscreenCanvas = canvas ?? null;
     this._activeVisMap    = null;
+    this._internalsEnabled      = false;
+    this._internalsOptions      = { ...DEFAULT_INTERNALS_OPTIONS };
+    this._coreGroup             = null;
+    this._internalsWallMaterial = null;
   }
 
   // ---- Logging ----
@@ -276,6 +288,10 @@ export class CubeRenderer3D {
     this._controls.target.set(0, 0, 0);
 
     this._buildCubelets();
+    if (this._internalsEnabled && !this._coreGroup) {
+      this._coreGroup = buildCoreGroup(this._theme.plasticColour, this._internalsOptions);
+      this._scene.add(this._coreGroup);
+    }
     this._startLoop();
 
     const { width, height } = container.getBoundingClientRect();
@@ -684,6 +700,7 @@ export class CubeRenderer3D {
 
     this.restoreColours();
     if (this._activeVisMap) this.applyStickering(this._activeVisMap);
+    if (this._internalsEnabled) this._applyInternalsToMaterials();
     this._log('setTheme');
   }
 
@@ -730,4 +747,139 @@ export class CubeRenderer3D {
   get isAnimating(): boolean { return this._animating; }
 
   getDebugLog(): string { return this._debugLog.join('\n'); }
+
+  // ---- Internals ----
+
+  setInternals(enabled: boolean, options?: Partial<InternalsOptions>): void {
+    if (enabled) {
+      this._internalsOptions = { ...DEFAULT_INTERNALS_OPTIONS, ...options };
+      this._internalsEnabled = true;
+
+      // US1: make outward sticker materials semi-transparent
+      const opts = this._internalsOptions;
+      for (const cubelet of this._cubelets) {
+        const homeOut = outwardSlots(cubelet.homePos);
+        for (let slot = 0; slot < 6; slot++) {
+          if (!homeOut[slot]) continue;
+          const mat = cubelet.mesh.material[slot] as THREE.MeshBasicMaterial;
+          mat.transparent = true;
+          mat.opacity     = opts.stickerOpacity;
+          mat.depthWrite  = false;
+          mat.needsUpdate = true;
+        }
+      }
+
+      // US2: replace inward slot materials with a DoubleSide wall material
+      if (this._internalsWallMaterial) this._internalsWallMaterial.dispose();
+      this._internalsWallMaterial = buildWallMaterial(this._theme.plasticColour, opts);
+      for (const cubelet of this._cubelets) {
+        const homeOut = outwardSlots(cubelet.homePos);
+        for (let slot = 0; slot < 6; slot++) {
+          if (homeOut[slot]) continue;
+          cubelet.mesh.material[slot] = this._internalsWallMaterial;
+        }
+      }
+
+      // US3: add core group to scene
+      if (this._coreGroup) {
+        this._disposeGroup(this._coreGroup);
+        this._scene?.remove(this._coreGroup);
+      }
+      this._coreGroup = buildCoreGroup(this._theme.plasticColour, opts);
+      if (this._scene) this._scene.add(this._coreGroup);
+
+    } else {
+      if (!this._internalsEnabled) return;
+      this._internalsEnabled = false;
+
+      // US1: restore sticker materials to opaque
+      const baseTransparent = this._theme.plasticOpacity < 1;
+      for (const cubelet of this._cubelets) {
+        const homeOut = outwardSlots(cubelet.homePos);
+        for (let slot = 0; slot < 6; slot++) {
+          if (!homeOut[slot]) continue;
+          const mat = cubelet.mesh.material[slot] as THREE.MeshBasicMaterial;
+          mat.transparent = baseTransparent;
+          mat.opacity     = 1.0;
+          mat.depthWrite  = !baseTransparent;
+          mat.needsUpdate = true;
+        }
+      }
+
+      // US2: restore inward slots to shared plastic material
+      for (const cubelet of this._cubelets) {
+        const homeOut = outwardSlots(cubelet.homePos);
+        for (let slot = 0; slot < 6; slot++) {
+          if (homeOut[slot]) continue;
+          cubelet.mesh.material[slot] = this._plasticMaterial;
+        }
+      }
+      if (this._internalsWallMaterial) {
+        this._internalsWallMaterial.dispose();
+        this._internalsWallMaterial = null;
+      }
+
+      // US3: remove and dispose core group
+      if (this._coreGroup) {
+        this._scene?.remove(this._coreGroup);
+        this._disposeGroup(this._coreGroup);
+        this._coreGroup = null;
+      }
+    }
+  }
+
+  private _disposeGroup(group: THREE.Group): void {
+    for (const child of group.children) {
+      const mesh = child as THREE.Mesh;
+      mesh.geometry?.dispose();
+      if (Array.isArray(mesh.material)) {
+        mesh.material.forEach(m => m.dispose());
+      } else {
+        (mesh.material as THREE.Material)?.dispose();
+      }
+    }
+  }
+
+  private _applyInternalsToMaterials(): void {
+    const opts = this._internalsOptions;
+
+    // US1: re-stamp sticker opacity (in case setTheme() created new material instances)
+    for (const cubelet of this._cubelets) {
+      const homeOut = outwardSlots(cubelet.homePos);
+      for (let slot = 0; slot < 6; slot++) {
+        if (!homeOut[slot]) continue;
+        const mat = cubelet.mesh.material[slot] as THREE.MeshBasicMaterial;
+        mat.transparent = true;
+        mat.opacity     = opts.stickerOpacity;
+        mat.depthWrite  = false;
+        mat.needsUpdate = true;
+      }
+    }
+
+    // US2: re-assign inward slots (setTheme() may have reset them to _plasticMaterial)
+    // and update wall material colour
+    if (this._internalsWallMaterial) {
+      for (const cubelet of this._cubelets) {
+        const homeOut = outwardSlots(cubelet.homePos);
+        for (let slot = 0; slot < 6; slot++) {
+          if (homeOut[slot]) continue;
+          cubelet.mesh.material[slot] = this._internalsWallMaterial;
+        }
+      }
+      (this._internalsWallMaterial as THREE.MeshStandardMaterial).color.set(
+        parseInt(this._theme.plasticColour.slice(1), 16),
+      );
+      this._internalsWallMaterial.needsUpdate = true;
+    }
+
+    // US3: update core material colour to match new theme plastic colour
+    if (this._coreGroup) {
+      for (const child of this._coreGroup.children) {
+        const mesh = child as THREE.Mesh;
+        const mat = mesh.material as THREE.MeshStandardMaterial;
+        mat.color.set(parseInt(this._theme.plasticColour.slice(1), 16));
+        mat.needsUpdate = true;
+      }
+    }
+  }
 }
