@@ -102,6 +102,14 @@ const BASELINES: Record<string, string[][]> = {
     ["L","U","L","B","L","F","L","D","L"],
     ["B","U","B","R","B","L","B","D","B"],
   ],
+  checkerboard: [
+    ["U","D","U","D","U","D","U","D","U"],
+    ["R","L","R","L","R","L","R","L","R"],
+    ["F","B","F","B","F","B","F","B","F"],
+    ["D","U","D","U","D","U","D","U","D"],
+    ["L","R","L","R","L","R","L","R","L"],
+    ["B","F","B","F","B","F","B","F","B"],
+  ],
 };
 
 // ── Test cases (alg strings match algs-cfop-bgr.json) ────────────────────────
@@ -123,7 +131,8 @@ const CASES: Array<{
   { id: 't_perm',    label: 'T Perm',  alg: "R U R' U' R' F R2 U' R' U' R U R' F'",   rotation: 'z2' },
   { id: 'ua_perm',  label: 'Ua Perm',  alg: "R2 U' R' U' R U R U R U' R",             rotation: 'z2' },
   { id: 'h_perm',    label: 'H Perm',    alg: "M2 U' M2 U2 M2 U' M2",                                    rotation: 'z2 y2' },
-  { id: 'superflip', label: 'Superflip', alg: "U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2",  rotation: '' },
+  { id: 'superflip',    label: 'Superflip',    alg: "U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2", rotation: '' },
+  { id: 'checkerboard', label: 'Checkerboard', alg: "M2 E2 S2",                                              rotation: '' },
 ];
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────

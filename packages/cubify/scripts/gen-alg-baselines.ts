@@ -19,7 +19,8 @@ const CASES: Array<{ id: string; alg: string; rotation: string }> = [
   { id: 't_perm',    alg: "R U R' U' R' F R2 U' R' U' R U R' F'",       rotation: 'z2' },
   { id: 'ua_perm',   alg: "R2 U' R' U' R U R U R U' R",                 rotation: 'z2' },
   { id: 'h_perm',    alg: "M2 U' M2 U2 M2 U' M2",                       rotation: 'z2 y2' },
-  { id: 'superflip', alg: "U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2", rotation: '' },
+  { id: 'superflip',    alg: "U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2", rotation: '' },
+  { id: 'checkerboard', alg: "M2 E2 S2",                                              rotation: '' },
 ];
 
 async function main() {
