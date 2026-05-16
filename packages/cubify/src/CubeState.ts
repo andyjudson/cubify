@@ -101,6 +101,8 @@ export class CubeState {
     this._kPattern = kPattern;
   }
 
+  get kPattern(): KPattern { return this._kPattern; }
+
   static async solved(): Promise<CubeState> {
     const kpuzzle = await getKPuzzle();
     return new CubeState(kpuzzle.defaultPattern());

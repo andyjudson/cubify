@@ -6,7 +6,8 @@ export type { RawOrbitData, RawPattern } from './CubeState.js';
 
 export { AlgParser } from './AlgParser.js';
 
-export { CubeScramble } from './CubeScramble.js';
+export { CubeScramble, twipsWarmed, twipsSolverWarmed } from './CubeScramble.js';
+export type { TwipsServerSolveOptions } from './CubeScramble.js';
 
 export { CubeStickering, MASK_PRESETS } from './CubeStickering.js';
 export type { VisMap, MaskPreset } from './CubeStickering.js';
@@ -25,3 +26,6 @@ export type { PlayerEventName, MoveEventData, LoadAlgOptions } from './CubePlaye
 
 export { CubeExporter } from './CubeExporter.js';
 export type { ExportOptions } from './CubeExporter.js';
+
+export { CubeSolver } from './CubeSolver.js';
+export type { SolveResult, SolverOptions } from './CubeSolver.js';

@@ -74,6 +74,16 @@
       </div>
 
       <div class="control-group">
+        <span class="control-label">Scramble / Solve</span>
+        <div class="btn-row">
+          <button id="btn-scramble-rand" class="button is-harness is-small">Scramble (moves)</button>
+          <button id="btn-scramble-wca" class="button is-harness is-small">Scramble (state)</button>
+          <button id="btn-solve" class="button is-harness is-small" disabled><span class="material-icons">psychology</span>Solve</button>
+          <button id="btn-solve-cancel" class="button is-harness is-small" style="display:none"><span class="material-icons">cancel</span>Cancel</button>
+        </div>
+      </div>
+
+      <div class="control-group">
         <span class="control-label">Actions</span>
         <div class="btn-row">
           <button id="btn-reset" class="button is-harness is-small"><span class="material-icons">restart_alt</span>Reset case</button>
@@ -286,7 +296,7 @@
   import { CubeRenderer2D } from '../packages/cubify/src/CubeRenderer2D.js';
   import { CubeStickering, MASK_PRESETS } from '../packages/cubify/src/CubeStickering.js';
   import { THEME_PRESETS, DEFAULT_THEME, cloneTheme, themeToJSON, themeFromJSON } from '../packages/cubify/src/CubeTheme.js';
-
+  import { CubeScramble, twipsWarmed } from '../packages/cubify/src/CubeScramble.js';
   // Warm up kpuzzle early (cached after first call)
   const _solvedBase = await CubeState.solved();
 
@@ -321,6 +331,10 @@
     }
     player.renderer.setTheme(currentTheme);
     renderer2d.setTheme(currentTheme);
+    const parts = patch.colours
+      ? Object.entries(patch.colours).map(([k, v]) => `colours.${k} → ${v}`)
+      : Object.entries(patch).map(([k, v]) => `${k} → ${v}`);
+    appendLog(`[theme] ${parts.join(', ')}`);
   }
 
   function syncControlsToTheme(t) {
@@ -373,6 +387,8 @@
       document.getElementById('label-core-opacity').textContent = pi.coreOpacity.toFixed(2);
       if (pi.enabled !== internalsOn) document.getElementById('btn-internals').click();
       else if (internalsOn) applyInternals();
+    } else if (internalsOn) {
+      document.getElementById('btn-internals').click();
     }
   }
 
@@ -456,6 +472,12 @@
     debugPre.textContent = msg + '\n' + debugPre.textContent;
   }
 
+  function fmtNodes(n) {
+    if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+    if (n >= 1e3) return (n / 1e3).toFixed(0) + 'k';
+    return String(n);
+  }
+
   // ---- Structured telemetry (debug mode only) ----
   const _stateLog = [];
   function _serializeVisMap(map) {
@@ -472,7 +494,7 @@
     }
   }
 
-  window.addEventListener('cubify:log', e => appendLog(e.detail));
+  window.addEventListener('cubify:log', e => { if (!e.detail?.includes('setTheme')) appendLog(e.detail); });
   appendLog('[sim] page loaded');
 
   const kpatternCornersPre = document.getElementById('kpattern-corners-pre');
@@ -616,14 +638,20 @@
     });
   }
 
+  let currentScramble = null; // non-null = scramble mode (case select shows "— scramble —")
+  let currentSetup    = null; // always the active setup string — used by Solve to replay from case state
+
   async function loadAlg(idx) {
     stopPlay();
     currentAlgIndex = idx;
+    currentScramble = null;
     const alg = ALGS[idx];
     const setup = (alg.caseAlg && alg.notation)
       ? ['z2', ...CubeState.invertAlg(AlgParser.parse(alg.notation))].join(' ')
       : null;
+    currentSetup = setup;
     updateAlgButtons();
+    document.getElementById('btn-solve').disabled = true;
     await player.loadAlg(alg.notation, setup, { anchor: alg.caseAlg ? 'end' : 'start' });
     appendLog(`[sim] loaded: ${alg.label} (${player.moveCount} moves)`);
   }
@@ -653,6 +681,124 @@
     appendLog('[sim] play started');
   };
   document.getElementById('btn-stop').onclick = () => { stopPlay(); appendLog('[sim] stopped'); };
+
+  // ---- Solver init ----
+  // Prefer `twips serve` (localhost:2023) — native Rust, no warm-up needed.
+  // Fall back to two-phase WASM (experimentalSolve3x3x3IgnoringCenters, pre-built tables).
+  let _twipsServerAvailable = false;
+
+  // Solve button is always available — two-phase WASM path needs no warm-up.
+  document.getElementById('btn-solve').disabled = false;
+
+  (async () => {
+    _twipsServerAvailable = await CubeScramble.isTwipsServerAvailable();
+    if (_twipsServerAvailable) {
+      appendLog('[solver] twips server detected (localhost:2023)');
+    }
+  })();
+
+  // ---- Scramble ----
+  async function doScramble(btn, generator) {
+    stopPlay();
+    btn.disabled = true;
+    try {
+      const scramble = await generator();
+      currentScramble = scramble;
+      currentSetup = scramble;
+      currentAlgIndex = -1;
+      await player.loadAlg('', scramble, { anchor: 'start' });
+      updateAlgButtons();
+      document.getElementById('btn-solve').disabled = false;
+    } catch (e) {
+      appendLog(`[scramble] Error: ${e.message}`);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById('btn-scramble-rand').onclick = function() {
+    doScramble(this, () => {
+      const s = CubeScramble.random(20);
+      appendLog(`[scramble] generating random moves: ${s}`);
+      return s;
+    });
+  };
+
+  document.getElementById('btn-scramble-wca').onclick = function() {
+    doScramble(this, async () => {
+      const isFirstCall = !twipsWarmed;
+      appendLog(`[scramble] generating WCA random state via twips${isFirstCall ? ' (first call — WASM init ~4s)' : ''}`);
+      const t0 = Date.now();
+      const s = await CubeScramble.wca();
+      appendLog(`[scramble] random state: ${s} (${Date.now() - t0}ms)`);
+      return s;
+    });
+  };
+
+  // ---- Orientation normalisation ----
+  // Kociemba only sees corners+edges; if the cube has been whole-cube rotated
+  // (x/y/z) centers will be non-identity, causing the solver to treat the
+  // rotated frame as "solved". Find the rotation that restores centers to
+  // identity and prepend it to the solution so playback ends white-on-top.
+  function findOrientationFix(state) {
+    const TOP_ALGS = ['', 'x2', 'x', "x'", "z'", 'z'];
+    const YAW_ALGS = ['', 'y', 'y2', "y'"];
+    for (const top of TOP_ALGS) {
+      for (const yaw of YAW_ALGS) {
+        const rotAlg = [top, yaw].filter(Boolean).join(' ');
+        let rotated = state;
+        if (rotAlg) {
+          for (const m of rotAlg.split(' ')) rotated = rotated.applyMove(m);
+        }
+        const raw = rotated.toRawPattern();
+        if (Array.from(raw.centers.pieces).every((p, i) => p === i)) {
+          return { normalizedState: rotated, rotAlg };
+        }
+      }
+    }
+    return { normalizedState: state, rotAlg: '' };
+  }
+
+  // ---- Solve ----
+  let _solving = false;
+
+  document.getElementById('btn-solve').onclick = async () => {
+    if (_solving || !player.state) return;
+    _solving = true;
+    const btnSolve = document.getElementById('btn-solve');
+    const btnCancel = document.getElementById('btn-solve-cancel');
+    btnSolve.disabled = true;
+    btnCancel.style.display = '';
+    let aborted = false;
+    const onAbort = () => { aborted = true; };
+    btnCancel.addEventListener('click', onAbort, { once: true });
+    try {
+      const t0 = Date.now();
+      const { normalizedState, rotAlg } = findOrientationFix(player.state);
+      appendLog(`[solver] solving via twips ${_twipsServerAvailable ? 'server' : 'two-phase WASM'} …`);
+      const solution = _twipsServerAvailable
+        ? await CubeScramble.solveServer(normalizedState.kPattern)
+        : await CubeScramble.solve(normalizedState.kPattern);
+      if (aborted) return;
+      const elapsed = Date.now() - t0;
+      const fullAlg = rotAlg ? `${rotAlg} ${solution}`.trim() : solution;
+      appendLog(`[solver] solution: ${fullAlg || '(already solved)'} (${elapsed}ms)`);
+      if (fullAlg) {
+        await player.loadAlg(fullAlg, currentSetup, { anchor: 'start' });
+        player.play();
+      }
+    } catch (e) {
+      appendLog(`[solver] ${e.message}`);
+    } finally {
+      _solving = false;
+      btnSolve.disabled = false;
+      btnCancel.style.display = 'none';
+    }
+  };
+
+  document.getElementById('btn-solve-cancel').onclick = () => {
+    appendLog('[solver] cancelled');
+  };
 
   // ---- Step controls ----
   document.getElementById('btn-prev').onclick = () => {

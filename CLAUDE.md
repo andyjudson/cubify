@@ -13,7 +13,7 @@ Project context for Claude Code. See `specs/spec.md` for the feature ledger.
 
 ## Current Status
 
-Features 022–031 complete. Feature 032 planned. cfop-migration tracked in cfop repo as Feature 022.
+Features 022–033 complete. Feature 032 (cubify-render-internals): transparent stickers, inner walls, core mechanism. Feature 033 (cubify-solver-search-method): Scramble + Solve implemented — `CubeScramble.wca()`, `CubeSolver`, 2-phase IDA* worker, harness Scramble/Solve buttons. Feature 034 (cubify-solver-cfop-method): specced, not yet implemented. cfop-migration tracked in cfop repo as Feature 022.
 
 ## Reference Docs — Ground Truth
 
@@ -56,7 +56,9 @@ Key facts from `cube-mapping-lessons.md`:
 | `src/CubeStickering.ts` | Orbit-string mask parsing; `MASK_PRESETS` (15 presets); chars -/I/D/O/S/P |
 | `src/CubePlayer.ts` | Animation engine; `loadAlg()`, `play/pause/jumpTo/reset`, `setSpeed()`, `setStickering()`, events |
 | `src/CubeExporter.ts` | `toPNG(alg, { style: '2d'\|'3d' })`; 2D via canvas, 3D via CubeRenderer3D |
-| `src/CubeScramble.ts` | Pure JS scramble generator; `CubeScramble.random(length?)` |
+| `src/CubeScramble.ts` | Scramble generator; `CubeScramble.random(length?)` (pure JS, sync); `CubeScramble.wca()` (async, WCA random-state via twips WASM) |
+| `src/CubeSolver.ts` | Kociemba 2-phase IDA* solver; `new CubeSolver()` → `solve(state, options?)`, `cancel()`, `dispose()`; runs in web worker, no main-thread fallback |
+| `src/solver/` | Worker + IDA* internals: `solver.worker.ts`, `TwoPhase.ts`, `Coordinates.ts`, `MoveTables.ts` |
 | `src/AlgParser.ts` | WCA notation parser; wide moves, slice moves, x/y/z rotations |
 
 Build: `npm run build --workspace=packages/cubify` → `packages/cubify/dist/` (JS + declarations).
@@ -78,7 +80,7 @@ Build: `npm run build --workspace=packages/cubify-react` → `packages/cubify-re
 | File | Role |
 |------|------|
 | `cubify-harness/index.html` | Interactive harness; imports from `../packages/cubify/src/` |
-| `packages/cubify/test/` | Vitest suite — 181 tests, 10 skipped, no headed browser (`npm test`) |
+| `packages/cubify/test/` | Vitest suite — 237 tests, 10 skipped, no headed browser (`npm test`) |
 | `cubify-harness/verify-perms.mjs` | 18-test permutation cross-check suite against cubing.js ground truth |
 
 ## cubify-scripts Architecture
@@ -205,5 +207,5 @@ See `specs/017-cubify-agent-skill/research.md` for the full debugging record.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/033-cubify-render-internals/plan.md
+at specs/032-cubify-solver/plan.md
 <!-- SPECKIT END -->

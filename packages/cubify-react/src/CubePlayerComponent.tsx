@@ -14,6 +14,7 @@ export interface CubePlayerHandle {
   jumpTo: (n: number) => void;
   stepForward: () => void;
   stepBackward: () => void;
+  setInternals: (enabled: boolean) => void;
 }
 
 export interface CubePlayerProps {
@@ -55,13 +56,13 @@ export const CubePlayer = forwardRef<CubePlayerHandle, CubePlayerProps>(function
   const prevPlayingRef  = useRef<boolean | null>(null);
   const [ready, setReady] = useState(false);
 
-  // Expose reset() to parent via ref
   useImperativeHandle(ref, () => ({
     reset:        () => playerRef.current?.reset(),
     resetCamera:  () => playerRef.current?.renderer.resetCamera(),
     jumpTo:       (n: number) => playerRef.current?.jumpTo(n),
     stepForward:  () => playerRef.current?.stepForward(),
-    stepBackward:     () => playerRef.current?.stepBackward(),
+    stepBackward: () => playerRef.current?.stepBackward(),
+    setInternals: (enabled: boolean) => playerRef.current?.setInternals(enabled),
   }), []);
 
   // Mount / unmount
@@ -93,9 +94,12 @@ export const CubePlayer = forwardRef<CubePlayerHandle, CubePlayerProps>(function
     playerRef.current?.setStickering(stickering ?? null);
   }, [stickering]);
 
-  // Theme
+  // Theme — also toggle internals when the 'internals' preset is selected/deselected
   useEffect(() => {
-    if (theme) playerRef.current?.renderer.setTheme(theme);
+    if (theme) {
+      playerRef.current?.renderer.setTheme(theme);
+      playerRef.current?.setInternals(theme === 'internals');
+    }
   }, [theme]);
 
   // Playing — only act on actual transitions; never call pause() on initial mount
