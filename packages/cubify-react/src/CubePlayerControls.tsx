@@ -15,6 +15,7 @@ export interface CubePlayerControlsProps {
   stepIndex?: number;   // current position (0 = start, moveCount = end)
   moveCount?: number;   // total moves in the loaded alg
   speed?: number;
+  size?: 'md' | 'sm';
   onPlayToggle: () => void;
   onReset: () => void;
   onStepBackward?: () => void;
@@ -29,39 +30,29 @@ const SPEED_STEP  = 0.5;
 const SPEED_MIN   = 0.5;
 const SPEED_MAX   = 3;
 
-const BTN: CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: 44,
-  height: 44,
-  borderRadius: 10,
-  border: '1px solid #dbdbdb',
-  background: '#f5f5f5',
-  cursor: 'pointer',
-  color: '#363636',
-  fontSize: 20,
-  flexShrink: 0,
-};
-
-const BTN_ACTIVE: CSSProperties = {
-  ...BTN,
-  background: '#00b89c',
-  borderColor: '#00b89c',
-  color: '#fff',
-};
-
-const BTN_DISABLED: CSSProperties = {
-  ...BTN,
-  opacity: 0.35,
-  cursor: 'default',
-};
+function makeBtn(size: 'md' | 'sm'): CSSProperties {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: size === 'sm' ? 38 : 44,
+    height: size === 'sm' ? 38 : 44,
+    borderRadius: size === 'sm' ? 8 : 10,
+    border: '1px solid #dbdbdb',
+    background: '#f5f5f5',
+    cursor: 'pointer',
+    color: '#363636',
+    fontSize: size === 'sm' ? 18 : 20,
+    flexShrink: 0,
+  };
+}
 
 export function CubePlayerControls({
   playing,
   stepIndex = 0,
   moveCount = 0,
   speed = 1,
+  size = 'md',
   onPlayToggle,
   onReset,
   onStepBackward,
@@ -71,6 +62,9 @@ export function CubePlayerControls({
   style,
   className,
 }: CubePlayerControlsProps) {
+  const BTN: CSSProperties = makeBtn(size);
+  const BTN_ACTIVE: CSSProperties = { ...BTN, background: '#00b89c', borderColor: '#00b89c', color: '#fff' };
+  const BTN_DISABLED: CSSProperties = { ...BTN, opacity: 0.35, cursor: 'default' };
   const stepBackwardDisabled    = playing || stepIndex <= 0;
   const stepForwardDisabled = playing || !moveCount || stepIndex >= moveCount;
 
@@ -105,24 +99,25 @@ export function CubePlayerControls({
         </button>
       )}
 
+      {onCameraReset && (
+        <button style={BTN} title="Reset camera" onClick={onCameraReset}>
+          <MdCenterFocusStrong />
+        </button>
+      )}
+
       {onSpeedChange && (
         <>
-          <button style={BTN} title="Slower" onClick={() => nudgeSpeed(-SPEED_STEP)} disabled={speed <= SPEED_MIN}>
+          <div style={{ width: 1, height: 28, background: '#dbdbdb', flexShrink: 0 }} />
+          <button style={speed <= SPEED_MIN ? BTN_DISABLED : BTN} title="Slower" onClick={() => nudgeSpeed(-SPEED_STEP)} disabled={speed <= SPEED_MIN}>
             <MdRemove />
           </button>
           <span style={{ minWidth: 40, textAlign: 'center', fontSize: '0.85rem', color: 'var(--color-text-primary)', fontVariantNumeric: 'tabular-nums' }}>
             ×{speed.toFixed(2).replace(/\.?0+$/, (m) => m === '.00' ? '.0' : '')}
           </span>
-          <button style={BTN} title="Faster" onClick={() => nudgeSpeed(SPEED_STEP)} disabled={speed >= SPEED_MAX}>
+          <button style={speed >= SPEED_MAX ? BTN_DISABLED : BTN} title="Faster" onClick={() => nudgeSpeed(SPEED_STEP)} disabled={speed >= SPEED_MAX}>
             <MdAdd />
           </button>
         </>
-      )}
-
-      {onCameraReset && (
-        <button style={BTN} title="Reset camera" onClick={onCameraReset}>
-          <MdCenterFocusStrong />
-        </button>
       )}
     </div>
   );

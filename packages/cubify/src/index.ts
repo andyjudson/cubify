@@ -6,7 +6,7 @@ export type { RawOrbitData, RawPattern } from './CubeState.js';
 
 export { AlgParser } from './AlgParser.js';
 
-export { CubeScramble, twipsWarmed, twipsSolverWarmed } from './CubeScramble.js';
+export { CubeScramble, twipsWarmed } from './CubeScramble.js';
 export type { TwipsServerSolveOptions } from './CubeScramble.js';
 
 export { CubeStickering, MASK_PRESETS } from './CubeStickering.js';

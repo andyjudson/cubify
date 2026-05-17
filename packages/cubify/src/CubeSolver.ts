@@ -7,45 +7,31 @@ export interface SolveResult {
 }
 
 export interface SolverOptions {
-  /** Milliseconds before the search is terminated. Default: 300000. */
+  /** Milliseconds before the search is terminated. Default: 30000. */
   timeoutMs?: number;
-  /** If true, return the first solution found (≤20 moves) without proving optimality. Much faster. */
-  nonOptimal?: boolean;
-  onProgress?: (depth: number, elapsedMs: number, nodes: number) => void;
-  onHeartbeat?: (elapsedMs: number, nodes: number) => void;
 }
 
-type WorkerOutMessage =
-  | { type: 'progress'; depth: number; nodes: number; elapsedMs: number }
-  | { type: 'heartbeat'; nodes: number; elapsedMs: number }
-  | { type: 'solution'; alg: string; depth: number; elapsedMs: number }
-  | { type: 'error'; reason: 'timeout' | 'invalid-state' | 'internal'; message: string; elapsedMs: number };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Pending = { resolve: (r: SolveResult) => void; reject: (e: any) => void; startMs: number; timer: ReturnType<typeof setTimeout> | null };
+
+let _idCounter = 0;
 
 /**
- * Wraps the 2-phase IDA* solver worker.
- *
- * Worker is constructed with `{ type: 'module' }` — Vite resolves the URL at
- * bundle time. If construction fails, `available` is set to false and all
- * `solve()` calls immediately reject.
+ * Solves a 3×3 cube state using the cs0x7f/min2phase two-phase Kociemba solver
+ * (via the cubing.js/twips WASM worker). Finds a fast, near-optimal solution
+ * without blocking the UI.
  *
  * Dispose the solver when done: `solver.dispose()`.
  */
 export class CubeSolver {
   readonly available: boolean;
   private _worker: Worker | null = null;
-  private _pending: {
-    resolve: (r: SolveResult) => void;
-    reject: (e: Error) => void;
-    options: SolverOptions;
-    timer: ReturnType<typeof setTimeout> | null;
-  } | null = null;
+  private _pending = new Map<number, Pending>();
 
   constructor() {
     try {
-      // Vite resolves this URL at build time for the bundled consumer.
-      // In the dev harness (Vite dev server) it works natively.
       this._worker = new Worker(
-        new URL('./solver/solver.worker.ts', import.meta.url),
+        new URL('./solver/twips.worker.ts', import.meta.url),
         { type: 'module' },
       );
       this._worker.addEventListener('message', this._onMessage.bind(this));
@@ -64,95 +50,61 @@ export class CubeSolver {
     if (!this.available || !this._worker) {
       return Promise.reject(new Error('Solver unavailable'));
     }
-    if (this._pending) {
-      return Promise.reject(new Error('Solve already in progress — cancel first'));
-    }
+
+    const id = _idCounter++;
+    const timeoutMs = options.timeoutMs ?? 30000;
 
     return new Promise((resolve, reject) => {
-      const timeoutMs = options.timeoutMs ?? 300000;
-
       const timer = setTimeout(() => {
-        if (!this._pending) return;
-        this._pending = null;
-        this._worker?.terminate();
-        this._worker = null;
-        // Restart worker for future use
-        try {
-          this._worker = new Worker(
-            new URL('./solver/solver.worker.ts', import.meta.url),
-            { type: 'module' },
-          );
-          this._worker.addEventListener('message', this._onMessage.bind(this));
-          this._worker.addEventListener('error', this._onWorkerError.bind(this));
-        } catch { /* worker unavailable after restart */ }
+        if (!this._pending.has(id)) return;
+        this._pending.delete(id);
         reject(new Error(`timeout after ${timeoutMs}ms`));
-      }, timeoutMs + 500); // small buffer beyond worker's own timeout
+      }, timeoutMs);
 
-      this._pending = { resolve, reject, options, timer };
+      this._pending.set(id, { resolve, reject, startMs: Date.now(), timer });
 
-      const raw = state.toRawPattern();
-      this._worker!.postMessage({
-        type: 'solve',
-        nonOptimal: options.nonOptimal ?? false,
-        stateData: {
-          CORNERS: {
-            pieces:      Array.from(raw.corners.pieces),
-            orientation: Array.from(raw.corners.orientation),
-          },
-          EDGES: {
-            pieces:      Array.from(raw.edges.pieces),
-            orientation: Array.from(raw.edges.orientation),
-          },
-        },
-        timeoutMs,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const patternStr = JSON.stringify((state as any).kPattern.patternData);
+      this._worker!.postMessage({ id, action: 'solve333', patternStr });
     });
   }
 
-  /** Abort any in-progress solve. */
+  /** Abort all in-progress solves. */
   cancel(): void {
-    if (!this._pending || !this._worker) return;
-    const p = this._pending;
-    this._pending = null;
-    if (p.timer) clearTimeout(p.timer);
-    this._worker.postMessage({ type: 'cancel' });
-    p.reject(new Error('cancelled'));
+    for (const [id, p] of this._pending) {
+      if (p.timer) clearTimeout(p.timer);
+      p.reject(new Error('cancelled'));
+      this._pending.delete(id);
+    }
   }
 
   /** Terminate the worker. Call when done with this instance. */
   dispose(): void {
-    if (this._pending) this.cancel();
+    this.cancel();
     this._worker?.terminate();
     this._worker = null;
   }
 
-  private _onMessage(event: MessageEvent<WorkerOutMessage>): void {
-    const msg = event.data;
-    if (msg.type === 'progress') {
-      this._pending?.options.onProgress?.(msg.depth, msg.elapsedMs, msg.nodes);
-      return;
-    }
-    if (msg.type === 'heartbeat') {
-      this._pending?.options.onHeartbeat?.(msg.elapsedMs, msg.nodes);
-      return;
-    }
-    const p = this._pending;
+  private _onMessage(event: MessageEvent): void {
+    const { id, result, error } = event.data;
+    const p = this._pending.get(id);
     if (!p) return;
-    this._pending = null;
+    this._pending.delete(id);
     if (p.timer) clearTimeout(p.timer);
-
-    if (msg.type === 'solution') {
-      p.resolve({ alg: msg.alg, depth: msg.depth, elapsedMs: msg.elapsedMs });
+    const elapsedMs = Date.now() - p.startMs;
+    if (error) {
+      p.reject(new Error(error));
     } else {
-      p.reject(new Error(`${msg.reason}: ${msg.message}`));
+      const alg = String(result);
+      p.resolve({ alg, depth: alg ? alg.split(' ').length : 0, elapsedMs });
     }
   }
 
   private _onWorkerError(event: ErrorEvent): void {
-    const p = this._pending;
-    if (!p) return;
-    this._pending = null;
-    if (p.timer) clearTimeout(p.timer);
-    p.reject(new Error(`worker error: ${event.message}`));
+    for (const [id, p] of this._pending) {
+      if (p.timer) clearTimeout(p.timer);
+      p.reject(new Error(`worker error: ${event.message}`));
+      this._pending.delete(id);
+    }
   }
 }

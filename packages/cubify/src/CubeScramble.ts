@@ -55,50 +55,6 @@ function _getScrambleWorker(): Worker {
   return _scrambleWorker;
 }
 
-// --- Solve worker (wasmTwips — separate so a slow solve never blocks scrambles) ---
-const _solvePending: PendingMap = new Map();
-let _solveWorker: Worker | null = null;
-export let twipsSolverWarmed = false;
-
-function _getSolveWorker(): Worker {
-  if (!_solveWorker) {
-    _solveWorker = new Worker(
-      new URL('./solver/twips.worker.ts', import.meta.url),
-      { type: 'module' },
-    );
-    _solveWorker.addEventListener('message', (e: MessageEvent) => {
-      const { id, result, error } = e.data;
-      const cb = _solvePending.get(id);
-      if (!cb) return;
-      _solvePending.delete(id);
-      if (error) {
-        cb.reject(new Error(error));
-      } else {
-        if (!twipsSolverWarmed) {
-          twipsSolverWarmed = true;
-        }
-        cb.resolve(result);
-      }
-    });
-    _solveWorker.addEventListener('error', (e: ErrorEvent) => {
-      for (const [id, cb] of _solvePending) {
-        _solvePending.delete(id);
-        cb.reject(new Error(e.message));
-      }
-    });
-  }
-  return _solveWorker;
-}
-
-
-function _solve333Twips(patternData: unknown): Promise<string> {
-  const id = _idCounter++;
-  const patternStr = JSON.stringify(patternData);
-  return new Promise((resolve, reject) => {
-    _solvePending.set(id, { resolve, reject });
-    _getSolveWorker().postMessage({ id, action: 'solve333', patternStr });
-  });
-}
 
 function _scrambleTwips(): Promise<string> {
   const id = _idCounter++;
@@ -116,27 +72,6 @@ export class CubeScramble {
    */
   static async wca(): Promise<string> {
     return _scrambleTwips();
-  }
-
-  /**
-   * Solve the given 3×3 KPattern via the min2phase two-phase Kociemba solver
-   * (cs0x7f/min2phase, pre-built JS tables). Runs in a dedicated Solve Worker
-   * separate from the Scramble Worker so a solve never blocks a scramble request.
-   * First call lazy-initialises the Worker (~1s); subsequent calls ~1–3s.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static async solve(kPattern: any): Promise<string> {
-    return _solve333Twips(kPattern.patternData);
-  }
-
-  /**
-   * Pre-warm the Solve Worker (lazy Worker init + WASM load) in the background.
-   * The two-phase tables are baked into the WASM binary — no runtime table-building needed.
-   * Optional: calling this on page load shaves ~1–4s off the user's first interactive solve.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static async warmUpSolver(kPattern: any): Promise<string> {
-    return _solve333Twips(kPattern.patternData);
   }
 
   /**

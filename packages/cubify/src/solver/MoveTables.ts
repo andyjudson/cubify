@@ -73,6 +73,7 @@ export async function buildMoveTables(): Promise<MoveTables> {
   return { co, eo, udSlice, cp, ep4, ep8, edgePerm: edgePerms, prune1CoUD, prune1EoUD, prune2CpEp4, prune2Ep8 };
 }
 
+
 // ---- coordinate move tables -------------------------------------------------
 
 function buildCOTable(perms: number[][], deltas: number[][]): Int16Array {
