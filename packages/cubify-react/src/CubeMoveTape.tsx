@@ -8,7 +8,7 @@ export interface CubeMoveTapeProps {
   className?: string;
 }
 
-export function CubeMoveTape({ moves, stepIndex, rowSize = 12, style, className }: CubeMoveTapeProps) {
+export function CubeMoveTape({ moves, stepIndex, rowSize = 9, style, className }: CubeMoveTapeProps) {
   const effectiveRowSize = moves.length <= rowSize + 2 ? moves.length : rowSize;
   const rows: string[][] = [];
   for (let i = 0; i < moves.length; i += effectiveRowSize) {
