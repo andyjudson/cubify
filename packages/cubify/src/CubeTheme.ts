@@ -71,7 +71,7 @@ export const THEME_PRESETS: Record<ThemePresetName, CubeTheme> = {
     brightness: 1.0, saturation: 1.0,
     plasticColour: '#141414', plasticOpacity: 1,
     gap: 0.010, bevel: 0.010,
-    stickerPad: 0, stickerRadius: 20,
+    stickerPad: 2, stickerRadius: 20,
     centerShape: 'square',
     materialType: 'basic', roughness: 0.9, metalness: 0,
   },
