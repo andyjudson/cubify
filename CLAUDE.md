@@ -69,8 +69,8 @@ Build: `npm run build --workspace=packages/cubify` → `packages/cubify/dist/` (
 |------|------|
 | `src/index.ts` | Re-exports all React components and types |
 | `src/CubePlayerComponent.tsx` | `<CubePlayer>` React wrapper; `CubePlayerHandle` ref interface |
-| `src/CubePlayerControls.tsx` | Playback controls component |
-| `src/CubeMoveTape.tsx` | Move tape / step indicator component |
+| `src/CubePlayerControls.tsx` | Playback controls; `size?: 'md' \| 'sm'` (44px vs 38px buttons); no `onSpeedChange` — speed is consumer-owned |
+| `src/CubeMoveTape.tsx` | Move tape; responsive row sizes — 12/row desktop, 9/row mobile (≤600px), zero tolerance on mobile so 10+ move algs always wrap |
 | `src/CubeStateComponent.tsx` | `<CubeState>` static render component |
 
 Build: `npm run build --workspace=packages/cubify-react` → `packages/cubify-react/dist/`.
@@ -194,6 +194,8 @@ When automating or screenshotting a third-party web component:
 See `specs/017-cubify-agent-skill/research.md` for the full debugging record.
 
 ## Recent Changes
+- 033-cubify-solver-search-method (complete): `CubeScramble.wca()` async WCA random-state scramble via twips WASM. `CubeSolver` — Kociemba 2-phase IDA* solver running in a dedicated web worker; `solve(state)`, `cancel()`, `dispose()`. `CubeScramble.solve()` removed — `CubeSolver` is the only public solve API. Harness Scramble/Solve buttons. 237 Vitest tests.
+- 032-cubify-render-internals (complete): Transparent stickers, inner cubelet walls visible, core mechanism (globe + arm geometry). Theme-consistent material for internals.
 - 031-cubify-packages (complete): Repo restructured as npm workspace (`packages/cubify/` + `packages/cubify-react/`). `src/` + `test/` moved to `packages/cubify/`. React wrappers moved from `cfop-app/src/lib/cubify/` to `packages/cubify-react/src/`. Both packages build via `tsc -p tsconfig.build.json` → `dist/`. `.github/workflows/publish.yml` tag-triggered publish to GitHub Packages. `cfop-app` migrated to `@andyjudson/cubify` + `@andyjudson/cubify-react`; `CUBIFY_LOCAL=1` local dev alias via `.env.local`. 181 Vitest tests.
 - 029-cubify-react (complete): TypeScript rewrite of core library. React wrappers `<CubePlayer>`, `<CubeState>`, `<CubePlayerControls>`, `<CubeMoveTape>`. CubifyPage interactive harness with case selector, mask/theme controls, playback. 168 Vitest tests.
 - 025-cubify-theming (complete): `CubeTheme` interface + `THEME_PRESETS` (default/rubiks/gan/speed) + `DEFAULT_THEME`. `gan` — vivid GAN stickerless colours, white plastic, saturation 2. `speed` — CLASSIC colours, dark plastic, basic material. Both renderers accept `setTheme()`. 168 Vitest tests.
@@ -207,5 +209,5 @@ See `specs/017-cubify-agent-skill/research.md` for the full debugging record.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/032-cubify-solver/plan.md
+at specs/034-cubify-solver-cfop-method/plan.md
 <!-- SPECKIT END -->

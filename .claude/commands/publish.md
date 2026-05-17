@@ -18,6 +18,31 @@ Example: `/publish 1.0.1`
 
 Run these in order. Each step depends on the previous completing cleanly.
 
+### 0. Pre-flight checks (cubify repo)
+
+Before bumping, verify the repo is in a clean, releasable state:
+
+```bash
+# 1. No uncommitted changes — source must be committed before the tag is created
+git status --short
+
+# 2. No untracked files that belong in the release (check packages/ only)
+git ls-files --others --exclude-standard packages/
+
+# 3. Confirm we are on the correct branch
+git branch --show-current
+
+# 4. Confirm the version has not already been published
+gh release view v<version> --repo andyjudson/cubify 2>&1 | head -3
+```
+
+**STOP if any of the following are true:**
+- `git status` shows modified or staged files — commit them first, then re-run `/publish`
+- `git ls-files --others` lists files under `packages/` — stage or gitignore them first
+- The `gh release view` command succeeds (exit 0) — the version already exists; bump to the next patch instead
+
+Only proceed to step 1 when all checks pass.
+
 ### 1. Bump, tag, and publish (cubify repo)
 
 ```bash

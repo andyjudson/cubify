@@ -32,7 +32,8 @@ See [`specs/cubify.md`](specs/cubify.md) for full setup, usage examples, local d
 | Module | Description |
 |--------|-------------|
 | `CubeState` | cubing.js KPattern wrapper — `applyMove/applyAlg`, `toFaceArray()`, `isSolved()`, `invertAlg()` |
-| `CubeScramble` | Pure JS scramble generator — `CubeScramble.random(length?)` |
+| `CubeScramble` | Scramble generator — `CubeScramble.random(length?)` sync; `CubeScramble.wca()` async WCA random-state via twips WASM |
+| `CubeSolver` | Kociemba 2-phase solver — `new CubeSolver()` → `solve(state)`, `cancel()`, `dispose()`; runs in a web worker |
 | `AlgParser` | WCA notation parser (face turns, wide moves, slice moves, rotations) |
 | `CubeStickering` | CFOP orbit-string masking; `MASK_PRESETS` (15 presets); chars -/I/D/O/S/P |
 | `CubeTheme` | Theme system — `THEME_PRESETS` (default/rubiks/speed-dark/speed-light), `DEFAULT_THEME` |
@@ -45,7 +46,7 @@ See [`specs/cubify.md`](specs/cubify.md) for full setup, usage examples, local d
 
 ```bash
 npm install                               # install workspace deps
-npm test                                  # Vitest suite (181 pass, 10 skip)
+npm test                                  # Vitest suite (237 pass, 10 skip)
 npm run dev                               # Vite dev server → cubify-harness/index.html
 npm run build --workspace=packages/cubify          # tsc build → packages/cubify/dist/
 npm run build --workspace=packages/cubify-react    # tsc build → packages/cubify-react/dist/
@@ -67,7 +68,7 @@ Interactive browser dev environment — algorithm selector, play/step controls, 
 | File | Description |
 |------|-------------|
 | `cubify-harness/index.html` | Interactive harness UI |
-| `packages/cubify/test/` | Vitest suite — 181 tests, no headed browser |
+| `packages/cubify/test/` | Vitest suite — 237 tests, no headed browser |
 | `cubify-harness/verify-perms.mjs` | 18-test permutation cross-check against cubing.js ground truth |
 
 ## cubify-scripts
@@ -108,4 +109,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Status**: Features 022–031 complete • 032 planned
+**Status**: Features 022–033 complete • 034 in progress

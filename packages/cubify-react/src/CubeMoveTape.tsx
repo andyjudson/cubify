@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import type { CSSProperties } from 'react';
 
 export interface CubeMoveTapeProps {
@@ -8,8 +9,24 @@ export interface CubeMoveTapeProps {
   className?: string;
 }
 
-export function CubeMoveTape({ moves, stepIndex, rowSize = 9, style, className }: CubeMoveTapeProps) {
-  const effectiveRowSize = moves.length <= rowSize + 2 ? moves.length : rowSize;
+function useIsMobile() {
+  const [mobile, setMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 600px)').matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 600px)');
+    const handler = (e: MediaQueryListEvent) => setMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return mobile;
+}
+
+export function CubeMoveTape({ moves, stepIndex, rowSize, style, className }: CubeMoveTapeProps) {
+  const isMobile = useIsMobile();
+  const resolvedRowSize = rowSize ?? (isMobile ? 9 : 12);
+  const tolerance = isMobile ? 0 : 2;
+  const effectiveRowSize = moves.length <= resolvedRowSize + tolerance ? moves.length : resolvedRowSize;
   const rows: string[][] = [];
   for (let i = 0; i < moves.length; i += effectiveRowSize) {
     rows.push(moves.slice(i, i + effectiveRowSize));
@@ -20,7 +37,7 @@ export function CubeMoveTape({ moves, stepIndex, rowSize = 9, style, className }
       {rows.map((row, rowIdx) => (
         <div key={rowIdx} style={{ display: 'flex', justifyContent: 'center', gap: 4 }}>
           {row.map((mv, colIdx) => {
-            const i        = rowIdx * rowSize + colIdx;
+            const i        = rowIdx * effectiveRowSize + colIdx;
             const isDone   = i < stepIndex;
             const isActive = i === stepIndex;
             return (
