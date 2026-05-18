@@ -297,6 +297,7 @@
   import { CubeStickering, MASK_PRESETS } from '../packages/cubify/src/CubeStickering.js';
   import { THEME_PRESETS, DEFAULT_THEME, cloneTheme, themeToJSON, themeFromJSON } from '../packages/cubify/src/CubeTheme.js';
   import { CubeScramble, twipsWarmed } from '../packages/cubify/src/CubeScramble.js';
+  import { CubeSolver } from '../packages/cubify/src/CubeSolver.js';
   // Warm up kpuzzle early (cached after first call)
   const _solvedBase = await CubeState.solved();
 
@@ -683,19 +684,8 @@
   document.getElementById('btn-stop').onclick = () => { stopPlay(); appendLog('[sim] stopped'); };
 
   // ---- Solver init ----
-  // Prefer `twips serve` (localhost:2023) — native Rust, no warm-up needed.
-  // Fall back to two-phase WASM (experimentalSolve3x3x3IgnoringCenters, pre-built tables).
-  let _twipsServerAvailable = false;
-
-  // Solve button is always available — two-phase WASM path needs no warm-up.
+  const _solver = new CubeSolver();
   document.getElementById('btn-solve').disabled = false;
-
-  (async () => {
-    _twipsServerAvailable = await CubeScramble.isTwipsServerAvailable();
-    if (_twipsServerAvailable) {
-      appendLog('[solver] twips server detected (localhost:2023)');
-    }
-  })();
 
   // ---- Scramble ----
   async function doScramble(btn, generator) {
@@ -769,19 +759,13 @@
     const btnCancel = document.getElementById('btn-solve-cancel');
     btnSolve.disabled = true;
     btnCancel.style.display = '';
-    let aborted = false;
-    const onAbort = () => { aborted = true; };
-    btnCancel.addEventListener('click', onAbort, { once: true });
     try {
       const t0 = Date.now();
       const { normalizedState, rotAlg } = findOrientationFix(player.state);
-      appendLog(`[solver] solving via twips ${_twipsServerAvailable ? 'server' : 'two-phase WASM'} …`);
-      const solution = _twipsServerAvailable
-        ? await CubeScramble.solveServer(normalizedState.kPattern)
-        : await CubeScramble.solve(normalizedState.kPattern);
-      if (aborted) return;
+      appendLog('[solver] solving via two-phase WASM …');
+      const result = await _solver.solve(normalizedState);
       const elapsed = Date.now() - t0;
-      const fullAlg = rotAlg ? `${rotAlg} ${solution}`.trim() : solution;
+      const fullAlg = rotAlg ? `${rotAlg} ${result.alg}`.trim() : result.alg;
       appendLog(`[solver] solution: ${fullAlg || '(already solved)'} (${elapsed}ms)`);
       if (fullAlg) {
         await player.loadAlg(fullAlg, currentSetup, { anchor: 'start' });
@@ -797,6 +781,7 @@
   };
 
   document.getElementById('btn-solve-cancel').onclick = () => {
+    _solver.cancel();
     appendLog('[solver] cancelled');
   };
 

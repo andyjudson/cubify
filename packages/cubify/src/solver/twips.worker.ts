@@ -1,48 +1,33 @@
 // Worker for twips WASM — offloads WASM init and solve/scramble from the main thread.
-
-const twipsUrl = new URL(
-  '../../../../node_modules/cubing/dist/lib/cubing/chunks/twips-YHXBF55O.js',
-  import.meta.url,
-);
-
-// search chunk — exports experimentalSolve3x3x3IgnoringCenters.
-// Routes: cubing.js search Worker → search-dynamic-solve-3x3x3-*.js → cs0x7f/min2phase.
-// Fast (pre-built JS tables), but opaque — no readable source.
-// TODO: replace with a direct twips solve333 call once twips exposes one natively.
-// See specs/032-cubify-solver/research.md §"Decision: Solver algorithm" for full context.
-const searchUrl = new URL(
-  '../../../../node_modules/cubing/dist/lib/cubing/chunks/chunk-M7YKTETT.js',
-  import.meta.url,
-);
+//
+// Both functions delegate to cubing.js public API, which internally manages the
+// twips WASM worker (inside-*.js) and lazy-loads twips-*.js for random-state scrambles.
+// Direct chunk imports (@vite-ignore + new URL traversal) broke in production builds
+// because Vite doesn't rewrite new URL() in node_modules files.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let twipsMod: any = null;
+let scrambleMod: any = null;
 async function getTwips() {
-  if (!twipsMod) {
-    twipsMod = await import(/* @vite-ignore */ twipsUrl.href);
-  }
-  return twipsMod;
+  if (!scrambleMod) scrambleMod = await import('cubing/scramble');
+  return scrambleMod;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let searchMod: any = null;
 async function getSearch() {
-  if (!searchMod) {
-    searchMod = await import(/* @vite-ignore */ searchUrl.href);
-  }
+  if (!searchMod) searchMod = await import('cubing/search');
   return searchMod;
 }
 
 self.addEventListener('message', async (e: MessageEvent) => {
-  const { id, action, kpuzzleStr, patternStr, invert, options } = e.data;
+  const { id, action, patternStr } = e.data;
   try {
     let result: string;
     if (action === 'scramble') {
-      const { wasmRandomScrambleForEvent } = await getTwips();
-      const alg = await wasmRandomScrambleForEvent('333');
+      const { randomScrambleForEvent } = await getTwips();
+      const alg = await randomScrambleForEvent('333');
       result = alg.toString();
     } else if (action === 'solve333') {
-      // Fast path: two-phase Kociemba with pre-built WASM tables (same path as scramble generation).
       const { experimentalSolve3x3x3IgnoringCenters } = await getSearch();
       const patternData = JSON.parse(patternStr);
       const alg = await experimentalSolve3x3x3IgnoringCenters({ patternData });
