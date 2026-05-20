@@ -1,4 +1,4 @@
-# cubify
+# Cubify library
 
 Cubify is a 3×3 cube rendering library for CFOP apps. Delegates permutation state and move application to cubing.js, then owns the rendering layer — typed theme system, stickering API for CFOP case visualisation, and React wrappers that expose cube state as a first-class value.
 
@@ -93,13 +93,17 @@ ln -s /path/to/cfop/cfop-app/public/data cubify-scripts/data
 | Doc | Content |
 |-----|---------|
 | [`specs/cubify.md`](specs/cubify.md) | Quickstart, usage examples, local dev workflow, architecture |
-| [`specs/cubing-js-architecture.md`](specs/cubing-js-architecture.md) | Cubing.js KPuzzle/KPattern data model |
-| [`specs/cube-mapping-lessons.md`](specs/cube-mapping-lessons.md) | Hard-won implementation gotchas |
-| [`specs/cube-physical-rules.md`](specs/cube-physical-rules.md) | Physical cube geometry, CFOP conventions |
+| [`specs/cube-concepts.md`](specs/cube-concepts.md) | Face state and KPattern concepts overview |
+| [`specs/cube-physical-rules.md`](specs/cube-physical-rules.md) | Physical cube geometry, CFOP conventions, masking philosophy |
+| [`specs/cube-mapping-lessons.md`](specs/cube-mapping-lessons.md) | Hard-won implementation gotchas (slot ordering, orientation formula, animation) |
+| [`specs/cubing-js-architecture.md`](specs/cubing-js-architecture.md) | Cubing.js KPuzzle/KPattern data model, orbit slot ordering, move application |
+| [`specs/cubing-js-stickering.md`](specs/cubing-js-stickering.md) | Cubing.js stickering architecture, orbit string char semantics |
+| [`specs/cubing-js-solver.md`](specs/cubing-js-solver.md) | Cubing.js solver architecture — search strategy, worker protocol |
+| [`specs/cfop-theory.md`](specs/cfop-theory.md) | CFOP mathematics and group theory background |
 
 ## Built With
 
-- **[cubing.js](https://github.com/cubing/cubing.js)** (Lucas Garron) — KPuzzle/KPattern permutation state model, WCA alg parsing, move application, and the 3×3 puzzle definition that cubify builds its rendering layer on top of
+- **[cubing.js](https://github.com/cubing/cubing.js)** (Lucas Garron & Tom Rokicki) — KPuzzle/KPattern permutation state model, WCA alg parsing, move application, and the 3×3 puzzle definition that cubify builds its rendering layer on top of
 - **Three.js** — 3D rendering
 - **Playwright** (cubify-scripts only) — headful Chromium screenshot capture
 
