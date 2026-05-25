@@ -13,7 +13,7 @@ Project context for Claude Code. See `specs/spec.md` for the feature ledger.
 
 ## Current Status
 
-Features 022–033 complete. Feature 032 (cubify-render-internals): transparent stickers, inner walls, core mechanism. Feature 033 (cubify-solver-search-method): Scramble + Solve implemented — `CubeScramble.wca()`, `CubeSolver`, 2-phase IDA* worker, harness Scramble/Solve buttons. Feature 034 (cubify-solver-cfop-method): specced, not yet implemented. cfop-migration tracked in cfop repo as Feature 022.
+Features 022–034 complete. Feature 033 (cubify-solver-search-method): Scramble + Solve — `CubeScramble.wca()`, `CubeSolver`, 2-phase IDA* worker, harness Scramble/Solve buttons. Feature 034 (cubify-solver-cfop-method): `CfopSolver` — stage-annotated CFOP (cross → F2L×4 → OLL → PLL) in dedicated web worker; harness "Solve (cfop)" button. cfop-migration tracked in cfop repo as Feature 022.
 
 ## Reference Docs — Ground Truth
 
@@ -194,6 +194,7 @@ When automating or screenshotting a third-party web component:
 See `specs/017-cubify-agent-skill/research.md` for the full debugging record.
 
 ## Recent Changes
+- 034-cubify-solver-cfop-method (complete): `CfopSolver` — stage-annotated CFOP solver (cross → F2L×4 → OLL → PLL) running in a dedicated web worker; returns `CfopSolution` with 7 `SolveStage` entries, each carrying `label`, `alg`, `mask`, `caseName`, `wcaId`. IDA* cross + F2L; fingerprint-based OLL (57 cases); WCA PLL recognition with brute-force fallback for all 288 valid pre-PLL states. Harness "Solve (cfop)" button with per-stage mask switching. 257 Vitest tests.
 - 033-cubify-solver-search-method (complete): `CubeScramble.wca()` async WCA random-state scramble via twips WASM. `CubeSolver` — Kociemba 2-phase IDA* solver running in a dedicated web worker; `solve(state)`, `cancel()`, `dispose()`. `CubeScramble.solve()` removed — `CubeSolver` is the only public solve API. Harness Scramble/Solve buttons. 237 Vitest tests.
 - 032-cubify-render-internals (complete): Transparent stickers, inner cubelet walls visible, core mechanism (globe + arm geometry). Theme-consistent material for internals.
 - 031-cubify-packages (complete): Repo restructured as npm workspace (`packages/cubify/` + `packages/cubify-react/`). `src/` + `test/` moved to `packages/cubify/`. React wrappers moved from `cfop-app/src/lib/cubify/` to `packages/cubify-react/src/`. Both packages build via `tsc -p tsconfig.build.json` → `dist/`. `.github/workflows/publish.yml` tag-triggered publish to GitHub Packages. `cfop-app` migrated to `@andyjudson/cubify` + `@andyjudson/cubify-react`; `CUBIFY_LOCAL=1` local dev alias via `.env.local`. 181 Vitest tests.

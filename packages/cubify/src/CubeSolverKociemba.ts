@@ -23,7 +23,7 @@ let _idCounter = 0;
  *
  * Dispose the solver when done: `solver.dispose()`.
  */
-export class CubeSolver {
+export class CubeSolverKociemba {
   readonly available: boolean;
   private _worker: Worker | null = null;
   private _pending = new Map<number, Pending>();
