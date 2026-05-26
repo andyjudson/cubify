@@ -12,11 +12,20 @@ function crossSolved(s: RawState): boolean {
 }
 
 function heuristic(s: RawState): number {
-  let misplaced = 0;
-  for (let i = 0; i < 4; i++) {
-    if (s.edgePieces[4 + i] !== CROSS_PIECES[i] || s.edgeOrient[4 + i] !== 0) misplaced++;
+  // Count cross pieces NOT currently in any D-layer slot (slots 4–7).
+  // One move can bring at most one outside-D piece into D, so this is admissible.
+  // Gives values 0–4; dramatically reduces IDA* search at depth 7–8.
+  let outsideD = 0;
+  for (let t = 0; t < 4; t++) {
+    const piece = CROSS_PIECES[t];
+    let inD = false;
+    for (let i = 4; i < 8; i++) {
+      if (s.edgePieces[i] === piece) { inD = true; break; }
+    }
+    if (!inD) outsideD++;
   }
-  return Math.ceil(misplaced / 4);
+  if (outsideD > 0) return outsideD;
+  return crossSolved(s) ? 0 : 1;
 }
 
 // Move pruning: same face or opposite face same axis, lower-indexed last

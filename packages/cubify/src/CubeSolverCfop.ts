@@ -51,6 +51,7 @@ export class CfopSolver {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this._pending = null;
+        this._worker?.postMessage({ type: 'cancel' });
         reject(new Error(`CFOP solve timeout after ${timeoutMs}ms`));
       }, timeoutMs);
 

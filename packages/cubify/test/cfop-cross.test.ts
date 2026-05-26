@@ -42,6 +42,18 @@ describe('solveCross', () => {
     expect(crossSolved(result)).toBe(true);
   });
 
+  it('solves a hard WCA random-state scramble in reasonable time', () => {
+    // Previously timed out (30s) due to weak heuristic — should now be fast
+    let s = applyMove(solvedState(), 18);
+    s = applyAlg(s, "R2 U2 R2 F' L2 U2 R' F2 R2 U2 B2 D' R2 U' F2 L2 B2 D' R2");
+    const t0 = Date.now();
+    const alg = solveCross(s);
+    const elapsed = Date.now() - t0;
+    expect(elapsed).toBeLessThan(5000); // should complete in well under 5s
+    const result = alg ? applyAlg(s, alg) : s;
+    expect(crossSolved(result)).toBe(true);
+  });
+
   it('cross edges stay solved after cross alg', () => {
     let s = applyMove(solvedState(), 18);
     s = applyAlg(s, "U R' F R B' R' F' R B");
