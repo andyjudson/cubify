@@ -67,7 +67,7 @@
       <div class="control-group">
         <span class="control-label">Speed</span>
         <div class="btn-row">
-          <button class="button is-harness is-small" data-speed="500"><span class="material-icons">remove_circle</span>Slow</button>
+<button class="button is-harness is-small" data-speed="500"><span class="material-icons">remove_circle</span>Slow</button>
           <button class="button is-harness is-small is-active" data-speed="300"><span class="material-icons">slow_motion_video</span>Normal</button>
           <button class="button is-harness is-small" data-speed="120"><span class="material-icons">add_circle</span>Fast</button>
         </div>
@@ -78,8 +78,10 @@
         <div class="btn-row">
           <button id="btn-scramble-rand" class="button is-harness is-small">Scramble (moves)</button>
           <button id="btn-scramble-wca" class="button is-harness is-small">Scramble (state)</button>
-          <button id="btn-solve" class="button is-harness is-small" disabled><span class="material-icons">psychology</span>Solve</button>
+          <button id="btn-solve" class="button is-harness is-small" disabled><span class="material-icons">psychology</span>Solve (search)</button>
           <button id="btn-solve-cancel" class="button is-harness is-small" style="display:none"><span class="material-icons">cancel</span>Cancel</button>
+          <button id="btn-solve-cfop" class="button is-harness is-small" disabled><span class="material-icons">auto_fix_high</span>Solve (cfop)</button>
+          <button id="btn-solve-cfop-cancel" class="button is-harness is-small" style="display:none"><span class="material-icons">cancel</span>Cancel</button>
         </div>
       </div>
 
@@ -116,6 +118,7 @@
     <!-- Stickering panel -->
     <div id="tools-stickering-panel" class="tools-panel">
       <div class="validator-row" id="orbit-examples-basic"></div>
+      <div class="validator-row" id="orbit-examples-basic-2"></div>
       <div class="validator-row" id="orbit-examples-oll"></div>
       <div class="validator-row" id="orbit-examples-pll"></div>
       <div class="validator-input-row">
@@ -297,7 +300,8 @@
   import { CubeStickering, MASK_PRESETS } from '../packages/cubify/src/CubeStickering.js';
   import { THEME_PRESETS, DEFAULT_THEME, cloneTheme, themeToJSON, themeFromJSON } from '../packages/cubify/src/CubeTheme.js';
   import { CubeScramble, twipsWarmed } from '../packages/cubify/src/CubeScramble.js';
-  import { CubeSolver } from '../packages/cubify/src/CubeSolver.js';
+  import { CubeSolverKociemba } from '../packages/cubify/src/CubeSolverKociemba.js';
+  import { CfopSolver } from '../packages/cubify/src/CubeSolverCfop.js';
   // Warm up kpuzzle early (cached after first call)
   const _solvedBase = await CubeState.solved();
 
@@ -684,8 +688,12 @@
   document.getElementById('btn-stop').onclick = () => { stopPlay(); appendLog('[sim] stopped'); };
 
   // ---- Solver init ----
-  const _solver = new CubeSolver();
+  const _solver = new CubeSolverKociemba();
   document.getElementById('btn-solve').disabled = false;
+  let _cfopSolver = null;
+  let _cfopSolving = false;
+  let _cfopCancelled = false;
+  document.getElementById('btn-solve-cfop').disabled = false;
 
   // ---- Scramble ----
   async function doScramble(btn, generator) {
@@ -699,6 +707,7 @@
       await player.loadAlg('', scramble, { anchor: 'start' });
       updateAlgButtons();
       document.getElementById('btn-solve').disabled = false;
+      document.getElementById('btn-solve-cfop').disabled = false;
     } catch (e) {
       appendLog(`[scramble] Error: ${e.message}`);
     } finally {
@@ -783,6 +792,67 @@
   document.getElementById('btn-solve-cancel').onclick = () => {
     _solver.cancel();
     appendLog('[solver] cancelled');
+  };
+
+  // ---- CFOP Solve ----
+  async function handleCfopSolve() {
+    if (_cfopSolving || !player.state) return;
+    _cfopSolving = true;
+    _cfopCancelled = false;
+    const btnCfop = document.getElementById('btn-solve-cfop');
+    const btnCfopCancel = document.getElementById('btn-solve-cfop-cancel');
+    btnCfop.disabled = true;
+    btnCfopCancel.style.display = '';
+    try {
+      if (!_cfopSolver) _cfopSolver = new CfopSolver();
+      const { normalizedState, rotAlg } = findOrientationFix(player.state);
+      appendLog('[cfop] solving…');
+      const t0 = Date.now();
+      const solution = await _cfopSolver.solve(normalizedState);
+      appendLog(`[cfop] ${solution.totalMoves} moves (${Date.now() - t0}ms)`);
+
+      const baseSetup = [currentSetup, rotAlg, 'z2'].filter(Boolean).join(' ');
+      let accumulatedSetup = baseSetup;
+
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+      for (const stage of solution.stages) {
+        if (_cfopCancelled) break;
+        player.setStickering(stage.mask);
+        if (stage.alg) {
+          const detail = stage.caseName
+            ? ` [${stage.caseName}${stage.wcaId !== undefined ? ' #' + stage.wcaId : ''}]`
+            : '';
+          appendLog(`[cfop] ${stage.label}${detail}: ${stage.alg}`);
+          appendLog('[cfop] press play to simulate stage solve');
+          await new Promise((resolve) => {
+            const onComplete = () => { player.off('complete', onComplete); resolve(); };
+            player.on('complete', onComplete);
+            player.loadAlg(stage.alg, accumulatedSetup, { anchor: 'start' });
+          });
+          accumulatedSetup = [accumulatedSetup, stage.alg].filter(Boolean).join(' ');
+        } else {
+          appendLog(`[cfop] ${stage.label}: (skip)`);
+        }
+        if (!_cfopCancelled) await sleep(500);
+      }
+      if (!_cfopCancelled) appendLog('[cfop] done');
+    } catch (e) {
+      if (e.message !== 'cancelled') appendLog(`[cfop] ${e.message}`);
+    } finally {
+      _cfopSolving = false;
+      btnCfop.disabled = false;
+      btnCfopCancel.style.display = 'none';
+      player.setStickering('full');
+    }
+  }
+
+  document.getElementById('btn-solve-cfop').onclick = handleCfopSolve;
+
+  document.getElementById('btn-solve-cfop-cancel').onclick = () => {
+    _cfopCancelled = true;
+    _cfopSolver?.cancel();
+    appendLog('[cfop] cancelled');
   };
 
   // ---- Step controls ----
@@ -895,6 +965,7 @@
   const orbitInput  = document.getElementById('orbit-input');
   const orbitStatus = document.getElementById('orbit-status');
 
+  const basicCounts = {};
   MASK_PRESETS.forEach(({ group, label, str }) => {
     const btn = document.createElement('button');
     btn.className = 'button is-harness is-small';
@@ -902,7 +973,13 @@
     btn.textContent = label;
     btn.title = str;
     btn.onclick = () => { orbitInput.value = str; applyOrbitString(str); };
-    document.getElementById(`orbit-examples-${group}`).appendChild(btn);
+    if (group === 'basic') {
+      basicCounts.basic = (basicCounts.basic || 0) + 1;
+      const rowId = basicCounts.basic <= 5 ? 'orbit-examples-basic' : 'orbit-examples-basic-2';
+      document.getElementById(rowId).appendChild(btn);
+    } else {
+      document.getElementById(`orbit-examples-${group}`).appendChild(btn);
+    }
   });
 
   function applyOrbitString(str) {

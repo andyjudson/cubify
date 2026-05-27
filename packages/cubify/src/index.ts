@@ -27,5 +27,8 @@ export type { PlayerEventName, MoveEventData, LoadAlgOptions } from './CubePlaye
 export { CubeExporter } from './CubeExporter.js';
 export type { ExportOptions } from './CubeExporter.js';
 
-export { CubeSolver } from './CubeSolver.js';
-export type { SolveResult, SolverOptions } from './CubeSolver.js';
+export { CubeSolverKociemba } from './CubeSolverKociemba.js';
+export type { SolveResult, SolverOptions } from './CubeSolverKociemba.js';
+
+export { CfopSolver } from './CubeSolverCfop.js';
+export type { CfopSolution, SolveStage, SolveStageLabel, CfopSolverOptions } from './CubeSolverCfop.js';
