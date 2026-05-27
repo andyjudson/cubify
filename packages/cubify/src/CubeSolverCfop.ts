@@ -8,8 +8,7 @@ export interface CfopSolverOptions {
   timeoutMs?: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Pending = { resolve: (s: CfopSolution) => void; reject: (e: any) => void; timer: ReturnType<typeof setTimeout> | null };
+type Pending = { resolve: (s: CfopSolution) => void; reject: (e: unknown) => void; timer: ReturnType<typeof setTimeout> | null };
 
 /**
  * CFOP-method cube solver.
@@ -18,7 +17,7 @@ type Pending = { resolve: (s: CfopSolution) => void; reject: (e: any) => void; t
  *
  * Dispose the solver when done: `solver.dispose()`.
  */
-export class CfopSolver {
+export class CubeSolverCfop {
   readonly available: boolean;
   private _worker: Worker | null = null;
   private _pending: Pending | null = null;
@@ -57,8 +56,7 @@ export class CfopSolver {
 
       this._pending = { resolve, reject, timer };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const patternStr = JSON.stringify((state as any).kPattern.patternData);
+      const patternStr = JSON.stringify(state.getPatternData());
       this._worker!.postMessage({ type: 'solve', patternStr, timeoutMs });
     });
   }

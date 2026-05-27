@@ -103,6 +103,11 @@ export class CubeState {
 
   get kPattern(): KPattern { return this._kPattern; }
 
+  /**
+   * @internal For solver implementations only — patternData is not typed in cubing.js.
+   */
+  getPatternData(): unknown { return (this._kPattern as unknown as { patternData: unknown }).patternData; }
+
   static async solved(): Promise<CubeState> {
     const kpuzzle = await getKPuzzle();
     return new CubeState(kpuzzle.defaultPattern());

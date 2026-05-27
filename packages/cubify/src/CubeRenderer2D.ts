@@ -13,7 +13,7 @@ import {
 } from './CubeStickering.js';
 import type { CubeState, RawPattern } from './CubeState.js';
 import {
-  type CubeTheme, type ThemePresetName,
+  type CubeTheme, type FaceColours, type ThemePresetName,
   DEFAULT_THEME, effectiveColours, getThemePreset, cloneTheme,
 } from './CubeTheme.js';
 
@@ -257,9 +257,9 @@ function getVisLevel(cell: Cell | CornerPoly, visMap: VisMap | null, rawPattern:
   return visArray ? (visArray[cell.visSlot] ?? 2) : 2;
 }
 
-function blendColour(faceChar: string, visLevel: number, faceColours: Record<string, string>, plastic: string): string {
+function blendColour(faceChar: string, visLevel: number, faceColours: FaceColours, plastic: string): string {
   if (visLevel === 0) return '#888888';
-  const hex = faceColours[faceChar] ?? plastic;
+  const hex = faceColours[faceChar as keyof FaceColours] ?? plastic;
   if (visLevel === 2) return hex;
   const r  = parseInt(hex.slice(1, 3), 16);
   const g  = parseInt(hex.slice(3, 5), 16);

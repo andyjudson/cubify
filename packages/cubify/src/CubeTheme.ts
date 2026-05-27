@@ -10,7 +10,6 @@ export interface FaceColours {
   D: string;
   L: string;
   B: string;
-  [key: string]: string;
 }
 
 export type ThemePresetName = 'classic' | 'alpha' | 'internals' | 'rubiks' | 'speed-dark' | 'speed-light';

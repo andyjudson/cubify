@@ -19,8 +19,13 @@ async function getSearch() {
   return searchMod;
 }
 
-self.addEventListener('message', async (e: MessageEvent) => {
-  const { id, action, patternStr } = e.data;
+type WorkerInMessage =
+  | { id: number; action: 'scramble' }
+  | { id: number; action: 'solve333'; patternStr: string };
+
+self.addEventListener('message', async (e: MessageEvent<WorkerInMessage>) => {
+  const msg = e.data;
+  const { id, action } = msg;
   try {
     let result: string;
     if (action === 'scramble') {
@@ -29,7 +34,7 @@ self.addEventListener('message', async (e: MessageEvent) => {
       result = alg.toString();
     } else if (action === 'solve333') {
       const { experimentalSolve3x3x3IgnoringCenters } = await getSearch();
-      const patternData = JSON.parse(patternStr);
+      const patternData = JSON.parse(msg.patternStr);
       const alg = await experimentalSolve3x3x3IgnoringCenters({ patternData });
       result = alg.toString();
     } else {

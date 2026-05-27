@@ -57,8 +57,10 @@ Key facts from `cube-mapping-lessons.md`:
 | `src/CubePlayer.ts` | Animation engine; `loadAlg()`, `play/pause/jumpTo/reset`, `setSpeed()`, `setStickering()`, events |
 | `src/CubeExporter.ts` | `toPNG(alg, { style: '2d'\|'3d' })`; 2D via canvas, 3D via CubeRenderer3D |
 | `src/CubeScramble.ts` | Scramble generator; `CubeScramble.random(length?)` (pure JS, sync); `CubeScramble.wca()` (async, WCA random-state via twips WASM) |
-| `src/CubeSolver.ts` | Kociemba 2-phase IDA* solver; `new CubeSolver()` → `solve(state, options?)`, `cancel()`, `dispose()`; runs in web worker, no main-thread fallback |
-| `src/solver/` | Worker + IDA* internals: `solver.worker.ts`, `TwoPhase.ts`, `Coordinates.ts`, `MoveTables.ts` |
+| `src/CubeSolverKociemba.ts` | Kociemba solver facade; `new CubeSolverKociemba()` → `solve(state, options?)`, `cancel()`, `dispose()`; runs in web worker |
+| `src/CubeSolverCfop.ts` | CFOP solver facade; `new CubeSolverCfop()` → `solve(state, options?)`, `cancel()`, `dispose()`; runs in web worker |
+| `src/kociemba/` | Kociemba worker internals: `twips.worker.ts` (delegates to cubing.js WASM) |
+| `src/cfop/` | CFOP worker internals: `cfop.worker.ts`, `CrossSolver.ts`, `F2lSolver.ts`, `OllSolver.ts`, `PllSolver.ts` |
 | `src/AlgParser.ts` | WCA notation parser; wide moves, slice moves, x/y/z rotations |
 
 Build: `npm run build --workspace=packages/cubify` → `packages/cubify/dist/` (JS + declarations).
@@ -68,10 +70,10 @@ Build: `npm run build --workspace=packages/cubify` → `packages/cubify/dist/` (
 | File | Role |
 |------|------|
 | `src/index.ts` | Re-exports all React components and types |
-| `src/CubePlayerComponent.tsx` | `<CubePlayer>` React wrapper; `CubePlayerHandle` ref interface |
+| `src/CubePlayerComponent.tsx` | `<CubePlayerComponent>` React wrapper; `CubePlayerHandle` ref interface |
 | `src/CubePlayerControls.tsx` | Playback controls; `size?: 'md' \| 'sm'` (44px vs 38px buttons); no `onSpeedChange` — speed is consumer-owned |
 | `src/CubeMoveTape.tsx` | Move tape; responsive row sizes — 12/row desktop, 9/row mobile (≤600px), zero tolerance on mobile so 10+ move algs always wrap |
-| `src/CubeStateComponent.tsx` | `<CubeState>` static render component |
+| `src/CubeStateComponent.tsx` | `<CubeStateComponent>` static render component |
 
 Build: `npm run build --workspace=packages/cubify-react` → `packages/cubify-react/dist/`.
 
