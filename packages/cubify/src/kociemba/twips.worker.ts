@@ -5,16 +5,14 @@
 // Direct chunk imports (@vite-ignore + new URL traversal) broke in production builds
 // because Vite doesn't rewrite new URL() in node_modules files.
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let scrambleMod: any = null;
-async function getTwips() {
+let scrambleMod: typeof import('cubing/scramble') | null = null;
+async function getTwips(): Promise<typeof import('cubing/scramble')> {
   if (!scrambleMod) scrambleMod = await import('cubing/scramble');
   return scrambleMod;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let searchMod: any = null;
-async function getSearch() {
+let searchMod: typeof import('cubing/search') | null = null;
+async function getSearch(): Promise<typeof import('cubing/search')> {
   if (!searchMod) searchMod = await import('cubing/search');
   return searchMod;
 }

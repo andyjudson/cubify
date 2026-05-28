@@ -1,5 +1,6 @@
 import type { CubeState } from './CubeState.js';
 import type { SolveStage, CfopSolution, SolveStageLabel } from './cfop/cfop.worker.js';
+import type { CubeSolverInterface } from './CubeSolverInterface.js';
 
 export type { SolveStage, CfopSolution, SolveStageLabel };
 
@@ -15,9 +16,13 @@ type Pending = { resolve: (s: CfopSolution) => void; reject: (e: unknown) => voi
  * Runs in a web worker; returns a stage-annotated solution covering
  * cross → F2L×4 → OLL → PLL.
  *
+ * **Concurrency**: only one solve may be in-flight at a time. Calling `solve()`
+ * while a solve is already running rejects immediately with an error — call
+ * `cancel()` first if you need to restart.
+ *
  * Dispose the solver when done: `solver.dispose()`.
  */
-export class CubeSolverCfop {
+export class CubeSolverCfop implements CubeSolverInterface<CfopSolution> {
   readonly available: boolean;
   private _worker: Worker | null = null;
   private _pending: Pending | null = null;

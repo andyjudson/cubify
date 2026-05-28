@@ -1,4 +1,5 @@
 import type { CubeState } from './CubeState.js';
+import type { CubeSolverInterface } from './CubeSolverInterface.js';
 
 export interface SolveResult {
   alg: string;
@@ -20,9 +21,13 @@ let _idCounter = 0;
  * (via the cubing.js/twips WASM worker). Finds a fast, near-optimal solution
  * without blocking the UI.
  *
+ * **Concurrency**: multiple `solve()` calls may be in-flight simultaneously —
+ * each is tracked by a unique ID and resolved independently. Call `cancel()` to
+ * abort all pending solves at once.
+ *
  * Dispose the solver when done: `solver.dispose()`.
  */
-export class CubeSolverKociemba {
+export class CubeSolverKociemba implements CubeSolverInterface<SolveResult> {
   readonly available: boolean;
   private _worker: Worker | null = null;
   private _pending = new Map<number, Pending>();

@@ -101,6 +101,7 @@ export class CubeState {
     this._kPattern = kPattern;
   }
 
+  /** @internal Direct access to the underlying cubing.js KPattern. Not part of the public API. */
   get kPattern(): KPattern { return this._kPattern; }
 
   /**
@@ -117,9 +118,8 @@ export class CubeState {
     return new CubeState(this._kPattern.applyMove(move));
   }
 
-  applyAlg(moves: string[] | string): CubeState {
-    const algStr = Array.isArray(moves) ? moves.join(' ') : moves;
-    return new CubeState(this._kPattern.applyAlg(algStr));
+  applyAlg(moves: string): CubeState {
+    return new CubeState(this._kPattern.applyAlg(moves));
   }
 
   static async fromAlg(notation: string): Promise<CubeState> {

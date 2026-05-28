@@ -185,8 +185,8 @@ describe('play() event sequence', () => {
     await vi.runAllTimersAsync();
 
     const solvedState = await CubeState.solved();
-    const expectedAfterR = solvedState.applyAlg(['R']);
-    // First move event: index=1, state = solved.applyAlg(['R'])
+    const expectedAfterR = solvedState.applyAlg('R');
+    // First move event: index=1, state = solved.applyAlg('R')
     expect(moveEvents[0].state.toFaceArray()).toEqual(expectedAfterR.toFaceArray());
   });
 

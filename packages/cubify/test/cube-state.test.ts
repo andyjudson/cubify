@@ -46,7 +46,7 @@ describe('toFaceArray — solved state', () => {
 describe('toFaceArray — after R (lessons §4)', () => {
   it('U right column = F,F,F', () => {
     // lessons §4: after R, the F right column travels to U right column
-    const faces = solved.applyAlg(['R']).toFaceArray();
+    const faces = solved.applyAlg('R').toFaceArray();
     expect(faces[0][2]).toBe('F'); // U[2]
     expect(faces[0][5]).toBe('F'); // U[5]
     expect(faces[0][8]).toBe('F'); // U[8]
@@ -57,7 +57,7 @@ describe('toFaceArray — after cubing.js U (lessons §5)', () => {
   it('L top row = F,F,F — cubing.js U is WCA U\' so front moves left', () => {
     // cubing.js U = WCA U': top layer rotates CCW (F→L, L→B, B→R, R→F)
     // So after cubing.js U, L[0,1,2] gets what was on F[0,1,2] = F,F,F
-    const faces = solved.applyAlg(['U']).toFaceArray();
+    const faces = solved.applyAlg('U').toFaceArray();
     expect(faces[4][0]).toBe('F'); // L[0]
     expect(faces[4][1]).toBe('F'); // L[1]
     expect(faces[4][2]).toBe('F'); // L[2]
@@ -99,12 +99,12 @@ describe('isSolved', () => {
   });
 
   it('cube after single R is not solved', () => {
-    expect(solved.applyAlg(['R']).isSolved()).toBe(false);
+    expect(solved.applyAlg('R').isSolved()).toBe(false);
   });
 
   it('whole-cube rotation z2 is considered solved — ignorePuzzleOrientation: true', () => {
     // CubeState.isSolved() always uses ignorePuzzleOrientation: true (lessons §14)
-    expect(solved.applyAlg(['z2']).isSolved()).toBe(true);
+    expect(solved.applyAlg('z2').isSolved()).toBe(true);
   });
 });
 
@@ -114,13 +114,13 @@ describe('invertAlg', () => {
   it('applyAlg(alg).applyAlg(inv(alg)) = solved for Sune', () => {
     const moves = SUNE.split(' ');
     const inv = CubeState.invertAlg(moves);
-    expect(solved.applyAlg(moves).applyAlg(inv).isSolved()).toBe(true);
+    expect(solved.applyAlg(SUNE).applyAlg(inv.join(' ')).isSolved()).toBe(true);
   });
 
   it('applyAlg(alg).applyAlg(inv(alg)) = solved for T-perm', () => {
     const moves = TPERM.split(' ');
     const inv = CubeState.invertAlg(moves);
-    expect(solved.applyAlg(moves).applyAlg(inv).isSolved()).toBe(true);
+    expect(solved.applyAlg(TPERM).applyAlg(inv.join(' ')).isSolved()).toBe(true);
   });
 
   it('invertAlg(["R","U","R\'"]) = ["R","U\'","R\'"]', () => {
@@ -163,12 +163,12 @@ describe('KPattern slot ordering — lessons §1', () => {
   });
 
   it('after R: CORNERS slot 0 piece != 0 — URF moves', () => {
-    const raw = solved.applyAlg(['R']).toRawPattern();
+    const raw = solved.applyAlg('R').toRawPattern();
     expect(raw.corners.pieces[0]).not.toBe(0);
   });
 
   it('after L: CORNERS slot 0 piece = 0 — URF unaffected by L', () => {
-    const raw = solved.applyAlg(['L']).toRawPattern();
+    const raw = solved.applyAlg('L').toRawPattern();
     expect(raw.corners.pieces[0]).toBe(0);
   });
 });
@@ -180,13 +180,13 @@ describe('Orientation formula — lessons §3', () => {
     // WCA/cubing.js R: DRF → URF → URB → DRB → DRF cycle
     // Slot 0 (URF position) gets DRF piece (id=4). Orientation=2 means
     // its primary sticker (D=yellow) faces the F direction (not U).
-    const raw = solved.applyAlg(['R']).toRawPattern();
+    const raw = solved.applyAlg('R').toRawPattern();
     expect(raw.corners.pieces[0]).toBe(4);    // DRF piece at URF slot
     expect(raw.corners.orientation[0]).toBe(2);
   });
 
   it('after R R\': slot 0 orientation restored to 0', () => {
-    const raw = solved.applyAlg(["R","R'"]).toRawPattern();
+    const raw = solved.applyAlg("R R'").toRawPattern();
     expect(raw.corners.orientation[0]).toBe(0);
   });
 
@@ -194,7 +194,7 @@ describe('Orientation formula — lessons §3', () => {
     // At URF slot, s=0 = U face. DRF piece colours = ['D','F','R'].
     // Correct: (0 - 2 + 3) % 3 = 1 → colours[1] = 'F' (green) at U[8].
     // Wrong:   (0 + 2) % 3 = 2 → colours[2] = 'R' (red) at U[8] — incorrect.
-    const faces = solved.applyAlg(['R']).toFaceArray();
+    const faces = solved.applyAlg('R').toFaceArray();
     expect(faces[0][8]).toBe('F'); // U[8] = green (DRF's F sticker, via correct formula)
   });
 
@@ -202,7 +202,7 @@ describe('Orientation formula — lessons §3', () => {
     // DRF piece, orientation=2, at slot s=0 (U face):
     // wrong:  (0 + 2) % 3 = 2 → colours[2] = 'R' (red) — but actual is green
     // correct: (0 - 2 + 3) % 3 = 1 → colours[1] = 'F' (green) ✓
-    const faces = solved.applyAlg(['R']).toFaceArray();
+    const faces = solved.applyAlg('R').toFaceArray();
     expect(faces[0][8]).not.toBe('R'); // wrong formula would give red; correct gives green
   });
 });
@@ -213,33 +213,26 @@ describe('U/D direction — cubing.js vs WCA (lessons §5)', () => {
   it('R,F,L,B moves match WCA physical behaviour — R: F right col → U right col', () => {
     // R, F, L, B are not flipped in cubing.js (lessons §10)
     // Physical: after R, U right col = green (F)
-    const faces = solved.applyAlg(['R']).toFaceArray();
+    const faces = solved.applyAlg('R').toFaceArray();
     expect(faces[0][2]).toBe('F'); // U[2] = green after R
   });
 
   it('cubing.js U moves top layer CCW (F→L convention)', () => {
     // cubing.js U = WCA U': F→L, L→B, B→R, R→F
-    const faces = solved.applyAlg(['U']).toFaceArray();
+    const faces = solved.applyAlg('U').toFaceArray();
     expect(faces[4][0]).toBe('F'); // L[0] = green (F moved to L)
     expect(faces[1][0]).toBe('B'); // R[0] = blue (B moved to R)
   });
 });
 
-// ── applyAlg accepts array or string ─────────────────────────────────────────
+// ── applyAlg ─────────────────────────────────────────────────────────────────
 
-describe('applyAlg input forms', () => {
-  it('accepts array of moves', () => {
-    expect(solved.applyAlg(['R', 'U', "R'"]).isSolved()).toBe(false);
+describe('applyAlg', () => {
+  it('applies a space-separated move string', () => {
+    expect(solved.applyAlg("R U R'").isSolved()).toBe(false);
   });
 
-  it('accepts space-separated string', () => {
-    const s1 = solved.applyAlg(['R', 'U', "R'"]);
-    const s2 = solved.applyAlg("R U R'");
-    expect(s1.toFaceArray()).toEqual(s2.toFaceArray());
-  });
-
-  it('empty alg returns solved', () => {
-    expect(solved.applyAlg([]).isSolved()).toBe(true);
+  it('empty string returns solved', () => {
     expect(solved.applyAlg('').isSolved()).toBe(true);
   });
 });

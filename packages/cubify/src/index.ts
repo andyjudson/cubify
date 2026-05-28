@@ -33,9 +33,4 @@ export type { SolveResult, SolverOptions } from './CubeSolverKociemba.js';
 export { CubeSolverCfop } from './CubeSolverCfop.js';
 export type { CfopSolution, SolveStage, SolveStageLabel, CfopSolverOptions } from './CubeSolverCfop.js';
 
-/** Shared lifecycle contract implemented by all solver classes. */
-export interface CubeSolverInterface {
-  readonly available: boolean;
-  cancel(): void;
-  dispose(): void;
-}
+export type { CubeSolverInterface } from './CubeSolverInterface.js';
