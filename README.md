@@ -9,7 +9,7 @@ This repo is an npm workspace publishing two packages to [GitHub Packages](https
 | Package | Description |
 |---------|-------------|
 | `@andyjudson/cubify` | Core cube library — state, rendering, animation, export |
-| `@andyjudson/cubify-react` | React wrappers — `<CubePlayer>`, `<CubeState>`, `<CubeMoveTape>`, `<CubePlayerControls>` |
+| `@andyjudson/cubify-react` | React wrappers — `<CubePlayerComponent>`, `<CubeStateComponent>`, `<CubeMoveTape>`, `<CubePlayerControls>` |
 
 ## Install
 

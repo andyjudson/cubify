@@ -1,4 +1,5 @@
 import type { CubeState } from './CubeState.js';
+import type { CubeSolverInterface } from './CubeSolverInterface.js';
 
 export interface SolveResult {
   alg: string;
@@ -11,8 +12,7 @@ export interface SolverOptions {
   timeoutMs?: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Pending = { resolve: (r: SolveResult) => void; reject: (e: any) => void; startMs: number; timer: ReturnType<typeof setTimeout> | null };
+type Pending = { resolve: (r: SolveResult) => void; reject: (e: unknown) => void; startMs: number; timer: ReturnType<typeof setTimeout> | null };
 
 let _idCounter = 0;
 
@@ -21,9 +21,13 @@ let _idCounter = 0;
  * (via the cubing.js/twips WASM worker). Finds a fast, near-optimal solution
  * without blocking the UI.
  *
+ * **Concurrency**: multiple `solve()` calls may be in-flight simultaneously —
+ * each is tracked by a unique ID and resolved independently. Call `cancel()` to
+ * abort all pending solves at once.
+ *
  * Dispose the solver when done: `solver.dispose()`.
  */
-export class CubeSolverKociemba {
+export class CubeSolverKociemba implements CubeSolverInterface<SolveResult> {
   readonly available: boolean;
   private _worker: Worker | null = null;
   private _pending = new Map<number, Pending>();
@@ -31,7 +35,7 @@ export class CubeSolverKociemba {
   constructor() {
     try {
       this._worker = new Worker(
-        new URL('./solver/twips.worker.ts', import.meta.url),
+        new URL('./twips.worker.ts', import.meta.url),
         { type: 'module' },
       );
       this._worker.addEventListener('message', this._onMessage.bind(this));
@@ -63,8 +67,7 @@ export class CubeSolverKociemba {
 
       this._pending.set(id, { resolve, reject, startMs: Date.now(), timer });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const patternStr = JSON.stringify((state as any).kPattern.patternData);
+      const patternStr = JSON.stringify(state.getPatternData());
       this._worker!.postMessage({ id, action: 'solve333', patternStr });
     });
   }

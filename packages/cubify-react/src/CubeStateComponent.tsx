@@ -21,7 +21,7 @@ export interface CubeStateProps {
   className?: string;
 }
 
-export function CubeState({
+export function CubeStateComponent({
   alg = '',
   setup = '',
   stickering,

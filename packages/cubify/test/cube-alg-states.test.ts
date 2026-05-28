@@ -170,14 +170,14 @@ describe('invertAlg', () => {
   it('applying alg then its inverse returns to solved state', async () => {
     const alg = ["R", "U", "R'", "U'"];
     const inv = CubeState.invertAlg(alg);
-    const state = solved.applyAlg(alg).applyAlg(inv);
+    const state = solved.applyAlg(alg.join(' ')).applyAlg(inv.join(' '));
     expect(state.isSolved()).toBe(true);
   });
 
   it('applying inverse then alg returns to solved state', async () => {
     const alg = "R U R' U R U2 R'";
     const inv = CubeState.invertAlg(alg.split(' '));
-    const state = solved.applyAlg(inv).applyAlg(alg.split(' '));
+    const state = solved.applyAlg(inv.join(' ')).applyAlg(alg);
     expect(state.isSolved()).toBe(true);
   });
 });

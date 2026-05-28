@@ -25,9 +25,9 @@ describe('CubeExporter._resolve — alg string input', () => {
     expect(setupMoves).toEqual(["R", "U'", "R'"]);
   });
 
-  it('_resolve("R U R\'", null) state = solved.applyAlg(["R","U\'","R\'"])', async () => {
+  it('_resolve("R U R\'", null) state = solved.applyAlg("R U\' R\'")', async () => {
     const { state } = await CubeExporter._resolve("R U R'", null);
-    const expected = solved.applyAlg(["R", "U'", "R'"]);
+    const expected = solved.applyAlg("R U' R'");
     expect(state.toFaceArray()).toEqual(expected.toFaceArray());
   });
 
@@ -48,9 +48,9 @@ describe('CubeExporter._resolve — alg string input', () => {
     expect(setupMoves).toEqual(["R", "U'", "R'", "z2"]);
   });
 
-  it('_resolve state with setupAlg = solved.applyAlg([inv(alg), setup])', async () => {
+  it('_resolve state with setupAlg = solved.applyAlg(inv(alg) + setup)', async () => {
     const { state } = await CubeExporter._resolve("R U R'", 'z2');
-    const expected = solved.applyAlg(["R", "U'", "R'", "z2"]);
+    const expected = solved.applyAlg("R U' R' z2");
     expect(state.toFaceArray()).toEqual(expected.toFaceArray());
   });
 });
@@ -59,20 +59,20 @@ describe('CubeExporter._resolve — alg string input', () => {
 
 describe('CubeExporter._resolve — CubeState passthrough', () => {
   it('_resolve(cubeState, null) → state = the same CubeState instance', async () => {
-    const cs = solved.applyAlg(['R']);
+    const cs = solved.applyAlg('R');
     const { state } = await CubeExporter._resolve(cs, null);
     expect(state).toBe(cs); // exact same reference
   });
 
   it('_resolve(cubeState, null) → setupMoves = []', async () => {
-    const cs = solved.applyAlg(['R']);
+    const cs = solved.applyAlg('R');
     const { setupMoves } = await CubeExporter._resolve(cs, null);
     expect(setupMoves).toEqual([]);
   });
 
   it('_resolve(cubeState, setupAlg) → still passthrough, setupMoves = []', async () => {
     // When algOrState is a CubeState, setupAlg is ignored (state returned as-is)
-    const cs = solved.applyAlg(['R']);
+    const cs = solved.applyAlg('R');
     const { state, setupMoves } = await CubeExporter._resolve(cs, 'z2');
     expect(state).toBe(cs);
     expect(setupMoves).toEqual([]);
@@ -92,7 +92,7 @@ describe('CubeExporter._resolve — setupAlg ordering', () => {
 
   it('result state matches expected manual computation', async () => {
     const { state } = await CubeExporter._resolve('U', 'D');
-    const expected = solved.applyAlg(["U'", 'D']);
+    const expected = solved.applyAlg("U' D");
     expect(state.toFaceArray()).toEqual(expected.toFaceArray());
   });
 });

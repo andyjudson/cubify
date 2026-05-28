@@ -5,22 +5,25 @@
 // Direct chunk imports (@vite-ignore + new URL traversal) broke in production builds
 // because Vite doesn't rewrite new URL() in node_modules files.
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let scrambleMod: any = null;
-async function getTwips() {
+let scrambleMod: typeof import('cubing/scramble') | null = null;
+async function getTwips(): Promise<typeof import('cubing/scramble')> {
   if (!scrambleMod) scrambleMod = await import('cubing/scramble');
   return scrambleMod;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let searchMod: any = null;
-async function getSearch() {
+let searchMod: typeof import('cubing/search') | null = null;
+async function getSearch(): Promise<typeof import('cubing/search')> {
   if (!searchMod) searchMod = await import('cubing/search');
   return searchMod;
 }
 
-self.addEventListener('message', async (e: MessageEvent) => {
-  const { id, action, patternStr } = e.data;
+type WorkerInMessage =
+  | { id: number; action: 'scramble' }
+  | { id: number; action: 'solve333'; patternStr: string };
+
+self.addEventListener('message', async (e: MessageEvent<WorkerInMessage>) => {
+  const msg = e.data;
+  const { id, action } = msg;
   try {
     let result: string;
     if (action === 'scramble') {
@@ -29,7 +32,7 @@ self.addEventListener('message', async (e: MessageEvent) => {
       result = alg.toString();
     } else if (action === 'solve333') {
       const { experimentalSolve3x3x3IgnoringCenters } = await getSearch();
-      const patternData = JSON.parse(patternStr);
+      const patternData = JSON.parse(msg.patternStr);
       const alg = await experimentalSolve3x3x3IgnoringCenters({ patternData });
       result = alg.toString();
     } else {

@@ -85,7 +85,7 @@ export class CubePlayer {
   // ── State computation ──────────────────────────────────────────────────────
 
   private _stateAt(n: number): CubeState {
-    return this._baseState!.applyAlg([...this._setupMoves, ...this._moves.slice(0, n)]);
+    return this._baseState!.applyAlg([...this._setupMoves, ...this._moves.slice(0, n)].join(' '));
   }
 
   // ── Core API ───────────────────────────────────────────────────────────────

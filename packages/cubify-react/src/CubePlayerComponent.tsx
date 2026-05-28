@@ -33,7 +33,7 @@ export interface CubePlayerProps {
   className?: string;
 }
 
-export const CubePlayer = forwardRef<CubePlayerHandle, CubePlayerProps>(function CubePlayer(
+export const CubePlayerComponent = forwardRef<CubePlayerHandle, CubePlayerProps>(function CubePlayerComponent(
   {
     alg = '',
     setup = '',

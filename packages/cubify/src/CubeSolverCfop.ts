@@ -1,5 +1,6 @@
 import type { CubeState } from './CubeState.js';
 import type { SolveStage, CfopSolution, SolveStageLabel } from './cfop/cfop.worker.js';
+import type { CubeSolverInterface } from './CubeSolverInterface.js';
 
 export type { SolveStage, CfopSolution, SolveStageLabel };
 
@@ -8,17 +9,20 @@ export interface CfopSolverOptions {
   timeoutMs?: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Pending = { resolve: (s: CfopSolution) => void; reject: (e: any) => void; timer: ReturnType<typeof setTimeout> | null };
+type Pending = { resolve: (s: CfopSolution) => void; reject: (e: unknown) => void; timer: ReturnType<typeof setTimeout> | null };
 
 /**
  * CFOP-method cube solver.
  * Runs in a web worker; returns a stage-annotated solution covering
  * cross → F2L×4 → OLL → PLL.
  *
+ * **Concurrency**: only one solve may be in-flight at a time. Calling `solve()`
+ * while a solve is already running rejects immediately with an error — call
+ * `cancel()` first if you need to restart.
+ *
  * Dispose the solver when done: `solver.dispose()`.
  */
-export class CfopSolver {
+export class CubeSolverCfop implements CubeSolverInterface<CfopSolution> {
   readonly available: boolean;
   private _worker: Worker | null = null;
   private _pending: Pending | null = null;
@@ -57,8 +61,7 @@ export class CfopSolver {
 
       this._pending = { resolve, reject, timer };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const patternStr = JSON.stringify((state as any).kPattern.patternData);
+      const patternStr = JSON.stringify(state.getPatternData());
       this._worker!.postMessage({ type: 'solve', patternStr, timeoutMs });
     });
   }

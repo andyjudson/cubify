@@ -40,7 +40,7 @@ export class CubeExporter {
     const extraMoves = setupAlg ? setupAlg.trim().split(/\s+/).filter(Boolean) : [];
     const setupMoves = [...invMoves, ...extraMoves];
     const solved = await CubeState.solved();
-    const state  = solved.applyAlg(setupMoves);
+    const state  = solved.applyAlg(setupMoves.join(' '));
     return { state, setupMoves };
   }
 

@@ -30,5 +30,7 @@ export type { ExportOptions } from './CubeExporter.js';
 export { CubeSolverKociemba } from './CubeSolverKociemba.js';
 export type { SolveResult, SolverOptions } from './CubeSolverKociemba.js';
 
-export { CfopSolver } from './CubeSolverCfop.js';
+export { CubeSolverCfop } from './CubeSolverCfop.js';
 export type { CfopSolution, SolveStage, SolveStageLabel, CfopSolverOptions } from './CubeSolverCfop.js';
+
+export type { CubeSolverInterface } from './CubeSolverInterface.js';

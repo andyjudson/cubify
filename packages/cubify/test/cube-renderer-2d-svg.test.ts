@@ -26,7 +26,7 @@ beforeAll(async () => {
 
 function buildState(alg: string): CubeState {
   const algMoves = alg.trim() ? alg.split(/\s+/).filter(Boolean) : [];
-  return solved.applyAlg(CubeState.invertAlg(algMoves));
+  return solved.applyAlg(CubeState.invertAlg(algMoves).join(' '));
 }
 
 function buildVisMap(state: CubeState, mask: string | null) {
@@ -157,7 +157,7 @@ describe('toSVG — face layout correctness after R', () => {
     // After R, F right col → U right col — visible in the U face cells
     // The SVG renders the U face centre cell (U[4]=U, unchanged) + right col
     // We verify the overall SVG still has correct structure
-    const afterR = solved.applyAlg(['R']);
+    const afterR = solved.applyAlg('R');
     const svg = CubeRenderer2D.toSVG(afterR, new Map());
     const { rectCount, triCount } = svgCounts(svg);
     expect(rectCount).toBe(13);

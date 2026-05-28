@@ -301,7 +301,7 @@
   import { THEME_PRESETS, DEFAULT_THEME, cloneTheme, themeToJSON, themeFromJSON } from '../packages/cubify/src/CubeTheme.js';
   import { CubeScramble, twipsWarmed } from '../packages/cubify/src/CubeScramble.js';
   import { CubeSolverKociemba } from '../packages/cubify/src/CubeSolverKociemba.js';
-  import { CfopSolver } from '../packages/cubify/src/CubeSolverCfop.js';
+  import { CubeSolverCfop } from '../packages/cubify/src/CubeSolverCfop.js';
   // Warm up kpuzzle early (cached after first call)
   const _solvedBase = await CubeState.solved();
 
@@ -804,7 +804,7 @@
     btnCfop.disabled = true;
     btnCfopCancel.style.display = '';
     try {
-      if (!_cfopSolver) _cfopSolver = new CfopSolver();
+      if (!_cfopSolver) _cfopSolver = new CubeSolverCfop();
       const { normalizedState, rotAlg } = findOrientationFix(player.state);
       appendLog('[cfop] solving…');
       const t0 = Date.now();
