@@ -1,6 +1,14 @@
 /**
  * Pre-computed OLL and PLL case libraries for the CFOP solver.
- * Fingerprints derived offline via cubing.js from algs-cfop-oll/pll.json.
+ *
+ * This file is intentionally independent from cfop-app/public/data/algs-cfop-*.json.
+ * The JSON files are UI data (names, images, groupings); this file is solver data.
+ * Algs here may differ from the JSON — they are chosen for solver correctness and may
+ * use equivalent but differently-notated algorithms. Drift in names/wcaIds is cosmetic;
+ * alg+fingerprint pairs must stay in sync (fingerprint is computed from the alg).
+ *
+ * To regenerate fingerprints from updated algs, use the `cubify-fingerprint` script
+ * (see scripts/ — TODO: add as a cubify skill).
  *
  * OLL fingerprint = [cornerOrient[0..3], edgeOrient[0..3]] (U-layer, z2 frame)
  * PLL fingerprint = [cornerPieces[0..3], edgePieces[0..3]] (U-layer, z2 frame)

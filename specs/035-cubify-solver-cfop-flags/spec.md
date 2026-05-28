@@ -1,6 +1,6 @@
 # Feature Specification: CFOP Solver Method Flags
 
-**Feature Branch**: `035-cfop-solver-method-flags`  
+**Feature Branch**: `035-cubify-solver-cfop-flags`  
 **Created**: 2026-05-28  
 **Status**: Draft  
 
