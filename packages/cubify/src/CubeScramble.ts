@@ -27,7 +27,7 @@ export let twipsWarmed = false;
 function _getScrambleWorker(): Worker {
   if (!_scrambleWorker) {
     _scrambleWorker = new Worker(
-      new URL('./solver/twips.worker.ts', import.meta.url),
+      new URL('./kociemba/twips.worker.ts', import.meta.url),
       { type: 'module' },
     );
     _scrambleWorker.addEventListener('message', (e: MessageEvent) => {
