@@ -59,7 +59,7 @@ Key facts from `cube-mapping-lessons.md`:
 | `src/CubeScramble.ts` | Scramble generator; `CubeScramble.random(length?)` (pure JS, sync); `CubeScramble.wca()` (async, WCA random-state via twips WASM) |
 | `src/CubeSolverKociemba.ts` | Kociemba solver facade; `new CubeSolverKociemba()` → `solve(state, options?)`, `cancel()`, `dispose()`; runs in web worker |
 | `src/CubeSolverCfop.ts` | CFOP solver facade; `new CubeSolverCfop()` → `solve(state, options?)`, `cancel()`, `dispose()`; runs in web worker |
-| `src/kociemba/` | Kociemba worker internals: `twips.worker.ts` (delegates to cubing.js WASM) |
+| `src/twips.worker.ts` | cubing.js WASM delegate — `scramble` + `solve333` actions; shared by `CubeScramble` and `CubeSolverKociemba` |
 | `src/cfop/` | CFOP worker internals: `cfop.worker.ts`, `CrossSolver.ts`, `F2lSolver.ts`, `OllSolver.ts`, `PllSolver.ts` |
 | `src/AlgParser.ts` | WCA notation parser; wide moves, slice moves, x/y/z rotations |
 

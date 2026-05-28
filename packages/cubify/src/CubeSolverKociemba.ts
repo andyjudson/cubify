@@ -35,7 +35,7 @@ export class CubeSolverKociemba implements CubeSolverInterface<SolveResult> {
   constructor() {
     try {
       this._worker = new Worker(
-        new URL('./kociemba/twips.worker.ts', import.meta.url),
+        new URL('./twips.worker.ts', import.meta.url),
         { type: 'module' },
       );
       this._worker.addEventListener('message', this._onMessage.bind(this));
