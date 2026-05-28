@@ -20,7 +20,10 @@ Requires peer dependencies: `cubing ^0.63.3`, `three ^0.170.0`
 | `CubePlayer` | Animation engine — `loadAlg()`, `play/pause/stepForward/stepBackward`, events |
 | `CubeStickering` | CFOP orbit-string mask parser — `MASK_PRESETS` (15 presets) |
 | `CubeExporter` | PNG export — `toPNG(alg, { style: '2d'\|'3d' })` |
-| `CubeScramble` | Pure JS scramble — `CubeScramble.random(length?)` |
+| `CubeScramble` | Scramble generator — `random(length?)` (sync); `wca()` (async, WCA random-state via WASM) |
+| `CubeSolverKociemba` | Kociemba two-phase solver — `solve(state)`, `cancel()`, `dispose()`; web worker |
+| `CubeSolverCfop` | CFOP stage-annotated solver — returns 7 `SolveStage` entries (cross → F2L×4 → OLL → PLL), each with `label`, `alg`, `mask`, `caseName`, `wcaId`; web worker |
+| `CubeSolverInterface<T>` | Shared solver interface implemented by both solvers — `available`, `solve()`, `cancel()`, `dispose()` |
 | `AlgParser` | WCA notation parser — wide moves, slice moves, rotations, Rn normalisation |
 | `CubeTheme` | Theme interface — `THEME_PRESETS`, `DEFAULT_THEME`, `effectiveColours()` |
 
