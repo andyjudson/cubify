@@ -33,7 +33,8 @@ self.addEventListener('message', async (e: MessageEvent<WorkerInMessage>) => {
     } else if (action === 'solve333') {
       const { experimentalSolve3x3x3IgnoringCenters } = await getSearch();
       const patternData = JSON.parse(msg.patternStr);
-      const alg = await experimentalSolve3x3x3IgnoringCenters({ patternData });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const alg = await experimentalSolve3x3x3IgnoringCenters({ patternData } as any);
       result = alg.toString();
     } else {
       throw new Error(`[twips.worker] unknown action: ${action}`);
