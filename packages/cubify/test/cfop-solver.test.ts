@@ -3,8 +3,8 @@ import { solvedState, applyAlg, applyMove } from '../src/cfop/CfopMoveTables.ts'
 import type { RawState } from '../src/cfop/CfopMoveTables.ts';
 import { solveCross } from '../src/cfop/CrossSolver.ts';
 import { solveF2l } from '../src/cfop/F2lSolver.ts';
-import { solveOll } from '../src/cfop/OllSolver.ts';
-import { solvePll } from '../src/cfop/PllSolver.ts';
+import { solveOll, solveTwoLookOll } from '../src/cfop/OllSolver.ts';
+import { solvePll, solveTwoLookPll } from '../src/cfop/PllSolver.ts';
 import { MASK_PRESETS } from '../src/CubeStickering.ts';
 
 const VALID_MASK_KEYS = new Set(MASK_PRESETS.map(p => p.label));
@@ -124,5 +124,83 @@ describe('CFOP solver end-to-end', () => {
     const { stages } = buildSolution("R U R' U'");
     const labels = stages.map(s => s.label);
     expect(labels).toEqual(['cross', 'f2l-fr', 'f2l-fl', 'f2l-bl', 'f2l-br', 'oll', 'pll']);
+  });
+});
+
+// Simulates cfop.worker.ts pipeline with beginner mode enabled.
+function buildBeginnerSolution(scramble: string): { stages: { label: string; alg: string; mask: string }[]; finalState: RawState; midOllState: RawState; midPllState: RawState } {
+  let s = applyMove(applyAlg(solvedState(), scramble), 18);
+  const stages: { label: string; alg: string; mask: string }[] = [];
+
+  const crossAlg = solveCross(s);
+  const crossMask = buildCrossMask(s);
+  if (crossAlg) s = applyAlg(s, crossAlg);
+  stages.push({ label: 'cross', alg: crossAlg, mask: crossMask });
+
+  const f2l = solveF2l(s, []);
+  for (const lbl of ['f2l-fr', 'f2l-fl', 'f2l-bl', 'f2l-br']) {
+    const alg = f2l[lbl] ?? '';
+    const mask = buildF2lMask(s, lbl);
+    if (alg) s = applyAlg(s, alg);
+    stages.push({ label: lbl, alg, mask });
+  }
+
+  // 2-look OLL
+  const tlo = solveTwoLookOll(s);
+  stages.push({ label: 'oll-edges',   alg: tlo.eoll.alg, mask: STATIC_MASKS['oll'] });
+  if (tlo.eoll.alg) s = applyAlg(s, tlo.eoll.alg);
+  stages.push({ label: 'oll-corners', alg: tlo.ocll.alg, mask: STATIC_MASKS['oll'] });
+  const midOllState = s; // capture state after EOLL, before OCLL
+  if (tlo.ocll.alg) s = applyAlg(s, tlo.ocll.alg);
+
+  // 2-look PLL
+  const tlp = solveTwoLookPll(s);
+  stages.push({ label: 'pll-corners', alg: tlp.cpll.alg, mask: STATIC_MASKS['pll'] });
+  const midPllState = s; // capture state before CPLL
+  if (tlp.cpll.alg) s = applyAlg(s, tlp.cpll.alg);
+  stages.push({ label: 'pll-edges',   alg: tlp.epll.alg, mask: STATIC_MASKS['pll'] });
+  if (tlp.epll.alg) s = applyAlg(s, tlp.epll.alg);
+
+  return { stages, finalState: s, midOllState, midPllState };
+}
+
+describe('CFOP solver beginner mode (2-look OLL + 2-look PLL)', () => {
+  it('always produces exactly 9 stages', () => {
+    for (const scramble of SCRAMBLES) {
+      const { stages } = buildBeginnerSolution(scramble);
+      expect(stages.length, `stages for "${scramble}"`).toBe(9);
+    }
+  });
+
+  it('stage labels are in correct beginner order', () => {
+    const { stages } = buildBeginnerSolution("R U R' U'");
+    const labels = stages.map(s => s.label);
+    expect(labels).toEqual(['cross', 'f2l-fr', 'f2l-fl', 'f2l-bl', 'f2l-br', 'oll-edges', 'oll-corners', 'pll-corners', 'pll-edges']);
+  });
+
+  it('applying all 9 stages produces the solved state', () => {
+    for (const scramble of SCRAMBLES) {
+      const { finalState } = buildBeginnerSolution(scramble);
+      expect(isZ2Solved(finalState), `solved after "${scramble}"`).toBe(true);
+    }
+  });
+
+  it('after oll-edges: U-layer edges all oriented', () => {
+    for (const scramble of SCRAMBLES) {
+      const { midOllState } = buildBeginnerSolution(scramble);
+      expect(midOllState.edgeOrient.slice(0, 4), `eo after EOLL for "${scramble}"`).toEqual([0,0,0,0]);
+    }
+  });
+
+  it('skip stages present with empty alg when OLL/PLL already solved', () => {
+    // Build a state that has cross+F2L+OLL solved — OLL should skip, verify stages still present
+    const solved = applyMove(solvedState(), 18);
+    const tlo = solveTwoLookOll(solved);
+    // Both should be skips
+    expect(tlo.eoll.alg).toBe('');
+    expect(tlo.ocll.alg).toBe('');
+    const tlp = solveTwoLookPll(solved);
+    expect(tlp.cpll.caseName).toBe('CPLL Skip');
+    expect(tlp.epll.caseName).toBe('PLL Skip');
   });
 });

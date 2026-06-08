@@ -33,10 +33,12 @@ See [`specs/cubify.md`](specs/cubify.md) for full setup, usage examples, local d
 |--------|-------------|
 | `CubeState` | cubing.js KPattern wrapper — `applyMove/applyAlg`, `toFaceArray()`, `isSolved()`, `invertAlg()` |
 | `CubeScramble` | Scramble generator — `CubeScramble.random(length?)` sync; `CubeScramble.wca()` async WCA random-state via twips WASM |
-| `CubeSolver` | Kociemba 2-phase solver — `new CubeSolver()` → `solve(state)`, `cancel()`, `dispose()`; runs in a web worker |
+| `CubeSolverKociemba` | Kociemba 2-phase IDA* solver — `new CubeSolverKociemba()` → `solve(state)`, `cancel()`, `dispose()`; runs in a web worker |
+| `CubeSolverCfop` | Stage-annotated CFOP solver — `new CubeSolverCfop()` → `solve(state)`, `cancel()`, `dispose()`; returns `CfopSolution` with cross → F2L×4 → OLL → PLL stages; runs in a web worker |
+| `CubeSolverInterface` | Shared solver lifecycle type — `available`, `cancel()`, `dispose()` |
 | `AlgParser` | WCA notation parser (face turns, wide moves, slice moves, rotations) |
 | `CubeStickering` | CFOP orbit-string masking; `MASK_PRESETS` (15 presets); chars -/I/D/O/S/P |
-| `CubeTheme` | Theme system — `THEME_PRESETS` (default/rubiks/speed-dark/speed-light), `DEFAULT_THEME` |
+| `CubeTheme` | Theme system — `THEME_PRESETS` (default/rubiks/gan/speed), `DEFAULT_THEME` |
 | `CubeRenderer2D` | Top-down 2D renderer — `toSVG()`, canvas `update()`, `setTheme()` |
 | `CubeRenderer3D` | Three.js 3D renderer — `animateMove()`, `setSpeed()`, `applyStickering()`, `snapshotAt()` |
 | `CubePlayer` | Animation engine — `loadAlg()`, `play/pause/jumpTo/reset`, events (`move`, `complete`, `reset`) |
@@ -46,7 +48,7 @@ See [`specs/cubify.md`](specs/cubify.md) for full setup, usage examples, local d
 
 ```bash
 npm install                               # install workspace deps
-npm test                                  # Vitest suite (237 pass, 10 skip)
+npm test                                  # Vitest suite (239 pass, 10 skip)
 npm run dev                               # Vite dev server → cubify-harness/index.html
 npm run build --workspace=packages/cubify          # tsc build → packages/cubify/dist/
 npm run build --workspace=packages/cubify-react    # tsc build → packages/cubify-react/dist/
@@ -68,12 +70,12 @@ Interactive browser dev environment — algorithm selector, play/step controls, 
 | File | Description |
 |------|-------------|
 | `cubify-harness/index.html` | Interactive harness UI |
-| `packages/cubify/test/` | Vitest suite — 237 tests, no headed browser |
+| `packages/cubify/test/` | Vitest suite — 239 tests, no headed browser |
 | `cubify-harness/verify-perms.mjs` | 18-test permutation cross-check against cubing.js ground truth |
 
 ## cubify-scripts
 
-Node.js CLI for on-demand cube image generation. Used as the `/cubify` Claude Code skill.
+Node.js CLI for on-demand cube image generation. Used as the `/generate-png` Claude Code skill.
 
 ```bash
 node cubify-scripts/cubify.mjs "R U R' U R U2 R'"
@@ -113,4 +115,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Status**: Features 022–033 complete • 034 in progress
+**Status**: Features 022–034 complete

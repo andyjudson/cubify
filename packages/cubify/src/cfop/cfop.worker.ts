@@ -1,10 +1,10 @@
 import { type RawState, toRawState, applyMove, applyAlg, MOVE_NAMES } from './CfopMoveTables.js';
 import { solveCross, cancelCross } from './CrossSolver.js';
-import { solveF2l, cancelF2l } from './F2lSolver.js';
-import { solveOll } from './OllSolver.js';
-import { solvePll } from './PllSolver.js';
+import { solveF2l, solveF2lIntuitive, cancelF2l } from './F2lSolver.js';
+import { solveOll, solveTwoLookOll } from './OllSolver.js';
+import { solvePll, solveTwoLookPll } from './PllSolver.js';
 
-export type SolveStageLabel = 'cross' | 'f2l-fr' | 'f2l-fl' | 'f2l-br' | 'f2l-bl' | 'oll' | 'pll';
+export type SolveStageLabel = 'cross' | 'f2l-fr' | 'f2l-fl' | 'f2l-br' | 'f2l-bl' | 'oll' | 'oll-edges' | 'oll-corners' | 'pll' | 'pll-corners' | 'pll-edges';
 
 export interface SolveStage {
   label: SolveStageLabel;
@@ -22,17 +22,21 @@ export interface CfopSolution {
 }
 
 type WorkerInMessage =
-  | { type: 'solve'; patternStr: string; timeoutMs?: number }
+  | { type: 'solve'; patternStr: string; timeoutMs?: number; beginner?: boolean }
   | { type: 'cancel' };
 
 const MASK: Record<SolveStageLabel, string> = {
-  'cross':  'cross-inv-dim',
-  'f2l-fr': 'f2l-dim', // overridden dynamically by buildF2lMask
-  'f2l-fl': 'f2l-dim',
-  'f2l-bl': 'f2l-dim',
-  'f2l-br': 'f2l-dim',
-  'oll':    'oll-face-dim',
-  'pll':    'pll-face-dim',
+  'cross':       'cross-inv-dim',
+  'f2l-fr':      'f2l-dim', // overridden dynamically by buildF2lMask
+  'f2l-fl':      'f2l-dim',
+  'f2l-bl':      'f2l-dim',
+  'f2l-br':      'f2l-dim',
+  'oll':         'oll-face-dim',
+  'oll-edges':   'oll-face-dim',
+  'oll-corners': 'oll-face-dim',
+  'pll':         'pll-face-dim',
+  'pll-corners': 'pll-face-dim',
+  'pll-edges':   'pll-face-dim',
 };
 
 // Cross edge piece IDs in z2 frame (same as CrossSolver.CROSS_PIECES)
@@ -115,40 +119,52 @@ self.addEventListener('message', (event: MessageEvent<WorkerInMessage>) => {
 
     // — F2L —
     if (_cancelled) { busy = false; return; }
-    const f2lAlgs = solveF2l(state, []);
-    const f2lOrder: SolveStageLabel[] = ['f2l-fr', 'f2l-fl', 'f2l-bl', 'f2l-br'];
-    for (const lbl of f2lOrder) {
-      if (_cancelled) { busy = false; return; }
-      const alg = f2lAlgs[lbl] ?? '';
-      const mask = buildF2lMask(state, lbl); // capture piece positions before alg is applied
-      if (alg) state = applyAlg(state, alg);
-      stages.push({ label: lbl, alg, mask, moves: countMoves(alg) });
+    if (msg.beginner) {
+      const intuitiveStages = solveF2lIntuitive(state);
+      for (const { label, alg } of intuitiveStages) {
+        if (_cancelled) { busy = false; return; }
+        const mask = buildF2lMask(state, label);
+        if (alg) state = applyAlg(state, alg);
+        stages.push({ label: label as SolveStageLabel, alg, mask, moves: countMoves(alg) });
+      }
+    } else {
+      const f2lAlgs = solveF2l(state, []);
+      const f2lOrder: SolveStageLabel[] = ['f2l-fr', 'f2l-fl', 'f2l-bl', 'f2l-br'];
+      for (const lbl of f2lOrder) {
+        if (_cancelled) { busy = false; return; }
+        const alg = f2lAlgs[lbl] ?? '';
+        const mask = buildF2lMask(state, lbl);
+        if (alg) state = applyAlg(state, alg);
+        stages.push({ label: lbl, alg, mask, moves: countMoves(alg) });
+      }
     }
 
     // — OLL —
     if (_cancelled) { busy = false; return; }
-    const ollResult = solveOll(state);
-    if (ollResult.alg) state = applyAlg(state, ollResult.alg);
-    stages.push({
-      label: 'oll',
-      alg: ollResult.alg,
-      mask: MASK['oll'],
-      moves: countMoves(ollResult.alg),
-      caseName: ollResult.caseName,
-      wcaId: ollResult.wcaId,
-    });
+    if (msg.beginner) {
+      const tlo = solveTwoLookOll(state);
+      if (tlo.eoll.alg) state = applyAlg(state, tlo.eoll.alg);
+      stages.push({ label: 'oll-edges',   alg: tlo.eoll.alg, mask: MASK['oll-edges'],   moves: countMoves(tlo.eoll.alg), caseName: tlo.eoll.caseName, wcaId: tlo.eoll.wcaId });
+      if (tlo.ocll.alg) state = applyAlg(state, tlo.ocll.alg);
+      stages.push({ label: 'oll-corners', alg: tlo.ocll.alg, mask: MASK['oll-corners'], moves: countMoves(tlo.ocll.alg), caseName: tlo.ocll.caseName, wcaId: tlo.ocll.wcaId });
+    } else {
+      const ollResult = solveOll(state);
+      if (ollResult.alg) state = applyAlg(state, ollResult.alg);
+      stages.push({ label: 'oll', alg: ollResult.alg, mask: MASK['oll'], moves: countMoves(ollResult.alg), caseName: ollResult.caseName, wcaId: ollResult.wcaId });
+    }
 
     // — PLL —
     if (_cancelled) { busy = false; return; }
-    const pllResult = solvePll(state);
-    stages.push({
-      label: 'pll',
-      alg: pllResult.alg,
-      mask: MASK['pll'],
-      moves: countMoves(pllResult.alg),
-      caseName: pllResult.caseName,
-      wcaId: pllResult.wcaId,
-    });
+    if (msg.beginner) {
+      const tlp = solveTwoLookPll(state);
+      if (tlp.cpll.alg) state = applyAlg(state, tlp.cpll.alg);
+      stages.push({ label: 'pll-corners', alg: tlp.cpll.alg, mask: MASK['pll-corners'], moves: countMoves(tlp.cpll.alg), caseName: tlp.cpll.caseName, wcaId: tlp.cpll.wcaId });
+      if (tlp.epll.alg) state = applyAlg(state, tlp.epll.alg);
+      stages.push({ label: 'pll-edges',   alg: tlp.epll.alg, mask: MASK['pll-edges'],   moves: countMoves(tlp.epll.alg), caseName: tlp.epll.caseName, wcaId: tlp.epll.wcaId });
+    } else {
+      const pllResult = solvePll(state);
+      stages.push({ label: 'pll', alg: pllResult.alg, mask: MASK['pll'], moves: countMoves(pllResult.alg), caseName: pllResult.caseName, wcaId: pllResult.wcaId });
+    }
 
     const totalMoves = stages.reduce((sum, s) => sum + s.moves, 0);
     const solution: CfopSolution = { stages, totalMoves, setupAlg: 'z2' };

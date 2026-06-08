@@ -1,5 +1,5 @@
-import { type RawState, applyMove, algToMoveIndices, applyMoveSeq } from './CfopMoveTables.js';
-import { PLL_CASES, PLL_SOLVED_FINGERPRINT } from './CaseLibrary.js';
+import { type RawState, applyMove, applyAlg, algToMoveIndices, applyMoveSeq } from './CfopMoveTables.js';
+import { PLL_CASES, PLL_SOLVED_FINGERPRINT, CPLL_CASES } from './CaseLibrary.js';
 
 // U rotation cycle for PLL fingerprint  (CORNER_PIECES[U] = [1,2,3,0,...])
 // After U: slot 0 gets slot 1's value, slot 1 gets slot 2's, etc.
@@ -28,6 +28,61 @@ export interface PllResult {
   wcaId: string;
 }
 
+export interface TwoLookPllResult {
+  cpll: PllResult;
+  epll: PllResult;
+}
+
+const solvedCp = PLL_SOLVED_FINGERPRINT.slice(0, 4);
+
+/** Solve CPLL: permute U-layer corners only (edges may be in any position). */
+function solveCpll(state: RawState): PllResult {
+  const cp = [state.cornerPieces[0], state.cornerPieces[1], state.cornerPieces[2], state.cornerPieces[3]];
+
+  // Check skip: corners already solved under some AUF
+  for (let n = 0; n < 4; n++) {
+    const rot = rotateUFp_n(cp as number[], n);
+    if (rot[0]===solvedCp[0] && rot[1]===solvedCp[1] && rot[2]===solvedCp[2] && rot[3]===solvedCp[3]) {
+      return { alg: AUF_STR[n], caseName: 'CPLL Skip', wcaId: '' };
+    }
+  }
+
+  // Brute-force: 4 pre-AUF × 3 CPLL cases — check if corners solved under any post-AUF
+  for (let preN = 0; preN < 4; preN++) {
+    for (const c of CPLL_CASES) {
+      let s = state;
+      const m1 = AUF_MIDX[preN];
+      if (m1 >= 0) s = applyMove(s, m1);
+      s = applyMoveSeq(s, algToMoveIndices(c.alg));
+      for (let postN = 0; postN < 4; postN++) {
+        let t = s;
+        const m2 = AUF_MIDX[postN];
+        if (m2 >= 0) t = applyMove(t, m2);
+        if (t.cornerPieces[0]===solvedCp[0] && t.cornerPieces[1]===solvedCp[1] &&
+            t.cornerPieces[2]===solvedCp[2] && t.cornerPieces[3]===solvedCp[3]) {
+          const parts = [AUF_STR[preN], c.alg, AUF_STR[postN]].filter(Boolean);
+          return { alg: parts.join(' '), caseName: c.name, wcaId: c.wcaId };
+        }
+      }
+    }
+  }
+
+  // Should not occur for valid post-OLL states
+  throw new Error(`CPLL case not found for cp [${cp}]`);
+}
+
+/**
+ * Solve PLL in two looks: CPLL (permute corners only) then EPLL (permute edges).
+ * Uses solvePll for the EPLL step — after CPLL, corners are solved, so solvePll
+ * will return an edge-permutation-only case (Ua/Ub/H/Z) or a skip.
+ */
+export function solveTwoLookPll(state: RawState): TwoLookPllResult {
+  const cpll = solveCpll(state);
+  const afterCpll = cpll.alg ? applyAlg(state, cpll.alg) : state;
+  const epll = solvePll(afterCpll);
+  return { cpll, epll };
+}
+
 /** Solve PLL: match U-layer piece fingerprint, return pre-AUF + case alg + post-AUF. */
 export function solvePll(state: RawState): PllResult {
   const cp = state.cornerPieces;
@@ -37,7 +92,7 @@ export function solvePll(state: RawState): PllResult {
   // PLL skip: fingerprint matches solved z2 frame (under any U-rotation)
   for (let auf = 0; auf < 4; auf++) {
     if (fpMatch8(rotateUFp_n(fp, auf), PLL_SOLVED_FINGERPRINT)) {
-      return { alg: '', caseName: 'PLL Skip', wcaId: '' };
+      return { alg: AUF_STR[auf], caseName: 'PLL Skip', wcaId: '' };
     }
   }
 

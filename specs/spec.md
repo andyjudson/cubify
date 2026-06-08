@@ -198,19 +198,73 @@ Publish `@andyjudson/cubify` and `@andyjudson/cubify-react` to GitHub Packages. 
 
 ---
 
-## Feature 032: cubify-solver
+## Feature 032: cubify-render-internals
 
-### Status: Planned 📋
+### Status: Complete ✅
 
 ### Scope
-Interactive scramble and solve on the CubifyPage harness. `CubeScramble.random()` generates the scramble; cubing.js `experimentalSolve3x3x3IgnoringCenters` computes the solution from the live KPattern state. Phase 1 is two buttons — Scramble and Solve. Phase 2 adds move tracking and hints.
+Transparent stickers, visible inner cubelet walls, and core mechanism geometry (globe + arm) for the 3D renderer.
 
-### Goals
-- **Scramble** button — `CubeScramble.random()`, loads as setup, resets to scrambled state instantly
-- **Solve** button — reads `player.state`, calls cubing.js solver, animates solution
-- Loading state while solver computes
-- Phase 2: user move tracking via `onMove` events, progress feedback, hint system
-- Prerequisites: 029 (React wrapper) ✅
+### Completed
+- Transparent sticker materials — alpha blending enabled on `CubeRenderer3D`; `preserveDrawingBuffer` + `alpha` passed to WebGL context
+- Inner cubelet walls visible through transparent stickers
+- Core mechanism: globe geometry (central sphere) + arm geometry (connecting rods) rendered with theme-consistent material
+- Theme material applied to internals — matches plastic colour from `CubeTheme`
+
+---
+
+## Feature 033: cubify-solver-search-method
+
+### Status: Complete ✅
+
+### Scope
+Async WCA random-state scramble and Kociemba 2-phase IDA* solve running in a dedicated web worker.
+
+### Completed
+- `CubeScramble.wca()` — async WCA random-state scramble via cubing.js/twips WASM; returns a proper WCA scramble string
+- `CubeSolverKociemba` — facade: `new CubeSolverKociemba()` → `solve(state, options?)`, `cancel()`, `dispose()`; runs in `twips.worker.ts`
+- `twips.worker.ts` — cubing.js WASM delegate shared by scramble + solve; `scramble` + `solve333` actions
+- Harness Scramble + Solve (kociemba) buttons wired up
+- 237 Vitest tests
+
+---
+
+## Feature 034: cubify-solver-cfop-method
+
+### Status: Complete ✅
+
+### Scope
+Stage-annotated CFOP solver running in a dedicated web worker, returning a `CfopSolution` with 7 `SolveStage` entries.
+
+### Completed
+- `CubeSolverCfop` — facade: `new CubeSolverCfop()` → `solve(state, options?)`, `cancel()`, `dispose()`; runs in `cfop.worker.ts`
+- `cfop.worker.ts` — full CFOP pipeline: cross → F2L×4 → OLL → PLL; each stage carries `label`, `alg`, `mask`, `caseName`, `wcaId`
+- `CrossSolver.ts` — IDA* cross solver with cross-safe move pruning
+- `F2lSolver.ts` — IDA* F2L solver, fixed slot order fr→fl→bl→br, `mustSolve` constraint
+- `OllSolver.ts` — 57-case OLL library matching with 4-AUF rotation; fingerprint-based recognition
+- `PllSolver.ts` — 21-case PLL library; AUF skip detection; post-AUF computation
+- `CaseLibrary.ts` — pre-computed OLL (57 cases) and PLL (21 cases) fingerprint tables
+- Harness "Solve (cfop)" button with per-stage mask switching
+- 239 Vitest tests
+
+---
+
+## Feature 035: cubify-solver-cfop-flags
+
+### Status: Complete ✅
+
+### Scope
+Add `beginner?: boolean` to `CfopSolverOptions`. When true: F2L uses a fluid priority loop with insertion triggers, OLL splits into EOLL + OCLL, PLL splits into CPLL + EPLL — producing a 9-stage solution that mirrors beginner tutorial progression.
+
+### Completed
+- `CfopSolverOptions.beginner?: boolean` — single flag enabling all three beginner-mode behaviours
+- **Intuitive F2L**: fluid priority loop; 8-entry `F2L_TRIGGERS` table (FR/FL/BR/BL × connected/disconnected); tier-1 easy insert, tier-2 brute-force setup insert, tier-3/4 R/L extraction; falls back to IDA* for any unhandled case
+- **2-look OLL**: `solveTwoLookOll()` → `{ eoll, ocll }`; `EOLL_CASES` (3 entries: dot/bar/L-shape); OCLL reuses OLL_CASES filtered by eo=0
+- **2-look PLL**: `solveTwoLookPll()` → `{ cpll, epll }`; `CPLL_CASES` (Aa/Ab/E-perm filtered from PLL_CASES); `EPLL_CASES` (Ua/Ub/H/Z)
+- Fixed PLL skip bug: AUF now preserved when PLL is a skip requiring a U rotation
+- Fixed EOLL dot alg: `F U R U' R' F' U F R U R' U' F'` (L-shape + U + Bar, z2-frame verified)
+- `cfop.worker.ts` conditional dispatch for all three stages when `beginner: true`
+- 259 Vitest tests (20 new)
 
 ---
 
@@ -219,16 +273,7 @@ Interactive scramble and solve on the CubifyPage harness. `CubeScramble.random()
 ### Status: Idea 💡
 
 ### Scope
-Upgrade `CubeScramble.random()` from random-move generation to random-state generation. Currently the scrambler picks random moves with axis-exclusion constraints — good for practice but not cryptographically fair. A random-state scrambler generates a random valid cube position first, then solves it to get the scramble sequence, guaranteeing uniform distribution over all ~43 quintillion possible states.
-
-### Why it matters
-With random-move generation, some cube states are statistically more likely than others — states reachable by short move sequences are overrepresented. For practice this is imperceptible and irrelevant. For competition fairness it matters (WCA uses `tnoodle` for this reason).
-
-### Approach
-Would require integrating a 3x3 solver (cubing.js `experimentalSolve3x3x3IgnoringCenters` or Kociemba) — generate random KPattern state, solve it, use the solution as the scramble. Feature 032 (cubify-solver) lays the groundwork since it brings the solver in anyway.
-
-### Prerequisite
-Feature 032 (solver) — the solver needed for random-state scrambling is the same one used for interactive solve.
+Upgrade `CubeScramble.random()` from random-move generation to true WCA random-state generation. `CubeScramble.wca()` (Feature 033) already provides this via twips WASM; this idea would make `random()` itself WCA-quality without requiring the async WASM path.
 
 ---
 

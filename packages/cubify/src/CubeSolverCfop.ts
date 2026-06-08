@@ -7,6 +7,8 @@ export type { SolveStage, CfopSolution, SolveStageLabel };
 export interface CfopSolverOptions {
   /** Overall solve timeout in ms. Default: 30000. */
   timeoutMs?: number;
+  /** Beginner mode: intuitive F2L + 2-look OLL/PLL. Default: false. */
+  beginner?: boolean;
 }
 
 type Pending = { resolve: (s: CfopSolution) => void; reject: (e: unknown) => void; timer: ReturnType<typeof setTimeout> | null };
@@ -62,7 +64,7 @@ export class CubeSolverCfop implements CubeSolverInterface<CfopSolution> {
       this._pending = { resolve, reject, timer };
 
       const patternStr = JSON.stringify(state.getPatternData());
-      this._worker!.postMessage({ type: 'solve', patternStr, timeoutMs });
+      this._worker!.postMessage({ type: 'solve', patternStr, timeoutMs, beginner: options.beginner });
     });
   }
 

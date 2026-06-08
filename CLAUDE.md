@@ -8,12 +8,12 @@ Project context for Claude Code. See `specs/spec.md` for the feature ledger.
 - **Library:** `packages/cubify/src/` — canonical library source; public entry point is `packages/cubify/src/index.ts`
 - **React wrappers:** `packages/cubify-react/src/` — React components published as `@andyjudson/cubify-react`
 - **Harness:** `cubify-harness/` — browser test harness + Vitest suite; imports from `../packages/cubify/src/`
-- **Scripts:** `cubify-scripts/` — Node.js CLI for cube image generation (`/cubify` skill)
+- **Scripts:** `cubify-scripts/` — Node.js CLI for cube image generation (`/generate-png` skill)
 - This repo has no deployed app. All work is local development and library development.
 
 ## Current Status
 
-Features 022–034 complete. Feature 033 (cubify-solver-search-method): Scramble + Solve — `CubeScramble.wca()`, `CubeSolverKociemba`, 2-phase IDA* worker, harness Scramble/Solve buttons. Feature 034 (cubify-solver-cfop-method): `CubeSolverCfop` — stage-annotated CFOP (cross → F2L×4 → OLL → PLL) in dedicated web worker; harness "Solve (cfop)" button. cfop-migration tracked in cfop repo as Feature 022.
+Features 022–035 complete. Feature 035 (cubify-solver-cfop-flags): `beginner?: boolean` flag on `CfopSolverOptions` — intuitive F2L (fluid priority loop + 8-entry trigger table), 2-look OLL (EOLL + OCLL), 2-look PLL (CPLL + EPLL); 9-stage solution. 259 Vitest tests. cfop-migration tracked in cfop repo as Feature 022.
 
 ## Reference Docs — Ground Truth
 
@@ -109,9 +109,9 @@ Override with `CFOP_APP_DIR=/path/to/cfop/cfop-app` env var if needed.
 
 `cubify-harness/renderer.html` exposes `window.cubifyRender(alg, options)`. When `options.setupAlg` is provided, it **pre-computes** the full sequence as `[setupAlg, ...invertAlg(alg)]` and passes `null` as alg — because `CubeExporter._resolve` applies `setupAlg` AFTER `invAlg`, not before.
 
-## cubify Skill
+## generate-png Skill
 
-The `/cubify` skill is in `.claude/commands/cubify.md`. Run directly with:
+The `/generate-png` skill is in `.claude/commands/generate-png.md`. Run directly with:
 ```bash
 node cubify-scripts/cubify.mjs <alg>
 node cubify-scripts/cubify.mjs --case oll_sune --masked --2d
@@ -196,6 +196,7 @@ When automating or screenshotting a third-party web component:
 See `specs/017-cubify-agent-skill/research.md` for the full debugging record.
 
 ## Recent Changes
+- 035-cubify-solver-cfop-flags (complete): `beginner?: boolean` on `CfopSolverOptions`. Intuitive F2L — fluid priority loop, 8-entry `F2L_TRIGGERS` (FR/FL/BR/BL × connected/disconnected), tier-1 easy insert, tier-2 brute-force setup insert, tier-3/4 R/L extraction. 2-look OLL — `solveTwoLookOll()`, 3-entry `EOLL_CASES`, OCLL reuses OLL subset. 2-look PLL — `solveTwoLookPll()`, `CPLL_CASES` (Aa/Ab/E), `EPLL_CASES` (Ua/Ub/H/Z). Fixed PLL skip AUF bug. Fixed EOLL dot alg (z2-frame). 259 Vitest tests.
 - refactor-architecture (complete): `CubeSolverCfop` (renamed from `CfopSolver`), `CubeSolverKociemba` (renamed from `CubeSolver`). `CubeSolverInterface<T>` generic interface. `applyAlg()` string-only. `FaceColours` index signature removed. `twips.worker.ts` lifted to `src/`. `CubeState.getPatternData()` @internal. Speed utility extracted to cfop-app. 239 Vitest tests.
 - 034-cubify-solver-cfop-method (complete): `CubeSolverCfop` — stage-annotated CFOP solver (cross → F2L×4 → OLL → PLL) running in a dedicated web worker; returns `CfopSolution` with 7 `SolveStage` entries, each carrying `label`, `alg`, `mask`, `caseName`, `wcaId`. IDA* cross + F2L; fingerprint-based OLL (57 cases); WCA PLL recognition with brute-force fallback for all 288 valid pre-PLL states. Harness "Solve (cfop)" button with per-stage mask switching.
 - 033-cubify-solver-search-method (complete): `CubeScramble.wca()` async WCA random-state scramble via twips WASM. `CubeSolverKociemba` — Kociemba 2-phase IDA* solver running in a dedicated web worker; `solve(state)`, `cancel()`, `dispose()`. Harness Scramble/Solve buttons. 237 Vitest tests.
@@ -211,7 +212,4 @@ See `specs/017-cubify-agent-skill/research.md` for the full debugging record.
 - 022-cubify-harness: full harness architecture established; `verify-perms.mjs` 18-test suite; cube-mapping-lessons.md documented.
 
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
-at specs/034-cubify-solver-cfop-method/plan.md
 <!-- SPECKIT END -->

@@ -90,6 +90,33 @@ export const OLL_CASES: OllCase[] = [
   { id: 'oll-7-8', name: 'Anti-Mouse', wcaId: 3, alg: '(R\' F2 R2 U2 R\') F (R U2 R2 F2 R)', fingerprint: [2,2,0,2,1,1,1,1] },
 ];
 
+// ─── EOLL case library ───────────────────────────────────────────────────────
+// Used for the first step of 2-look OLL. Matches only edgeOrient[0..3] (corners
+// may still be disoriented — they are handled separately by OCLL).
+// eoPattern is the canonical rotation; the solver tries all 4 AUF variants.
+
+export interface EollCase {
+  id: string;
+  name: string;
+  alg: string;
+  /** Canonical edgeOrient[0..3] pattern for this EOLL case. */
+  eoPattern: number[];
+}
+
+export const EOLL_CASES: EollCase[] = [
+  // All 4 U-layer edges flipped — apply bar alg + U + bar alg to orient all 4
+  { id: 'eoll-dot',     name: 'Dot',     alg: "F U R U' R' F' U F R U R' U' F'", eoPattern: [1,1,1,1] },
+  // 2 opposite edges flipped (bar/line pattern)
+  { id: 'eoll-bar',     name: 'Bar',     alg: "F R U R' U' F'",                   eoPattern: [1,0,1,0] },
+  // 2 adjacent edges flipped (L-shape pattern)
+  { id: 'eoll-l-shape', name: 'L-shape', alg: "F U R U' R' F'",                   eoPattern: [1,1,0,0] },
+];
+
+// ─── CPLL / EPLL filtered subsets ───────────────────────────────────────────
+// Used for 2-look PLL. CPLL cases: PLL cases whose fingerprint has solved edges
+// (ep == PLL_SOLVED_FINGERPRINT[4..7]), meaning only corners need permuting.
+// EPLL cases: pll-1-* entries (Ua, Ub, H, Z).
+
 /** Fingerprint of the solved (skip) PLL state in z2 frame. */
 export const PLL_SOLVED_FINGERPRINT = [5,6,7,4, 4,7,6,5];
 
@@ -115,4 +142,48 @@ export const PLL_CASES: PllCase[] = [
   { id: 'pll-5-2', name: 'Gb Perm', wcaId: 'Gb', alg: 'D R\' U\' R (U D\') R2 U R\' U (R U\' R U\') R2', fingerprint: [6,5,7,4,6,4,5,7] },
   { id: 'pll-5-3', name: 'Gc Perm', wcaId: 'Gc', alg: 'D R2 (U\' R U\' R) U R\' U R2 (D\' U) R U\' R\'', fingerprint: [6,5,7,4,6,5,7,4] },
   { id: 'pll-5-4', name: 'Gd Perm', wcaId: 'Gd', alg: 'R U R\' (U\' D) R2 U\' R U\' (R\' U R\' U) R2 D\'', fingerprint: [6,5,7,4,5,6,4,7] },
+];
+
+// CPLL cases: PLL_CASES whose fingerprint has solved edge positions.
+// Applying these algs fixes corner permutation; edges may shift (EPLL handles that).
+export const CPLL_CASES = PLL_CASES.filter(c =>
+  c.fingerprint[4] === PLL_SOLVED_FINGERPRINT[4] &&
+  c.fingerprint[5] === PLL_SOLVED_FINGERPRINT[5] &&
+  c.fingerprint[6] === PLL_SOLVED_FINGERPRINT[6] &&
+  c.fingerprint[7] === PLL_SOLVED_FINGERPRINT[7]
+); // → [Aa-perm, Ab-perm, E-perm]
+
+// EPLL cases: edge-permutation algs (Ua, Ub, H, Z).
+export const EPLL_CASES = PLL_CASES.filter(c => c.id.startsWith('pll-1-'));
+
+// ─── F2L trigger table ───────────────────────────────────────────────────────
+// Each entry describes the before-state of a direct insertion trigger — the
+// (cornerSlot, cornerOrient, edgeSlot, edgeOrient) configuration that the trigger
+// expects. U-layer slots are 0..3. Values were computed empirically by applying the
+// inverse of each trigger to the z2-solved state and recording piece positions.
+// AUF rotations (U turns) shift the slot indices; the solver adds U-turns to align.
+
+export interface F2lTrigger {
+  id: string;
+  alg: string;
+  cornerSlot: number;   // expected U-layer corner slot before trigger (0..3)
+  cornerOrient: number; // expected corner orientation before trigger
+  edgeSlot: number;     // expected U-layer edge slot before trigger (0..3)
+  edgeOrient: number;   // expected edge orientation before trigger (always 0)
+  target: string;       // which F2L slot this trigger inserts into
+}
+
+export const F2L_TRIGGERS: F2lTrigger[] = [
+  // FR slot — R-family triggers
+  { id: 'fr-connected',    alg: "U R U' R'",  cornerSlot: 0, cornerOrient: 2, edgeSlot: 1, edgeOrient: 0, target: 'f2l-fr' },
+  { id: 'fr-disconnected', alg: "R U R'",      cornerSlot: 0, cornerOrient: 1, edgeSlot: 2, edgeOrient: 0, target: 'f2l-fr' },
+  // FL slot — L-family triggers
+  { id: 'fl-connected',    alg: "U' L' U L",   cornerSlot: 3, cornerOrient: 1, edgeSlot: 3, edgeOrient: 0, target: 'f2l-fl' },
+  { id: 'fl-disconnected', alg: "L' U' L",      cornerSlot: 3, cornerOrient: 2, edgeSlot: 2, edgeOrient: 0, target: 'f2l-fl' },
+  // BR slot — R-back triggers
+  { id: 'br-connected',    alg: "U' R' U R",   cornerSlot: 1, cornerOrient: 1, edgeSlot: 1, edgeOrient: 0, target: 'f2l-br' },
+  { id: 'br-disconnected', alg: "R' U' R",      cornerSlot: 1, cornerOrient: 2, edgeSlot: 0, edgeOrient: 0, target: 'f2l-br' },
+  // BL slot — L-back triggers
+  { id: 'bl-connected',    alg: "U L U' L'",   cornerSlot: 2, cornerOrient: 2, edgeSlot: 3, edgeOrient: 0, target: 'f2l-bl' },
+  { id: 'bl-disconnected', alg: "L U L'",       cornerSlot: 2, cornerOrient: 1, edgeSlot: 0, edgeOrient: 0, target: 'f2l-bl' },
 ];

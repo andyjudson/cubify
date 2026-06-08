@@ -2,7 +2,7 @@
 description: Generate a PNG of a cube state from an algorithm, named case, or batch JSON file.
 ---
 
-# /cubify — Cube State Image Generator
+# /generate-png — Cube State Image Generator
 
 Generate a PNG of a cube state from an algorithm, a named case, or a batch JSON file.
 Uses cubify `CubeExporter.toPNG()` via Playwright + Vite dev server.
@@ -10,9 +10,9 @@ Uses cubify `CubeExporter.toPNG()` via Playwright + Vite dev server.
 ## Usage
 
 ```
-/cubify <alg>
-/cubify --case <case-id>
-/cubify --file <path>
+/generate-png <alg>
+/generate-png --case <case-id>
+/generate-png --file <path>
 ```
 
 ### Flags
@@ -30,7 +30,7 @@ Uses cubify `CubeExporter.toPNG()` via Playwright + Vite dev server.
 
 ## How to run
 
-Parse the arguments from the user's message after `/cubify` and run from the repo root:
+Parse the arguments from the user's message after `/generate-png` and run from the repo root:
 ```bash
 node cubify-scripts/cubify.mjs [args]
 ```
