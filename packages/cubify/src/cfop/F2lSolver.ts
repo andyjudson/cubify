@@ -44,6 +44,9 @@ const MAX_DEPTH = 12;
 
 let _cancelled = false;
 
+// U + R + L only — never disturbs the cross; used for the intuitive F2L fallback
+const INTUITIVE_MOVES = [0,1,2, 6,7,8, 9,10,11];
+
 function idaDfs(
   s: RawState,
   budget: number,
@@ -51,6 +54,7 @@ function idaDfs(
   path: number[],
   target: string,
   mustSolve: string[],
+  moves: number[] = F2L_MOVES,
 ): boolean {
   if (_cancelled) return false;
 
@@ -64,11 +68,11 @@ function idaDfs(
 
   if (budget === 0) return false;
 
-  for (const m of F2L_MOVES) {
+  for (const m of moves) {
     if (pruned(m, last)) continue;
     const ns = applyMove(s, m);
     path.push(m);
-    if (idaDfs(ns, budget - 1, m, path, target, mustSolve)) return true;
+    if (idaDfs(ns, budget - 1, m, path, target, mustSolve, moves)) return true;
     path.pop();
   }
   return false;
@@ -249,10 +253,10 @@ function solveSlotIntuitive(state: RawState, slot: string, mustSolve: string[]):
     }
   }
 
-  // Fallback: IDA* with small depth limit
+  // Fallback: IDA* restricted to U + R + L (no B moves in beginner path)
   const path: number[] = [];
   for (let depth = 1; depth <= MAX_DEPTH; depth++) {
-    if (idaDfs(state, depth, -1, path, slot, mustSolve)) {
+    if (idaDfs(state, depth, -1, path, slot, mustSolve, INTUITIVE_MOVES)) {
       return path.map(m => MOVE_NAMES[m]).join(' ');
     }
     if (_cancelled) return '';
@@ -305,14 +309,14 @@ export function solveF2lIntuitive(state: RawState): Array<{ label: string; alg: 
     }
   }
 
-  // Include any remaining unsolved slots via IDA* fallback
+  // Include any remaining unsolved slots via IDA* fallback (U + R + L only)
   for (const slot of unsolved) {
     if (_cancelled) return result;
     const completed = result.map(r => r.label);
     const path: number[] = [];
     let found = false;
     for (let depth = 1; depth <= MAX_DEPTH && !found; depth++) {
-      if (idaDfs(s, depth, -1, path, slot, completed)) found = true;
+      if (idaDfs(s, depth, -1, path, slot, completed, INTUITIVE_MOVES)) found = true;
       if (_cancelled) break;
     }
     const alg = found ? path.map(m => MOVE_NAMES[m]).join(' ') : '';
