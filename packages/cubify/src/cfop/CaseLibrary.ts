@@ -71,7 +71,7 @@ export const OLL_CASES: OllCase[] = [
   { id: 'oll-5-5', name: 'Spotted Chameleon', wcaId: 29, alg: 'r2 D\' (r U r\') D r2 U\' (r\' U\' r)', fingerprint: [1,0,0,2,0,1,1,0] },
   { id: 'oll-5-6', name: 'Anti-Spotted Chameleon', wcaId: 30, alg: 'F U (R U2 R\' U\') (R U2 R\' U\') F\'', fingerprint: [0,2,1,0,1,1,0,0] },
   { id: 'oll-5-7', name: 'Dalmatian', wcaId: 41, alg: '(R U R\' U R U2 R\') F (R U R\' U\') F\'', fingerprint: [0,1,2,0,1,1,0,0] },
-  { id: 'oll-5-8', name: 'Anti-Dalmatian', wcaId: 42, alg: 'R\' U\' F2 u\' (R U R\') D R2 B', fingerprint: [0,0,1,2,1,1,0,0] },
+  { id: 'oll-5-8', name: 'Anti-Dalmatian', wcaId: 42, alg: 'F U R U\' R\' F\' R U2 R2 U\' R2 U\' R2 U2 R', fingerprint: [0,0,1,2,1,1,0,0] },
   { id: 'oll-6-1', name: 'Bottlecap', wcaId: 51, alg: 'F (U R U\' R\') (U R U\' R\') F\'', fingerprint: [1,2,2,1,1,0,1,0] },
   { id: 'oll-6-2', name: 'Rice Cooker', wcaId: 52, alg: 'R\' (F\' U\' F U\') R U R\' U R', fingerprint: [2,1,1,2,0,1,0,1] },
   { id: 'oll-6-3', name: 'Dead Man', wcaId: 56, alg: 'r U r\' (U R U\' R\') (U R U\' R\') r U\' r\'', fingerprint: [1,2,1,2,1,0,1,0] },

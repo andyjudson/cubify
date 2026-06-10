@@ -82,16 +82,15 @@ describe('solveF2lIntuitive', () => {
     }
   });
 
-  it('opportunistic ordering: tier-1 slot solved before tier-4 slot', () => {
-    // Build a state where FL is tier-1 (direct insert) and FR is tier-4 (both pieces stuck).
-    // Inverse of fl-connected trigger (U' L' U L) produces FL as tier-1.
-    // Then apply R2 U2 to ensure FR pieces are in D-layer (tier-4).
+  it('opportunistic ordering: tier-1 slot solved before tier-3 slot', () => {
+    // Build a state where FL is tier-1 (direct insert) and FR is tier-3 (one piece stuck).
+    // "R U R'" extracts the FR corner to U-layer without touching FL; then "L' U' L U"
+    // (inverse of fl-connected trigger) puts FL in tier-1. Cross remains intact.
     const z2sol = applyMove(solvedState(), 18);
-    const flTier1 = applyAlg(z2sol, "L' U' L U"); // FL pair in tier-1 position
-    // Apply FR-slot disturber without touching FL pieces
-    const testState = applyAlg(flTier1, "R2"); // drops FR pair to bottom
+    const testState = applyAlg(z2sol, "R U R' L' U' L U");
 
     expect(getPairTier(testState, 'f2l-fl')).toBe(1);
+    expect(getPairTier(testState, 'f2l-fr')).toBe(3);
 
     const stages = solveF2lIntuitive(testState);
     // FL should appear before FR in output (solved first due to better tier)
