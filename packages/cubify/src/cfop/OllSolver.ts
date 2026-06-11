@@ -1,5 +1,5 @@
 import { type RawState, applyAlg } from './CfopMoveTables.js';
-import { OLL_CASES, EOLL_CASES } from './CaseLibrary.js';
+import { type OllCase, OLL_CASES, EOLL_CASES, BGN_OCLL_CASES } from './CaseLibrary.js';
 
 // U rotation cycle: slots 0→1→2→3→0  (CORNER_PIECES[U] = [1,2,3,0,...])
 // After U: slot 0 gets slot 1's value, slot 1 gets slot 2's, etc.
@@ -60,12 +60,12 @@ function solveEoll(state: RawState): OllResult {
 export function solveTwoLookOll(state: RawState): TwoLookOllResult {
   const eoll = solveEoll(state);
   const afterEoll = eoll.alg ? applyAlg(state, eoll.alg) : state;
-  const ocll = solveOll(afterEoll);
+  const ocll = solveOll(afterEoll, BGN_OCLL_CASES);
   return { eoll, ocll };
 }
 
 /** Solve OLL: match U-layer orientation fingerprint, return pre-AUF + case alg. */
-export function solveOll(state: RawState): OllResult {
+export function solveOll(state: RawState, cases: OllCase[] = OLL_CASES): OllResult {
   const co = state.cornerOrient;
   const eo = state.edgeOrient;
 
@@ -78,7 +78,7 @@ export function solveOll(state: RawState): OllResult {
 
   for (let auf = 0; auf < 4; auf++) {
     const rotFp = rotateUFp_n(fp, auf);
-    for (const c of OLL_CASES) {
+    for (const c of cases) {
       if (fpMatch8(rotFp, c.fingerprint)) {
         const prefix = AUF[auf];
         return {

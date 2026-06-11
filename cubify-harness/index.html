@@ -1103,8 +1103,8 @@
     appendLog('[move] reset to solved');
   };
 
-  // ---- Initial state: Sune selected ----
-  await loadAlg(2);
+  // ---- Initial state: random scramble ----
+  await doScramble(document.getElementById('btn-scramble-rand'), () => CubeScramble.random());
   showTab('log');
 </script>
 

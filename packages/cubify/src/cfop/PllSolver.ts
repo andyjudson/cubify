@@ -1,5 +1,5 @@
 import { type RawState, applyMove, applyAlg, algToMoveIndices, applyMoveSeq } from './CfopMoveTables.js';
-import { PLL_CASES, PLL_SOLVED_FINGERPRINT, CPLL_CASES } from './CaseLibrary.js';
+import { type PllCase, PLL_CASES, PLL_SOLVED_FINGERPRINT, CPLL_CASES, BGN_EPLL_CASES } from './CaseLibrary.js';
 
 // U rotation cycle for PLL fingerprint  (CORNER_PIECES[U] = [1,2,3,0,...])
 // After U: slot 0 gets slot 1's value, slot 1 gets slot 2's, etc.
@@ -35,11 +35,20 @@ export interface TwoLookPllResult {
 
 const solvedCp = PLL_SOLVED_FINGERPRINT.slice(0, 4);
 
-/** Solve CPLL: permute U-layer corners only (edges may be in any position). */
+function cpSolved(s: RawState): boolean {
+  return s.cornerPieces[0]===solvedCp[0] && s.cornerPieces[1]===solvedCp[1] &&
+         s.cornerPieces[2]===solvedCp[2] && s.cornerPieces[3]===solvedCp[3];
+}
+
+/**
+ * Solve CPLL using T perm + Y perm (bgr.json corner cases), applied up to twice.
+ * T/Y alone cannot solve 3-cycle corner states in one step, but any corner permutation
+ * can be solved in at most two T/Y applications (with an AUF between them).
+ */
 function solveCpll(state: RawState): PllResult {
   const cp = [state.cornerPieces[0], state.cornerPieces[1], state.cornerPieces[2], state.cornerPieces[3]];
 
-  // Check skip: corners already solved under some AUF
+  // Skip: corners already solved under some AUF
   for (let n = 0; n < 4; n++) {
     const rot = rotateUFp_n(cp as number[], n);
     if (rot[0]===solvedCp[0] && rot[1]===solvedCp[1] && rot[2]===solvedCp[2] && rot[3]===solvedCp[3]) {
@@ -47,19 +56,16 @@ function solveCpll(state: RawState): PllResult {
     }
   }
 
-  // Brute-force: 4 pre-AUF × 3 CPLL cases — check if corners solved under any post-AUF
+  // One step: pre-AUF + case + post-AUF
   for (let preN = 0; preN < 4; preN++) {
     for (const c of CPLL_CASES) {
       let s = state;
-      const m1 = AUF_MIDX[preN];
-      if (m1 >= 0) s = applyMove(s, m1);
+      if (AUF_MIDX[preN] >= 0) s = applyMove(s, AUF_MIDX[preN]);
       s = applyMoveSeq(s, algToMoveIndices(c.alg));
       for (let postN = 0; postN < 4; postN++) {
         let t = s;
-        const m2 = AUF_MIDX[postN];
-        if (m2 >= 0) t = applyMove(t, m2);
-        if (t.cornerPieces[0]===solvedCp[0] && t.cornerPieces[1]===solvedCp[1] &&
-            t.cornerPieces[2]===solvedCp[2] && t.cornerPieces[3]===solvedCp[3]) {
+        if (AUF_MIDX[postN] >= 0) t = applyMove(t, AUF_MIDX[postN]);
+        if (cpSolved(t)) {
           const parts = [AUF_STR[preN], c.alg, AUF_STR[postN]].filter(Boolean);
           return { alg: parts.join(' '), caseName: c.name, wcaId: c.wcaId };
         }
@@ -67,7 +73,31 @@ function solveCpll(state: RawState): PllResult {
     }
   }
 
-  // Should not occur for valid post-OLL states
+  // Two steps: pre-AUF + case1 + mid-AUF + case2 + post-AUF
+  // Covers 3-cycle corner states (Aa/Ab type) that need two T/Y applications.
+  for (let preN = 0; preN < 4; preN++) {
+    for (const c1 of CPLL_CASES) {
+      let s1 = state;
+      if (AUF_MIDX[preN] >= 0) s1 = applyMove(s1, AUF_MIDX[preN]);
+      s1 = applyMoveSeq(s1, algToMoveIndices(c1.alg));
+      for (let midN = 0; midN < 4; midN++) {
+        let s2 = s1;
+        if (AUF_MIDX[midN] >= 0) s2 = applyMove(s2, AUF_MIDX[midN]);
+        for (const c2 of CPLL_CASES) {
+          let s3 = applyMoveSeq(s2, algToMoveIndices(c2.alg));
+          for (let postN = 0; postN < 4; postN++) {
+            let t = s3;
+            if (AUF_MIDX[postN] >= 0) t = applyMove(t, AUF_MIDX[postN]);
+            if (cpSolved(t)) {
+              const parts = [AUF_STR[preN], c1.alg, AUF_STR[midN], c2.alg, AUF_STR[postN]].filter(Boolean);
+              return { alg: parts.join(' '), caseName: `${c1.name} + ${c2.name}`, wcaId: c1.wcaId };
+            }
+          }
+        }
+      }
+    }
+  }
+
   throw new Error(`CPLL case not found for cp [${cp}]`);
 }
 
@@ -79,12 +109,12 @@ function solveCpll(state: RawState): PllResult {
 export function solveTwoLookPll(state: RawState): TwoLookPllResult {
   const cpll = solveCpll(state);
   const afterCpll = cpll.alg ? applyAlg(state, cpll.alg) : state;
-  const epll = solvePll(afterCpll);
+  const epll = solvePll(afterCpll, BGN_EPLL_CASES);
   return { cpll, epll };
 }
 
 /** Solve PLL: match U-layer piece fingerprint, return pre-AUF + case alg + post-AUF. */
-export function solvePll(state: RawState): PllResult {
+export function solvePll(state: RawState, cases: PllCase[] = PLL_CASES): PllResult {
   const cp = state.cornerPieces;
   const ep = state.edgePieces;
   const fp = [cp[0], cp[1], cp[2], cp[3], ep[0], ep[1], ep[2], ep[3]];
@@ -98,7 +128,7 @@ export function solvePll(state: RawState): PllResult {
 
   for (let auf = 0; auf < 4; auf++) {
     const rotFp = rotateUFp_n(fp, auf);
-    for (const c of PLL_CASES) {
+    for (const c of cases) {
       if (fpMatch8(rotFp, c.fingerprint)) {
         const prefix = AUF_STR[auf];
         const postAuf = computePostAuf(state, auf, c.alg);
@@ -108,10 +138,9 @@ export function solvePll(state: RawState): PllResult {
     }
   }
 
-  // Fingerprint didn't match (state arose from a non-pure OLL alg that shifted U-layer positions).
-  // Brute-force: try every pre-AUF × PLL alg and check whether a post-AUF completes the solve.
+  // Fingerprint didn't match — brute-force: try every pre-AUF × case alg, check post-AUF completes the solve.
   for (let auf = 0; auf < 4; auf++) {
-    for (const c of PLL_CASES) {
+    for (const c of cases) {
       let s = state;
       const m1 = AUF_MIDX[auf];
       if (m1 >= 0) s = applyMove(s, m1);

@@ -47,6 +47,10 @@ let _cancelled = false;
 // U + R + L only — never disturbs the cross; used for the intuitive F2L fallback
 const INTUITIVE_MOVES = [0,1,2, 6,7,8, 9,10,11];
 
+// IDA* depth limits
+const F2L_IDA_MAX_DEPTH = 8;
+const INTUITIVE_IDA_MAX_DEPTH = 8;
+
 // Admissible lower bound: if both target pieces are in wrong D-layer slots, need ≥2 moves.
 // Prunes branches that cannot reach the goal within the remaining budget.
 function f2lH(s: RawState, target: string): number {
@@ -91,8 +95,6 @@ function idaDfs(
 }
 
 // F2L_MOVES IDA* cap at depth 8: worst case ~430ms per slot, ~1.7s for 4 slots.
-// Positions needing depth 9+ fall through to the INTUITIVE_MOVES depth-10 fallback.
-const F2L_IDA_MAX_DEPTH = 8;
 
 /** Solve all four F2L slots in order fr→fl→bl→br. Returns a record of alg strings per slot. */
 export function solveF2l(
@@ -117,7 +119,7 @@ export function solveF2l(
     // Handles virtually all positions in milliseconds without IDA*.
     const quickAlg = solveSlotFull(s, slot, completedSlots);
     if (quickAlg) {
-      result[slot] = quickAlg;
+      result[slot] = normalizeAlg(quickAlg);
       s = applyAlg(s, quickAlg);
       completedSlots.push(slot);
       continue;
@@ -128,7 +130,7 @@ export function solveF2l(
     for (let depth = 1; depth <= F2L_IDA_MAX_DEPTH; depth++) {
       const path: number[] = [];
       if (idaDfs(s, depth, -1, path, slot, completedSlots)) {
-        const alg = path.map(m => MOVE_NAMES[m]).join(' ');
+        const alg = normalizeAlg(path.map(m => MOVE_NAMES[m]).join(' '));
         result[slot] = alg;
         for (const m of path) s = applyMove(s, m);
         completedSlots.push(slot);
@@ -206,18 +208,26 @@ function solveEasyInsert(state: RawState, slot: string): string {
   return '';
 }
 
-const SETUP_ALGS = [
-  "R U' R'", "R U R'", "R' U R", "R' U' R",
-  "L' U' L", "L' U L", "L U' L'", "L U L'",
-];
+// Beginner mode setup algs: slot-specific (R-only for right slots, L-only for left).
+const R_SETUP_ALGS = ["R U' R'", "R U R'", "R' U R", "R' U' R"];
+const L_SETUP_ALGS = ["L' U' L", "L' U L", "L U' L'", "L U L'"];
+
+// Combined for the full (non-beginner) solver.
+const SETUP_ALGS = [...R_SETUP_ALGS, ...L_SETUP_ALGS];
 
 // Extended setup algs including F and B for the full (non-intuitive) solver.
-// Covers pieces that need front/back-face setups that R/L can't reach.
 const FULL_SETUP_ALGS = [
   ...SETUP_ALGS,
   "F U F'", "F U' F'", "F' U' F", "F' U F",
   "B U' B'", "B U B'", "B' U B", "B' U' B",
 ];
+
+// Right-side slots use R-family moves; left-side slots use L-family moves.
+const RIGHT_SLOTS = new Set(['f2l-fr', 'f2l-br']);
+
+function intuitiveSlotsSetups(slot: string): string[] {
+  return RIGHT_SLOTS.has(slot) ? R_SETUP_ALGS : L_SETUP_ALGS;
+}
 
 /** Tier-2: both in U-layer but no direct trigger. Brute-force AUF + setup + easy insert. */
 function solveSetupInsert(state: RawState, slot: string, setups = SETUP_ALGS): string {
@@ -228,7 +238,7 @@ function solveSetupInsert(state: RawState, slot: string, setups = SETUP_ALGS): s
       const insert = solveEasyInsert(s2, slot);
       if (insert) {
         const parts = [preAuf, setup, insert].filter(Boolean);
-        const full = parts.join(' ');
+        const full = normalizeAlg(parts.join(' '));
         const after = applyAlg(state, full);
         if (slotSolved(after, slot) && crossOk(after)) return full;
       }
@@ -259,14 +269,58 @@ function extractPiece(state: RawState, slot: string): string {
   return '';
 }
 
-// Short extraction sequences that bring pieces to the U-layer.
-// Trying all combos of 1 or 2 of these before setup insert covers all tier-3/4 positions.
-const EXTRACTIONS = [
+// Simplify consecutive same-face moves in an alg string (e.g. U2 U → U', U U' → empty).
+function normalizeAlg(alg: string): string {
+  if (!alg.trim()) return alg;
+  const tokens = alg.trim().split(/\s+/);
+  const out: string[] = [];
+  for (const tok of tokens) {
+    if (out.length === 0) { out.push(tok); continue; }
+    const last = out[out.length - 1];
+    const lastFace = last.replace(/[2']$/, '');
+    const currFace = tok.replace(/[2']$/, '');
+    if (lastFace === currFace) {
+      const la = last.endsWith('2') ? 2 : last.endsWith("'") ? 3 : 1;
+      const ca = tok.endsWith('2')  ? 2 : tok.endsWith("'")  ? 3 : 1;
+      const total = (la + ca) % 4;
+      out.pop();
+      if (total === 1) out.push(lastFace);
+      else if (total === 2) out.push(lastFace + '2');
+      else if (total === 3) out.push(lastFace + "'");
+      // total === 0 → cancels, push nothing
+    } else {
+      out.push(tok);
+    }
+  }
+  return out.join(' ');
+}
+
+// Slot-specific extraction sequences: R-family for right slots, L-family for left slots.
+// The tutorial always uses the face matching the target slot (R for FR/BR, L for FL/BL).
+const R_EXTRACTIONS = [
   "R U R'", "R U' R'", "R U2 R'",
-  "L' U' L", "L' U L", "L' U2 L",
-  "U R U' R'", "U' L' U L",
-  "U' R' U R", "U L U' L'",
+  "U R U' R'", "U' R' U R",
 ];
+const L_EXTRACTIONS = [
+  "L' U' L", "L' U L", "L' U2 L",
+  "U' L' U L", "U L U' L'",
+];
+
+// Combined (used only by the full non-intuitive solver path).
+const EXTRACTIONS = [...R_EXTRACTIONS, ...L_EXTRACTIONS];
+
+// 3-move-only subsets for the two-step extraction path.
+const R_SHORT_EXTRACTIONS = ["R U R'", "R U' R'", "R U2 R'"];
+const L_SHORT_EXTRACTIONS = ["L' U' L", "L' U L", "L' U2 L"];
+
+// Combined short extractions for the full solver.
+const SHORT_EXTRACTIONS = [...R_SHORT_EXTRACTIONS, ...L_SHORT_EXTRACTIONS];
+
+// Slot-restricted move sets for IDA*: U + the slot's face only.
+// 6 moves, same-face pruning → ~3^d effective nodes; depth 12 = ~530K nodes, trivially fast.
+const RIGHT_MOVES = [0, 1, 2,  6,  7,  8];   // U, U', U2, R, R', R2
+const LEFT_MOVES  = [0, 1, 2,  9, 10, 11];   // U, U', U2, L, L', L2
+const SLOT_RESTRICTED_DEPTH = 12;
 
 function tryExtractAndInsert(
   state: RawState, slot: string, mustSolve: string[],
@@ -291,32 +345,75 @@ function tryExtractAndInsert(
   return '';
 }
 
-/** Solve one slot using U+R+L only (intuitive/beginner mode). Returns '' if can't find solution. */
+
+// B+U only: lets IDA* find pure B/U algs whose B-moves can be rewritten as y R y'.
+const B_U_MOVES = [0, 1, 2, 15, 16, 17]; // U, U', U2, B, B', B2
+
+/** Solve a back slot using only B+U moves, then express as y [R-alg] y'.
+ *  Since y R y' = B and U commutes with y, any B+U alg = y [R+U alg] y'.
+ *  Unlike the y-frame L/U approach, B-moves can flip edge orientations (EDGE_ORIENT[B]≠0)
+ *  so this search succeeds where pure L/U in the rotated frame cannot. */
+function solveSlotBackRotation(state: RawState, slot: string, mustSolve: string[]): string {
+  const path: number[] = [];
+  for (let depth = 1; depth <= 12 && !_cancelled; depth++) {
+    path.length = 0;
+    if (idaDfs(state, depth, -1, path, slot, mustSolve, B_U_MOVES)) {
+      const tokens = path.map(m => MOVE_NAMES[m]).map(t => {
+        if (t === 'B')  return 'R';
+        if (t === "B'") return "R'";
+        if (t === 'B2') return 'R2';
+        return t;
+      });
+      return `y ${tokens.join(' ')} y'`;
+    }
+  }
+  return '';
+}
+
 function solveSlotIntuitive(state: RawState, slot: string, mustSolve: string[]): string {
   if (slotSolved(state, slot) && crossOk(state)) return '';
 
+  const isRight    = RIGHT_SLOTS.has(slot);
+  const setups     = isRight ? R_SETUP_ALGS : L_SETUP_ALGS;
+  const extractions = isRight ? R_EXTRACTIONS : L_EXTRACTIONS;
+  const shortExts  = isRight ? R_SHORT_EXTRACTIONS : L_SHORT_EXTRACTIONS;
+
   // Direct (no extraction)
-  const direct = tryExtractAndInsert(state, slot, mustSolve, '');
+  const direct = tryExtractAndInsert(state, slot, mustSolve, '', setups);
   if (direct) return direct;
 
-  // One-step extraction
-  for (const ext of EXTRACTIONS) {
-    const alg = tryExtractAndInsert(state, slot, mustSolve, ext);
+  // One-step extraction — slot-face only
+  for (const ext of extractions) {
+    const alg = tryExtractAndInsert(state, slot, mustSolve, ext, setups);
     if (alg) return alg;
   }
 
-  // Two-step extraction — covers tier-4 (both pieces stuck in D-layer)
-  for (const ext1 of EXTRACTIONS) {
+  // Two-step extraction — both steps slot-face only
+  for (const ext1 of shortExts) {
     const s1 = applyAlg(state, ext1);
-    for (const ext2 of EXTRACTIONS) {
-      const alg = tryExtractAndInsert(s1, slot, mustSolve, ext2);
+    for (const ext2 of shortExts) {
+      const alg = tryExtractAndInsert(s1, slot, mustSolve, ext2, setups);
       if (alg) {
-        const full = `${ext1} ${alg}`;
+        const full = normalizeAlg(`${ext1} ${alg}`);
         const after = applyAlg(state, full);
         if (slotSolved(after, slot) && crossOk(after) &&
             mustSolve.every(m => slotSolved(after, m))) return full;
       }
     }
+  }
+
+  // Cross-face one-step extraction: piece may be stuck in an opposing-face D-slot.
+  const crossExts = isRight ? L_EXTRACTIONS : R_EXTRACTIONS;
+  for (const ext of crossExts) {
+    const alg = tryExtractAndInsert(state, slot, mustSolve, ext, setups);
+    if (alg) return alg;
+  }
+
+  // Back slots: fall back to a pure B+U search, expressed as y [R-alg] y'.
+  // Searched in the original frame so B-moves can correct edge orientation —
+  // unlike the y-frame L/U approach, which cannot flip equatorial edge orientations.
+  if (slot === 'f2l-br' || slot === 'f2l-bl') {
+    return solveSlotBackRotation(state, slot, mustSolve);
   }
 
   return '';
@@ -325,6 +422,14 @@ function solveSlotIntuitive(state: RawState, slot: string, mustSolve: string[]):
 // Extended extractions including F and B moves for the full solver.
 const FULL_EXTRACTIONS = [
   ...EXTRACTIONS,
+  "F U F'", "F U' F'",
+  "B U' B'", "B U B'",
+];
+
+// 3-move-only subset of FULL_EXTRACTIONS for the two-step path in the full solver.
+const SHORT_FULL_EXTRACTIONS = [
+  "R U R'", "R U' R'", "R U2 R'",
+  "L' U' L", "L' U L", "L' U2 L",
   "F U F'", "F U' F'",
   "B U' B'", "B U B'",
 ];
@@ -347,13 +452,13 @@ function solveSlotFull(state: RawState, slot: string, mustSolve: string[]): stri
     if (alg) return alg;
   }
 
-  // Two-step extraction — covers even the most complex F2L positions
-  for (const ext1 of FULL_EXTRACTIONS) {
+  // Two-step extraction — 3-move extractions only to keep total sequence length manageable
+  for (const ext1 of SHORT_FULL_EXTRACTIONS) {
     const s1 = applyAlg(state, ext1);
-    for (const ext2 of FULL_EXTRACTIONS) {
+    for (const ext2 of SHORT_FULL_EXTRACTIONS) {
       const alg = tryExtractAndInsert(s1, slot, mustSolve, ext2, FULL_SETUP_ALGS);
       if (alg) {
-        const full = `${ext1} ${alg}`;
+        const full = normalizeAlg(`${ext1} ${alg}`);
         const after = applyAlg(state, full);
         if (slotSolved(after, slot) && crossOk(after) &&
             mustSolve.every(m => slotSolved(after, m))) return full;
@@ -364,12 +469,19 @@ function solveSlotFull(state: RawState, slot: string, mustSolve: string[]): stri
   return '';
 }
 
-/** Solve one slot in intuitive mode: try U+R+L extraction first, fall back to full extraction. */
+/** Solve one slot in intuitive mode: U+R+L extraction only. F/B fallback is intentionally removed. */
 function solveSlotIntuitiveWithFallback(state: RawState, slot: string, mustSolve: string[]): string {
-  return solveSlotIntuitive(state, slot, mustSolve) || solveSlotFull(state, slot, mustSolve);
+  return solveSlotIntuitive(state, slot, mustSolve);
 }
 
-/** Solve all four F2L slots in fluid priority order (easiest slot first). */
+/** Solve all four F2L slots in fluid priority order (easiest tier first).
+ *
+ *  Fluid priority solves whichever slot is easiest first (tier-1 easy inserts immediately,
+ *  then tier-2, etc.). This matches the physical beginner approach: opportunistically solve
+ *  connected pairs in the top layer before dealing with stuck pieces.
+ *
+ *  Each slot's alg uses its face's moves (R for FR/BR, L for FL/BL) as much as possible.
+ *  Cross-face extraction is used only when pieces are stuck in an opposing-face D-slot. */
 export function solveF2lIntuitive(state: RawState): Array<{ label: string; alg: string }> {
   _cancelled = false;
   const ALL_SLOTS = ['f2l-fr', 'f2l-fl', 'f2l-br', 'f2l-bl'];
@@ -382,7 +494,7 @@ export function solveF2lIntuitive(state: RawState): Array<{ label: string; alg: 
   while (unsolved.size > 0 && maxIter-- > 0) {
     if (_cancelled) return [];
 
-    // Add already-solved slots to result with empty alg
+    // Mark slots that are already solved
     for (const slot of [...unsolved]) {
       if (slotSolved(s, slot) && crossOk(s)) {
         result.push({ label: slot, alg: '' });
@@ -391,7 +503,7 @@ export function solveF2lIntuitive(state: RawState): Array<{ label: string; alg: 
     }
     if (unsolved.size === 0) break;
 
-    // Pick slot with lowest tier
+    // Pick the slot with the lowest tier (easiest to solve next)
     let bestSlot: string | null = null;
     let bestTier = 5;
     for (const slot of unsolved) {
@@ -401,12 +513,37 @@ export function solveF2lIntuitive(state: RawState): Array<{ label: string; alg: 
     if (!bestSlot) break;
 
     const completed = result.map(r => r.label);
-    const alg = solveSlotIntuitiveWithFallback(s, bestSlot, completed);
+    let alg = normalizeAlg(solveSlotIntuitiveWithFallback(s, bestSlot, completed));
+    if (!alg) {
+      // Slot-restricted IDA*: U + slot's face only. ~3^12 = 530K nodes — trivially fast.
+      const slotMoves = RIGHT_SLOTS.has(bestSlot) ? RIGHT_MOVES : LEFT_MOVES;
+      const path: number[] = [];
+      for (let depth = 1; depth <= SLOT_RESTRICTED_DEPTH && !alg; depth++) {
+        if (idaDfs(s, depth, -1, path, bestSlot, completed, slotMoves)) alg = path.map(m => MOVE_NAMES[m]).join(' ');
+        if (_cancelled) break;
+      }
+    }
+    if (!alg) {
+      // U+R+L fallback — rare positions where slot-face alone can't reach in SLOT_RESTRICTED_DEPTH.
+      const path: number[] = [];
+      for (let depth = 1; depth <= INTUITIVE_IDA_MAX_DEPTH && !alg; depth++) {
+        if (idaDfs(s, depth, -1, path, bestSlot, completed, INTUITIVE_MOVES)) alg = path.map(m => MOVE_NAMES[m]).join(' ');
+        if (_cancelled) break;
+      }
+    }
+    if (!alg) {
+      // Last resort: full F2L moves.
+      const path: number[] = [];
+      for (let depth = 1; depth <= F2L_IDA_MAX_DEPTH && !alg; depth++) {
+        if (idaDfs(s, depth, -1, path, bestSlot, completed)) alg = path.map(m => MOVE_NAMES[m]).join(' ');
+        if (_cancelled) break;
+      }
+    }
     if (alg) s = applyAlg(s, alg);
     result.push({ label: bestSlot, alg });
     unsolved.delete(bestSlot);
 
-    // Re-check: only re-add slots that were previously solved (non-empty alg) but got disturbed.
+    // Re-check: re-add any previously solved slots that got disturbed.
     for (const r of result) {
       if (r.label !== bestSlot && r.alg !== '' && !unsolved.has(r.label) && !slotSolved(s, r.label)) {
         unsolved.add(r.label);
@@ -414,11 +551,26 @@ export function solveF2lIntuitive(state: RawState): Array<{ label: string; alg: 
     }
   }
 
-  // Remaining unsolved slots: full extraction then IDA* depth 8 as last resort.
+  // Any slots remaining after the while loop: apply the same escalation.
   for (const slot of unsolved) {
     if (_cancelled) return result;
     const completed = result.map(r => r.label);
     let alg = solveSlotIntuitiveWithFallback(s, slot, completed);
+    if (!alg) {
+      const slotMoves = RIGHT_SLOTS.has(slot) ? RIGHT_MOVES : LEFT_MOVES;
+      const path: number[] = [];
+      for (let depth = 1; depth <= SLOT_RESTRICTED_DEPTH && !alg; depth++) {
+        if (idaDfs(s, depth, -1, path, slot, completed, slotMoves)) alg = path.map(m => MOVE_NAMES[m]).join(' ');
+        if (_cancelled) break;
+      }
+    }
+    if (!alg) {
+      const path: number[] = [];
+      for (let depth = 1; depth <= INTUITIVE_IDA_MAX_DEPTH && !alg; depth++) {
+        if (idaDfs(s, depth, -1, path, slot, completed, INTUITIVE_MOVES)) alg = path.map(m => MOVE_NAMES[m]).join(' ');
+        if (_cancelled) break;
+      }
+    }
     if (!alg) {
       const path: number[] = [];
       for (let depth = 1; depth <= F2L_IDA_MAX_DEPTH && !alg; depth++) {

@@ -1,14 +1,16 @@
 /**
  * Pre-computed OLL and PLL case libraries for the CFOP solver.
  *
- * This file is intentionally independent from cfop-app/public/data/algs-cfop-*.json.
- * The JSON files are UI data (names, images, groupings); this file is solver data.
- * Algs here may differ from the JSON — they are chosen for solver correctness and may
- * use equivalent but differently-notated algorithms. Drift in names/wcaIds is cosmetic;
- * alg+fingerprint pairs must stay in sync (fingerprint is computed from the alg).
+ * Alg sources: cubehead and jperm (consolidated into one set).
  *
- * To regenerate fingerprints from updated algs, use the `cubify-fingerprint` script
- * (see scripts/ — TODO: add as a cubify skill).
+ * Solver alg selection:
+ *   OLL_CASES / PLL_CASES  → 1-look CFOP
+ *   BGN_OCLL_CASES         → 2-look OLL corner step (beginner)
+ *   BGN_EPLL_CASES         → 2-look PLL edge step (beginner)
+ *   CPLL_CASES             → 2-look PLL corner step
+ *
+ * alg+fingerprint pairs must stay in sync — fingerprint is derived from the alg's
+ * canonical starting orientation (apply inverse of alg to solved z2 state).
  *
  * OLL fingerprint = [cornerOrient[0..3], edgeOrient[0..3]] (U-layer, z2 frame)
  * PLL fingerprint = [cornerPieces[0..3], edgePieces[0..3]] (U-layer, z2 frame)
@@ -104,12 +106,9 @@ export interface EollCase {
 }
 
 export const EOLL_CASES: EollCase[] = [
-  // All 4 U-layer edges flipped — apply bar alg + U + bar alg to orient all 4
-  { id: 'eoll-dot',     name: 'Dot',     alg: "F U R U' R' F' U F R U R' U' F'", eoPattern: [1,1,1,1] },
-  // 2 opposite edges flipped (bar/line pattern)
-  { id: 'eoll-bar',     name: 'Bar',     alg: "F R U R' U' F'",                   eoPattern: [1,0,1,0] },
-  // 2 adjacent edges flipped (L-shape pattern)
-  { id: 'eoll-l-shape', name: 'L-shape', alg: "F U R U' R' F'",                   eoPattern: [1,1,0,0] },
+  { id: 'eoll-dot',  name: 'Dot',  alg: "F R U R' U' F' f R U R' U' f'", eoPattern: [1,1,1,1] },
+  { id: 'eoll-bar',  name: 'Line', alg: "F R U R' U' F'",                 eoPattern: [1,0,1,0] },
+  { id: 'eoll-hook', name: 'Hook', alg: "f R U R' U' f'",                 eoPattern: [1,1,0,0] },
 ];
 
 // ─── CPLL / EPLL filtered subsets ───────────────────────────────────────────
@@ -146,15 +145,34 @@ export const PLL_CASES: PllCase[] = [
 
 // CPLL cases: PLL_CASES whose fingerprint has solved edge positions.
 // Applying these algs fixes corner permutation; edges may shift (EPLL handles that).
-export const CPLL_CASES = PLL_CASES.filter(c =>
-  c.fingerprint[4] === PLL_SOLVED_FINGERPRINT[4] &&
-  c.fingerprint[5] === PLL_SOLVED_FINGERPRINT[5] &&
-  c.fingerprint[6] === PLL_SOLVED_FINGERPRINT[6] &&
-  c.fingerprint[7] === PLL_SOLVED_FINGERPRINT[7]
-); // → [Aa-perm, Ab-perm, E-perm]
+// Beginner CPLL cases: T perm + Y perm.
+export const CPLL_CASES = PLL_CASES.filter(c => c.id === 'pll-3-1' || c.id === 'pll-4-1');
 
 // EPLL cases: edge-permutation algs (Ua, Ub, H, Z).
 export const EPLL_CASES = PLL_CASES.filter(c => c.id.startsWith('pll-1-'));
+
+// ─── 2-look OLL/PLL case sets (beginner) ─────────────────────────────────────
+// Used by solveTwoLookOll (OCLL step) and solveTwoLookPll (EPLL step).
+// Differ from OLL_CASES / PLL_CASES only for T Shape, L Shape, and Ua Perm —
+// where the beginner preferred alg diverges from the 1-look set.
+// Fingerprints are computed from each alg's canonical starting orientation.
+
+export const BGN_OCLL_CASES: OllCase[] = [
+  { id: 'oll_sune',     name: 'Sune',     wcaId: 27, alg: 'R U R\' U (R U2 R\')',             fingerprint: [2,2,2,0,0,0,0,0] },
+  { id: 'oll_antisune', name: 'AntiSune', wcaId: 26, alg: '(R U2 R\') U\' R U\' R\'',         fingerprint: [1,0,1,1,0,0,0,0] },
+  { id: 'oll_shape_h',  name: 'H shape',  wcaId: 21, alg: 'R U R\' U (R U\' R\' U) R U2 R\'', fingerprint: [1,2,1,2,0,0,0,0] },
+  { id: 'oll_shape_pi', name: 'Pi shape', wcaId: 22, alg: 'R U2 (R2 U\') (R2 U\') R2 U2 R',   fingerprint: [2,1,1,2,0,0,0,0] },
+  { id: 'oll_shape_t',  name: 'T shape',  wcaId: 24, alg: 'r U R\' U\' r\' F R F\'',           fingerprint: [0,0,2,1,0,0,0,0] },
+  { id: 'oll_shape_l',  name: 'L shape',  wcaId: 25, alg: 'F\' r U R\' U\' r\' F R',           fingerprint: [2,0,1,0,0,0,0,0] },
+  { id: 'oll_shape_u',  name: 'U shape',  wcaId: 23, alg: 'R2 D (R\' U2 R) D\' (R\' U2 R\')', fingerprint: [2,0,0,1,0,0,0,0] },
+];
+
+// 2-look PLL EPLL set: beginner Ua alg replaces the 1-look Ua; Ub/H/Z are identical.
+const BGN_UA: PllCase = { id: 'pll_ua', name: 'Ua Perm', wcaId: 'Ua', alg: 'R2 U\' R\' U\' R U R U R U\' R', fingerprint: [5,6,7,4,4,6,5,7] };
+export const BGN_EPLL_CASES: PllCase[] = [
+  BGN_UA,
+  ...PLL_CASES.filter(c => c.id === 'pll-1-2' || c.id === 'pll-1-3' || c.id === 'pll-1-4'),
+];
 
 // ─── F2L trigger table ───────────────────────────────────────────────────────
 // Each entry describes the before-state of a direct insertion trigger — the

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { solvedState, applyAlg, applyMove } from '../src/cfop/CfopMoveTables.ts';
 import type { RawState } from '../src/cfop/CfopMoveTables.ts';
 import { solveCross } from '../src/cfop/CrossSolver.ts';
-import { solveF2l } from '../src/cfop/F2lSolver.ts';
+import { solveF2l, solveF2lIntuitive } from '../src/cfop/F2lSolver.ts';
 import { solveOll, solveTwoLookOll } from '../src/cfop/OllSolver.ts';
 import { solvePll, solveTwoLookPll } from '../src/cfop/PllSolver.ts';
 import { MASK_PRESETS } from '../src/CubeStickering.ts';
@@ -91,6 +91,11 @@ const SCRAMBLES = [
   "F R U R' U' F' R U R' U R U2 R'",
 ];
 
+// Scrambles that previously caused solver errors — kept as regression guards.
+const REGRESSION_SCRAMBLES = [
+  "F L' U D R' F U' F2 U B2 U2 F L2 D2 R2 B' L2 F' R2 B2", // EOLL [1,0,1,1] crash
+];
+
 describe('CFOP solver end-to-end', () => {
   it('always produces exactly 7 stages', () => {
     for (const scramble of SCRAMBLES) {
@@ -137,12 +142,12 @@ function buildBeginnerSolution(scramble: string): { stages: { label: string; alg
   if (crossAlg) s = applyAlg(s, crossAlg);
   stages.push({ label: 'cross', alg: crossAlg, mask: crossMask });
 
-  const f2l = solveF2l(s, []);
-  for (const lbl of ['f2l-fr', 'f2l-fl', 'f2l-bl', 'f2l-br']) {
-    const alg = f2l[lbl] ?? '';
-    const mask = buildF2lMask(s, lbl);
+  // Beginner mode uses solveF2lIntuitive (fluid priority order, U+R+L preferred).
+  const intuitiveStages = solveF2lIntuitive(s);
+  for (const { label, alg } of intuitiveStages) {
+    const mask = buildF2lMask(s, label);
     if (alg) s = applyAlg(s, alg);
-    stages.push({ label: lbl, alg, mask });
+    stages.push({ label, alg, mask });
   }
 
   // 2-look OLL
@@ -172,10 +177,19 @@ describe('CFOP solver beginner mode (2-look OLL + 2-look PLL)', () => {
     }
   });
 
-  it('stage labels are in correct beginner order', () => {
+  it('stage labels contain all expected beginner labels', () => {
     const { stages } = buildBeginnerSolution("R U R' U'");
     const labels = stages.map(s => s.label);
-    expect(labels).toEqual(['cross', 'f2l-fr', 'f2l-fl', 'f2l-bl', 'f2l-br', 'oll-edges', 'oll-corners', 'pll-corners', 'pll-edges']);
+    // F2L order is fluid (priority-based), so check presence not sequence
+    expect(labels[0]).toBe('cross');
+    expect(labels).toContain('f2l-fr');
+    expect(labels).toContain('f2l-fl');
+    expect(labels).toContain('f2l-bl');
+    expect(labels).toContain('f2l-br');
+    expect(labels.at(-4)).toBe('oll-edges');
+    expect(labels.at(-3)).toBe('oll-corners');
+    expect(labels.at(-2)).toBe('pll-corners');
+    expect(labels.at(-1)).toBe('pll-edges');
   });
 
   it('applying all 9 stages produces the solved state', () => {
@@ -189,6 +203,14 @@ describe('CFOP solver beginner mode (2-look OLL + 2-look PLL)', () => {
     for (const scramble of SCRAMBLES) {
       const { midOllState } = buildBeginnerSolution(scramble);
       expect(midOllState.edgeOrient.slice(0, 4), `eo after EOLL for "${scramble}"`).toEqual([0,0,0,0]);
+    }
+  });
+
+  it('regression: specific scrambles that previously crashed solve cleanly', () => {
+    for (const scramble of REGRESSION_SCRAMBLES) {
+      const { finalState, midOllState } = buildBeginnerSolution(scramble);
+      expect(midOllState.edgeOrient.slice(0, 4), `eo after EOLL for "${scramble}"`).toEqual([0,0,0,0]);
+      expect(isZ2Solved(finalState), `solved after "${scramble}"`).toBe(true);
     }
   });
 

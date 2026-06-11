@@ -91,10 +91,10 @@ describe('solveTwoLookPll', () => {
     }
   });
 
-  it('CPLL cases exported count is 3 (Aa, Ab, E)', () => {
-    expect(CPLL_CASES).toHaveLength(3);
+  it('CPLL cases exported: T perm + Y perm', () => {
+    expect(CPLL_CASES).toHaveLength(2);
     const names = CPLL_CASES.map(c => c.wcaId).sort();
-    expect(names).toEqual(['Aa', 'Ab', 'E'].sort());
+    expect(names).toEqual(['T', 'Y'].sort());
   });
 
   it('EPLL cases exported count is 4 (Ua, Ub, H, Z)', () => {
@@ -113,16 +113,18 @@ describe('solveTwoLookPll', () => {
     }
   });
 
-  it('full solveTwoLookPll: all 4 AUF variants for Aa-perm', () => {
-    const aa = CPLL_CASES.find(c => c.wcaId === 'Aa')!;
+  it('full solveTwoLookPll: all 4 AUF variants for T perm and Y perm', () => {
     const auf = ['', 'U', 'U2', "U'"];
-    for (const pre of auf) {
-      const base = buildPllState(aa.fingerprint);
-      const s = pre ? applyAlg(base, pre) : base;
-      const r = solveTwoLookPll(s);
-      let after = r.cpll.alg ? applyAlg(s, r.cpll.alg) : s;
-      after = r.epll.alg ? applyAlg(after, r.epll.alg) : after;
-      expect(isTopAligned(after), `Aa AUF=${pre}`).toBe(true);
+    for (const wcaId of ['T', 'Y']) {
+      const c = CPLL_CASES.find(x => x.wcaId === wcaId)!;
+      for (const pre of auf) {
+        const base = buildPllState(c.fingerprint);
+        const s = pre ? applyAlg(base, pre) : base;
+        const r = solveTwoLookPll(s);
+        let after = r.cpll.alg ? applyAlg(s, r.cpll.alg) : s;
+        after = r.epll.alg ? applyAlg(after, r.epll.alg) : after;
+        expect(isTopAligned(after), `${wcaId} AUF=${pre}`).toBe(true);
+      }
     }
   });
 });
