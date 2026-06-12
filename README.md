@@ -34,7 +34,7 @@ See [`specs/cubify.md`](specs/cubify.md) for full setup, usage examples, local d
 | `CubeState` | cubing.js KPattern wrapper — `applyMove/applyAlg`, `toFaceArray()`, `isSolved()`, `invertAlg()` |
 | `CubeScramble` | Scramble generator — `CubeScramble.random(length?)` sync; `CubeScramble.wca()` async WCA random-state via twips WASM |
 | `CubeSolverKociemba` | Kociemba 2-phase IDA* solver — `new CubeSolverKociemba()` → `solve(state)`, `cancel()`, `dispose()`; runs in a web worker |
-| `CubeSolverCfop` | Stage-annotated CFOP solver — `new CubeSolverCfop()` → `solve(state)`, `cancel()`, `dispose()`; returns `CfopSolution` with cross → F2L×4 → OLL → PLL stages; runs in a web worker |
+| `CubeSolverCfop` | Stage-annotated CFOP solver — `new CubeSolverCfop()` → `solve(state, { beginner? })`, `cancel()`, `dispose()`; returns `CfopSolution` with cross → F2L×4 → OLL → PLL stages; beginner mode uses intuitive F2L + 2-look OLL/PLL; runs in a web worker |
 | `CubeSolverInterface` | Shared solver lifecycle type — `available`, `cancel()`, `dispose()` |
 | `AlgParser` | WCA notation parser (face turns, wide moves, slice moves, rotations) |
 | `CubeStickering` | CFOP orbit-string masking; `MASK_PRESETS` (15 presets); chars -/I/D/O/S/P |
@@ -48,7 +48,7 @@ See [`specs/cubify.md`](specs/cubify.md) for full setup, usage examples, local d
 
 ```bash
 npm install                               # install workspace deps
-npm test                                  # Vitest suite (239 pass, 10 skip)
+npm test                                  # Vitest suite (259 pass, 10 skip)
 npm run dev                               # Vite dev server → cubify-harness/index.html
 npm run build --workspace=packages/cubify          # tsc build → packages/cubify/dist/
 npm run build --workspace=packages/cubify-react    # tsc build → packages/cubify-react/dist/
@@ -70,7 +70,7 @@ Interactive browser dev environment — algorithm selector, play/step controls, 
 | File | Description |
 |------|-------------|
 | `cubify-harness/index.html` | Interactive harness UI |
-| `packages/cubify/test/` | Vitest suite — 239 tests, no headed browser |
+| `packages/cubify/test/` | Vitest suite — 259 tests, no headed browser |
 | `cubify-harness/verify-perms.mjs` | 18-test permutation cross-check against cubing.js ground truth |
 
 ## cubify-scripts
@@ -80,7 +80,7 @@ Node.js CLI for on-demand cube image generation. Used as the `/generate-png` Cla
 ```bash
 node cubify-scripts/cubify.mjs "R U R' U R U2 R'"
 node cubify-scripts/cubify.mjs --case oll_sune --masked --2d
-node cubify-scripts/cubify.mjs --file algs-cfop-oll.json --masked --2d
+node cubify-scripts/cubify.mjs --file cfop-oll.json --masked --2d
 ```
 
 Requires headful Chromium (WebGL blocked in headless on macOS):
@@ -115,4 +115,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Status**: Features 022–034 complete
+**Status**: Features 022–035 complete
