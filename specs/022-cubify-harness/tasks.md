@@ -114,7 +114,7 @@
 
 **Purpose**: Documentation, README, and demo completeness.
 
-- [ ] T034 [harness] Cubelet inspector — click a cubelet in the 3D view to open a debug panel showing: grid position (x,y,z), the 6 material slot colours currently rendered, what `toFaceArray` + `stickerIndex` says should be there, and whether they agree. Requires Three.js raycasting on canvas click. See `cube-mapping-lessons.md` §6 for why this would have directly revealed the stickerIndex U/D swap bug.
+- [ ] T034 [harness] Cubelet inspector — click a cubelet in the 3D view to open a debug panel showing: grid position (x,y,z), the 6 material slot colours currently rendered, what `toFaceArray` + `stickerIndex` says should be there, and whether they agree. Requires Three.js raycasting on canvas click. See `lessons.md` §6 for why this would have directly revealed the stickerIndex U/D swap bug.
 
 - [ ] T030 [P] Create `cubify-harness/README.md` — quick start (mount 3D cube, export SVG), API surface summary, dependency attribution for Three.js and cubing.js, MIT license notice
 - [ ] T031 [P] Add JSDoc comments to all public methods in `CubeState.js`, `AlgParser.js`, `CubeStickering.js`, `CubeExporter.js` — param types and return types for IDE completion

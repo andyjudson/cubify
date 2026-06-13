@@ -7,7 +7,7 @@
 - [tasks.md](tasks.md) — task checklist
 - [research.md](research.md) — architectural decisions
 - [data-model.md](data-model.md) — data model
-- [cube-mapping-lessons.md](cube-mapping-lessons.md) — **cubing.js internals, orientation formulas, rendering architecture** (foundational reference)
+- [lessons.md](lessons.md) — **cubing.js internals, orientation formulas, rendering architecture** (foundational reference)
 
 ---
 

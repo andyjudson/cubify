@@ -97,7 +97,7 @@ ln -s /path/to/cfop/cfop-app/public/data cubify-scripts/data
 | [`specs/cubify.md`](specs/cubify.md) | Quickstart, usage examples, local dev workflow, architecture |
 | [`specs/cube-concepts.md`](specs/cube-concepts.md) | Face state and KPattern concepts overview |
 | [`specs/cube-physical-rules.md`](specs/cube-physical-rules.md) | Physical cube geometry, CFOP conventions, masking philosophy |
-| [`specs/cube-mapping-lessons.md`](specs/cube-mapping-lessons.md) | Hard-won implementation gotchas (slot ordering, orientation formula, animation) |
+| [`specs/lessons.md`](specs/lessons.md) | Hard-won implementation gotchas (slot ordering, orientation formula, animation) |
 | [`specs/cubing-js-architecture.md`](specs/cubing-js-architecture.md) | Cubing.js KPuzzle/KPattern data model, orbit slot ordering, move application |
 | [`specs/cubing-js-stickering.md`](specs/cubing-js-stickering.md) | Cubing.js stickering architecture, orbit string char semantics |
 | [`specs/cubing-js-solver.md`](specs/cubing-js-solver.md) | Cubing.js solver architecture — search strategy, worker protocol |

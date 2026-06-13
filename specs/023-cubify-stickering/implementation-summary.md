@@ -50,4 +50,4 @@ The visibility map is keyed by `homePos` (piece identity, never changes). Slot i
 - `specs/cubing-js-architecture.md` — KPuzzle/KPattern data model
 - `specs/cube-physical-rules.md` — physical cube rules, CFOP conventions, masking philosophy
 - `specs/cubing-js-stickering.md` — TwistyPlayer stickering architecture, char semantics
-- `specs/cube-mapping-lessons.md` §16–17 — stickering implementation gotchas
+- `specs/lessons.md` §16–17 — stickering implementation gotchas

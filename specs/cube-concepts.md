@@ -1,7 +1,7 @@
 # Cube Concepts — Face State & KPattern
 
 Reference for understanding how a 3×3 cube state is represented in this project.
-Companion to [cube-mapping-lessons.md](cube-mapping-lessons.md) (implementation traps).
+Companion to [lessons.md](lessons.md) (implementation traps).
 
 ---
 
@@ -70,7 +70,7 @@ patternData.CORNERS.orientation[slot]  // how it's twisted (0, 1, or 2)
 `orientation = 0` means the U/D sticker is facing up/down (its home direction).  
 `orientation = 1` means twisted once clockwise, `2` = twice.
 
-**Corner slot → position mapping** (verified, see cube-mapping-lessons.md §1):
+**Corner slot → position mapping** (verified, see lessons.md §1):
 | Slot | Corner | Position |
 |------|--------|----------|
 | 0 | URF | (x=1, y=1, z=1) |
@@ -143,7 +143,7 @@ For each corner slot `i`:
 
 Same logic for edges with `(s - orientation + 2) % 2`.
 
-The orientation formula direction (`s - orientation`, not `s + orientation`) is critical — the wrong sign gives scrambled corner colours. See cube-mapping-lessons.md §3.
+The orientation formula direction (`s - orientation`, not `s + orientation`) is critical — the wrong sign gives scrambled corner colours. See lessons.md §3.
 
 ---
 

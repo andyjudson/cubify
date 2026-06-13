@@ -115,7 +115,7 @@ Read the five reference docs in `specs/` before touching cube state, rendering, 
 
 | Doc | What it guards |
 |---|---|
-| `cube-mapping-lessons.md` | All hard-won gotchas — slot ordering, orientation formula, animation sequencing |
+| `lessons.md` | All hard-won gotchas — slot ordering, orientation formula, animation sequencing |
 | `cubing-js-architecture.md` | KPuzzle/KPattern data model, orbit slot ordering |
 | `cubing-js-stickering.md` | Orbit string semantics, stickering architecture |
 | `cube-physical-rules.md` | Physical cube geometry, CFOP conventions |
@@ -141,7 +141,7 @@ Run `verify-perms.mjs` (18 cross-checks of `CubeState.toFaceArray()` against cub
 - `specs/spec.md` = feature ledger and canonical status record
 - `specs/<NNN>-<kebab-name>/` = per-feature lifecycle artifacts (spec.md, plan.md, research.md, data-model.md, tasks.md)
 - `CLAUDE.md` = agent context — update with each new module added
-- `cube-mapping-lessons.md` = living document — add lessons as they are discovered
+- `lessons.md` = living document — add lessons as they are discovered
 
 ### Feature sequence and graduation
 
