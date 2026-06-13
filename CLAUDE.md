@@ -212,4 +212,5 @@ See `specs/017-cubify-agent-skill/research.md` for the full debugging record.
 - 022-cubify-harness: full harness architecture established; `verify-perms.mjs` 18-test suite; cube-mapping-lessons.md documented.
 
 <!-- SPECKIT START -->
+- Active plan: [specs/037-cubify-intuitive-f2l-procedures/plan.md](specs/037-cubify-intuitive-f2l-procedures/plan.md) — beginner F2L procedure layer (primary) + counted search safety net; back slots via `y`-conjugation of the front procedure; fall-through counter → 0.
 <!-- SPECKIT END -->

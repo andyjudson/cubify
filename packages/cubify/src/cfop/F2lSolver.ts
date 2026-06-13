@@ -209,8 +209,10 @@ function solveEasyInsert(state: RawState, slot: string): string {
 }
 
 // Beginner mode setup algs: slot-specific (R-only for right slots, L-only for left).
-const R_SETUP_ALGS = ["R U' R'", "R U R'", "R' U R", "R' U' R"];
-const L_SETUP_ALGS = ["L' U' L", "L' U L", "L U' L'", "L U L'"];
+// Includes the U2 conjugate ("edge across" in IntuitivePage Step 3) so a single
+// hide→reposition→restore setup covers both next-to and across positions.
+const R_SETUP_ALGS = ["R U' R'", "R U R'", "R U2 R'", "R' U R", "R' U' R", "R' U2 R"];
+const L_SETUP_ALGS = ["L' U' L", "L' U L", "L' U2 L", "L U' L'", "L U L'", "L U2 L'"];
 
 // Combined for the full (non-beginner) solver.
 const SETUP_ALGS = [...R_SETUP_ALGS, ...L_SETUP_ALGS];
@@ -229,22 +231,50 @@ function intuitiveSlotsSetups(slot: string): string[] {
   return RIGHT_SLOTS.has(slot) ? R_SETUP_ALGS : L_SETUP_ALGS;
 }
 
-/** Tier-2: both in U-layer but no direct trigger. Brute-force AUF + setup + easy insert. */
-function solveSetupInsert(state: RawState, slot: string, setups = SETUP_ALGS): string {
+function algLen(alg: string): number {
+  return alg.trim() ? alg.trim().split(/\s+/).length : 0;
+}
+
+/** Tier-2: both in U-layer but no direct trigger. Encodes IntuitivePage Step 3:
+ *  hide a piece (one setup conjugate), reposition, restore → easy insert.
+ *  "White on side" needs one setup (next-to / across via U2); "white up" needs two
+ *  composed conjugates. We search 1-ply first, then 2-ply, and return the SHORTEST
+ *  round-tripping result so output always matches the logical flow rather than an
+ *  arbitrary first hit. */
+function solveSetupInsert(state: RawState, slot: string, mustSolve: string[] = [], setups = SETUP_ALGS): string {
+  let best = '';
+  let bestLen = Infinity;
+  const consider = (raw: string) => {
+    const full = normalizeAlg(raw);
+    const after = applyAlg(state, full);
+    if (slotSolved(after, slot) && crossOk(after) && mustSolve.every(m => slotSolved(after, m))) {
+      const len = algLen(full);
+      if (len < bestLen) { bestLen = len; best = full; }
+    }
+  };
+
+  // 1-ply: preAuf + setup + insert (white-on-side: next-to or across).
   for (const preAuf of AUF_ALGS) {
     const s1 = preAuf ? applyAlg(state, preAuf) : state;
     for (const setup of setups) {
-      const s2 = applyAlg(s1, setup);
-      const insert = solveEasyInsert(s2, slot);
-      if (insert) {
-        const parts = [preAuf, setup, insert].filter(Boolean);
-        const full = normalizeAlg(parts.join(' '));
-        const after = applyAlg(state, full);
-        if (slotSolved(after, slot) && crossOk(after)) return full;
+      const insert = solveEasyInsert(applyAlg(s1, setup), slot);
+      if (insert) consider([preAuf, setup, insert].filter(Boolean).join(' '));
+    }
+  }
+  if (best) return best;
+
+  // 2-ply: preAuf + setup1 + setup2 + insert (white-up: edge hidden then re-paired).
+  for (const preAuf of AUF_ALGS) {
+    const s1 = preAuf ? applyAlg(state, preAuf) : state;
+    for (const setup1 of setups) {
+      const sA = applyAlg(s1, setup1);
+      for (const setup2 of setups) {
+        const insert = solveEasyInsert(applyAlg(sA, setup2), slot);
+        if (insert) consider([preAuf, setup1, setup2, insert].filter(Boolean).join(' '));
       }
     }
   }
-  return '';
+  return best;
 }
 
 /** Tier-3/4: extract one or both stuck pieces to U-layer with a single R/L move. */
@@ -321,6 +351,10 @@ const SHORT_EXTRACTIONS = [...R_SHORT_EXTRACTIONS, ...L_SHORT_EXTRACTIONS];
 const RIGHT_MOVES = [0, 1, 2,  6,  7,  8];   // U, U', U2, R, R', R2
 const LEFT_MOVES  = [0, 1, 2,  9, 10, 11];   // U, U', U2, L, L', L2
 const SLOT_RESTRICTED_DEPTH = 12;
+// A canonical F2L pair (incl. AUF) is at most 8 moves. Heuristic results at or below
+// this are already tutorial-shaped, so we only spend a slot-face search to tighten
+// results that exceed it — keeping the common case cheap.
+const INTUITIVE_TIGHTEN_LEN = 8;
 
 function tryExtractAndInsert(
   state: RawState, slot: string, mustSolve: string[],
@@ -335,7 +369,7 @@ function tryExtractAndInsert(
     if (slotSolved(after, slot) && crossOk(after) &&
         mustSolve.every(m => slotSolved(after, m))) return full;
   }
-  const setup = solveSetupInsert(s, slot, setups);
+  const setup = solveSetupInsert(s, slot, mustSolve, setups);
   if (setup) {
     const full = [prefix, setup].filter(Boolean).join(' ');
     const after = applyAlg(state, full);
@@ -474,6 +508,22 @@ function solveSlotIntuitiveWithFallback(state: RawState, slot: string, mustSolve
   return solveSlotIntuitive(state, slot, mustSolve);
 }
 
+/** Find the shortest slot-face (U + R/L only) solution strictly shorter than `cap`
+ *  moves, preserving cross + completed slots. Iterative deepening guarantees the
+ *  minimum, so the intuitive output is never longer than the optimal beginner-
+ *  vocabulary alg — it can only tie or beat the heuristic setup-insert result. */
+function shorterSlotFaceAlg(state: RawState, slot: string, mustSolve: string[], cap: number): string {
+  const slotMoves = RIGHT_SLOTS.has(slot) ? RIGHT_MOVES : LEFT_MOVES;
+  const limit = Math.min(SLOT_RESTRICTED_DEPTH, cap - 1);
+  for (let depth = 1; depth <= limit && !_cancelled; depth++) {
+    const path: number[] = [];
+    if (idaDfs(state, depth, -1, path, slot, mustSolve, slotMoves)) {
+      return path.map(m => MOVE_NAMES[m]).join(' ');
+    }
+  }
+  return '';
+}
+
 /** Solve all four F2L slots in fluid priority order (easiest tier first).
  *
  *  Fluid priority solves whichever slot is easiest first (tier-1 easy inserts immediately,
@@ -514,14 +564,13 @@ export function solveF2lIntuitive(state: RawState): Array<{ label: string; alg: 
 
     const completed = result.map(r => r.label);
     let alg = normalizeAlg(solveSlotIntuitiveWithFallback(s, bestSlot, completed));
-    if (!alg) {
-      // Slot-restricted IDA*: U + slot's face only. ~3^12 = 530K nodes — trivially fast.
-      const slotMoves = RIGHT_SLOTS.has(bestSlot) ? RIGHT_MOVES : LEFT_MOVES;
-      const path: number[] = [];
-      for (let depth = 1; depth <= SLOT_RESTRICTED_DEPTH && !alg; depth++) {
-        if (idaDfs(s, depth, -1, path, bestSlot, completed, slotMoves)) alg = path.map(m => MOVE_NAMES[m]).join(' ');
-        if (_cancelled) break;
-      }
+    // Prefer a strictly shorter slot-face (U + R/L) solution if one exists. This caps
+    // every slot at the optimal beginner-vocabulary length, so the intuitive output is
+    // never longer than the logical flow it mirrors. When the heuristic returns nothing,
+    // this also serves as the slot-restricted IDA* (search depth 1..SLOT_RESTRICTED_DEPTH).
+    if (!alg || algLen(alg) > INTUITIVE_TIGHTEN_LEN) {
+      const tighter = shorterSlotFaceAlg(s, bestSlot, completed, alg ? algLen(alg) : SLOT_RESTRICTED_DEPTH + 1);
+      if (tighter) alg = tighter;
     }
     if (!alg) {
       // U+R+L fallback — rare positions where slot-face alone can't reach in SLOT_RESTRICTED_DEPTH.
@@ -555,14 +604,10 @@ export function solveF2lIntuitive(state: RawState): Array<{ label: string; alg: 
   for (const slot of unsolved) {
     if (_cancelled) return result;
     const completed = result.map(r => r.label);
-    let alg = solveSlotIntuitiveWithFallback(s, slot, completed);
-    if (!alg) {
-      const slotMoves = RIGHT_SLOTS.has(slot) ? RIGHT_MOVES : LEFT_MOVES;
-      const path: number[] = [];
-      for (let depth = 1; depth <= SLOT_RESTRICTED_DEPTH && !alg; depth++) {
-        if (idaDfs(s, depth, -1, path, slot, completed, slotMoves)) alg = path.map(m => MOVE_NAMES[m]).join(' ');
-        if (_cancelled) break;
-      }
+    let alg = normalizeAlg(solveSlotIntuitiveWithFallback(s, slot, completed));
+    if (!alg || algLen(alg) > INTUITIVE_TIGHTEN_LEN) {
+      const tighter = shorterSlotFaceAlg(s, slot, completed, alg ? algLen(alg) : SLOT_RESTRICTED_DEPTH + 1);
+      if (tighter) alg = tighter;
     }
     if (!alg) {
       const path: number[] = [];
