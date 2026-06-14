@@ -98,7 +98,7 @@ Note: tests were initially scoped to `cubify-harness/test/` but migrated to repo
 
 | Item | Spec said | Actual | Source |
 |------|-----------|--------|--------|
-| After R: slot 0 orientation | 1 | 2 (DRF piece occupies URF slot, orientation=2) | cube-mapping-lessons §3 |
+| After R: slot 0 orientation | 1 | 2 (DRF piece occupies URF slot, orientation=2) | lessons §3 |
 | FR edge orbit index | slot 9 | slot 8 (`EDGES:IIIIIIIIOIII`) | cubing-js-architecture orbit order |
 | OLL bottom edges char | 'I' | '-' (full colour) — cross preset uses 'I' | cubing-js-stickering §2 |
 

@@ -1,5 +1,5 @@
 /**
- * CubeState unit tests — encodes ground truth from cube-mapping-lessons.md
+ * CubeState unit tests — encodes ground truth from lessons.md
  *
  * Face order: U=0, R=1, F=2, D=3, L=4, B=5
  * Sticker slot layout per face (reading order): 0=TL 1=TM 2=TR 3=ML 4=CTR 5=MR 6=BL 7=BM 8=BR

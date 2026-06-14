@@ -25,7 +25,7 @@ npm install @andyjudson/cubify-react react react-dom react-icons  # if using Rea
 
 GitHub Packages requires auth even for public packages. Use a GitHub PAT with `read:packages` scope locally; in CI use `GITHUB_TOKEN`.
 
-See [`specs/cubify.md`](specs/cubify.md) for full setup, usage examples, local dev workflow, and architecture reference.
+See [`specs/cubify-notes.md`](specs/cubify-notes.md) for full setup, usage examples, local dev workflow, and architecture reference.
 
 ## Library API (`@andyjudson/cubify`)
 
@@ -70,8 +70,8 @@ Interactive browser dev environment — algorithm selector, play/step controls, 
 | File | Description |
 |------|-------------|
 | `cubify-harness/index.html` | Interactive harness UI |
-| `packages/cubify/test/` | Vitest suite — 259 tests, no headed browser |
-| `cubify-harness/verify-perms.mjs` | 18-test permutation cross-check against cubing.js ground truth |
+| `packages/cubify/test/` | Vitest suite — 294 tests, no headed browser |
+| `packages/cubify/test/cube-perm-model.test.ts` | Independent permutation-model cross-check against cubing.js ground truth |
 
 ## cubify-scripts
 
@@ -94,10 +94,10 @@ ln -s /path/to/cfop/cfop-app/public/data cubify-scripts/data
 
 | Doc | Content |
 |-----|---------|
-| [`specs/cubify.md`](specs/cubify.md) | Quickstart, usage examples, local dev workflow, architecture |
+| [`specs/cubify-notes.md`](specs/cubify-notes.md) | Quickstart, usage examples, local dev workflow, architecture, and operational gotchas (publishing, Playwright automation) |
 | [`specs/cube-concepts.md`](specs/cube-concepts.md) | Face state and KPattern concepts overview |
 | [`specs/cube-physical-rules.md`](specs/cube-physical-rules.md) | Physical cube geometry, CFOP conventions, masking philosophy |
-| [`specs/cube-mapping-lessons.md`](specs/cube-mapping-lessons.md) | Hard-won implementation gotchas (slot ordering, orientation formula, animation) |
+| [`specs/cubify-lessons.md`](specs/cubify-lessons.md) | Hard-won implementation gotchas (slot ordering, orientation formula, animation) |
 | [`specs/cubing-js-architecture.md`](specs/cubing-js-architecture.md) | Cubing.js KPuzzle/KPattern data model, orbit slot ordering, move application |
 | [`specs/cubing-js-stickering.md`](specs/cubing-js-stickering.md) | Cubing.js stickering architecture, orbit string char semantics |
 | [`specs/cubing-js-solver.md`](specs/cubing-js-solver.md) | Cubing.js solver architecture — search strategy, worker protocol |

@@ -192,4 +192,4 @@ Add a **Stickering** control group to the controls column in `index.html`:
 - The lookup tables are static constants derived from position math — embed directly
 - `applyStickering()` in CubeRenderer3D greys hidden stickers — no API changes needed
 - Stickering must be re-applied after every `setState()` call (step-through, alg load)
-- The `z2` setup convention is the **standard across all cubify apps** — document in cube-mapping-lessons.md §11
+- The `z2` setup convention is the **standard across all cubify apps** — document in lessons.md §11

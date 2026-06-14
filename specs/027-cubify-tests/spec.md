@@ -7,7 +7,7 @@ Add a unit test suite for `cubify-harness` encoding the hard-won ground truth fr
 **Reference docs this suite encodes:**
 | Doc | Lessons encoded |
 |-----|----------------|
-| `cube-mapping-lessons.md` | §1–17 — slot ordering, orientation formula, move direction, stickering invariants |
+| `lessons.md` | §1–17 — slot ordering, orientation formula, move direction, stickering invariants |
 | `cubing-js-architecture.md` | §2–4, §8 — KPattern data model, solved state, isSolved |
 | `cubing-js-stickering.md` | §2–3 — facelet[0] semantics, IgnoreNonPrimary 'O' |
 | `cube-physical-rules.md` | §3.4, §4 — animation axis direction, orientation convention |
@@ -26,7 +26,7 @@ Add a unit test suite for `cubify-harness` encoding the hard-won ground truth fr
 
 ## Motivation
 
-As the library becomes load-bearing for cfop-app, regressions in `toFaceArray()`, orientation formulas, or sticker slot mappings become user-visible bugs. The test suite encodes the verified facts from `cube-mapping-lessons.md` so they can't silently break.
+As the library becomes load-bearing for cfop-app, regressions in `toFaceArray()`, orientation formulas, or sticker slot mappings become user-visible bugs. The test suite encodes the verified facts from `lessons.md` so they can't silently break.
 
 Also refer to cubify-harness/verify-perms.mjs
 
@@ -36,7 +36,7 @@ Also refer to cubify-harness/verify-perms.mjs
 
 ### CubeState (priority 1)
 
-**toFaceArray() ground truth** — `cube-mapping-lessons.md §4`, `cubing-js-architecture.md §2–4`:
+**toFaceArray() ground truth** — `lessons.md §4`, `cubing-js-architecture.md §2–4`:
 
 | Test | Expected | Source |
 |------|----------|--------|
@@ -51,7 +51,7 @@ Also refer to cubify-harness/verify-perms.mjs
 | `isSolved()` after each above | true | §4 |
 | `invertAlg()` round-trip | `applyAlg(inv(alg)).applyAlg(alg)` = solved | general |
 
-**Slot ordering** — `cube-mapping-lessons.md §1`, `cubing-js-architecture.md §2`:
+**Slot ordering** — `lessons.md §1`, `cubing-js-architecture.md §2`:
 
 | Test | Expected | Source |
 |------|----------|--------|
@@ -62,7 +62,7 @@ Also refer to cubify-harness/verify-perms.mjs
 | After R: CORNERS slot 0 piece | non-zero (URF moves) | §1 |
 | After L: CORNERS slot 0 piece | 0 (URF unaffected by L) | §1 |
 
-**Orientation formula** — `cube-mapping-lessons.md §3`, `cube-physical-rules.md §4.1`:
+**Orientation formula** — `lessons.md §3`, `cube-physical-rules.md §4.1`:
 
 | Test | Expected | Source |
 |------|----------|--------|
@@ -71,14 +71,14 @@ Also refer to cubify-harness/verify-perms.mjs
 | Orientation formula `(s - o + 3) % 3` gives correct face colour for twisted corner | true | §3 |
 | Alternative formula `(s + o) % 3` gives WRONG colour | true (negative test) | §3 |
 
-**isSolved with whole-cube rotation** — `cube-mapping-lessons.md §14`, `cubing-js-architecture.md §8`:
+**isSolved with whole-cube rotation** — `lessons.md §14`, `cubing-js-architecture.md §8`:
 
 | Test | Expected | Source |
 |------|----------|--------|
 | `solved.applyAlg(['z2']).isSolved({ ignorePuzzleOrientation: true })` | true | §14, arch §8 |
 | `solved.applyAlg(['z2']).isSolved()` (no flag) | throws or false | §14 |
 
-**U/D direction cross-check** — `cube-mapping-lessons.md §5, §10`, `cube-physical-rules.md §3.4`:
+**U/D direction cross-check** — `lessons.md §5, §10`, `cube-physical-rules.md §3.4`:
 
 | Test | Expected | Source |
 |------|----------|--------|
@@ -101,7 +101,7 @@ Also refer to cubify-harness/verify-perms.mjs
 | `fromOrbitStringWithState` called twice with same args | identical Maps | §12 lessons |
 | visMap keys are `"x,y,z"` format strings (homePos, not currentPos) | true | §13 lessons |
 
-**'O' primary sticker semantics** — `cube-mapping-lessons.md §17`, `cubing-js-stickering.md §2–3`:
+**'O' primary sticker semantics** — `lessons.md §17`, `cubing-js-stickering.md §2–3`:
 
 | Test | Expected | Source |
 |------|----------|--------|
@@ -110,7 +110,7 @@ Also refer to cubify-harness/verify-perms.mjs
 | Equatorial F-edge (y=0, z=1): 'O' → slot 4 visible | vis[4]=true | §17 lessons |
 | 'O' semantics = piece's OWN facelet[0], NOT what faces primary direction | true | §17 lessons, stickering §2 |
 
-**Idempotency** — `cube-mapping-lessons.md §12, §15`:
+**Idempotency** — `lessons.md §12, §15`:
 
 | Test | Expected | Source |
 |------|----------|--------|
@@ -161,7 +161,7 @@ These test the playback engine in isolation with a mock renderer. No DOM or WebG
 
 ### CubeRenderer3D geometry (lower priority — partial unit test, rest is visual)
 
-**stickerIndex formula** — `cube-mapping-lessons.md §6`, `cubing-js-architecture.md §7`:
+**stickerIndex formula** — `lessons.md §6`, `cubing-js-architecture.md §7`:
 
 | Test | Expected | Source |
 |------|----------|--------|
@@ -170,7 +170,7 @@ These test the playback engine in isolation with a mock renderer. No DOM or WebG
 | `stickerIndex` for D face: `idx(x, -z)` (NOT `idx(x,z)`) | correct | §6 lessons |
 | `stickerIndex` U and D formulas are mirror images of each other | true | §6 lessons |
 
-**MOVE_AXIS directions** — `cube-mapping-lessons.md §5`, `cube-physical-rules.md §3.4`:
+**MOVE_AXIS directions** — `lessons.md §5`, `cube-physical-rules.md §3.4`:
 
 | Test | Expected | Source |
 |------|----------|--------|
@@ -179,7 +179,7 @@ These test the playback engine in isolation with a mock renderer. No DOM or WebG
 | E axis `dir` | +1 (follows D) | §5 |
 | R, L, F, B axis `dir` | match WCA (no flip) | §5 |
 
-**faceCW cycle direction** — `cube-mapping-lessons.md §9`:
+**faceCW cycle direction** — `lessons.md §9`:
 
 | Test | Expected | Source |
 |------|----------|--------|
@@ -187,7 +187,7 @@ These test the playback engine in isolation with a mock renderer. No DOM or WebG
 | `[off, off+2, off+8, off+6]` is the CW cycle (TL→TR→BR→BL) | true | §9 |
 | `[off, off+6, off+8, off+2]` is CCW (the trap) | confirmed wrong | §9 |
 
-**Mask travel invariant** — `cube-mapping-lessons.md §16`:
+**Mask travel invariant** — `lessons.md §16`:
 
 Test with mock renderer: after `setStickering(str)` then `play()`, verify `_reapplyStickering` is NOT called inside `animateMove` callbacks (CubePlayer integration test — already covered in CubePlayer section above).
 

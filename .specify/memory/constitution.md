@@ -18,7 +18,7 @@ The long-term destination is cfop-app: a personal CFOP learning tool. All featur
 - **Puzzle logic**: cubing.js (`KPattern`, `KPuzzle`, `cube3x3x3`) — wrapped by `CubeState`, never exposed directly to consumers after feature 028
 - **Dev server**: Vite (required — bare specifiers cannot be opened directly in a browser)
 - **Target platform**: Browser only (Chrome, Safari, Firefox); WebGL required; no server-side rendering
-- **Testing**: `verify-perms.mjs` (18-test cross-check suite) plus browser harness; Vitest headless suite planned in feature 027
+- **Testing**: Vitest headless suite (`npm test`) — includes `cube-perm-model.test.ts`, an independent permutation cross-check against cubing.js ground truth (replaced the retired standalone `verify-perms.mjs`) — plus the browser harness
 - **Future wrappers**: TypeScript definitions (028), React components (029)
 - **No frameworks in core**: the library itself has no React, no Vue, no Angular dependency
 
@@ -115,7 +115,7 @@ Read the five reference docs in `specs/` before touching cube state, rendering, 
 
 | Doc | What it guards |
 |---|---|
-| `cube-mapping-lessons.md` | All hard-won gotchas — slot ordering, orientation formula, animation sequencing |
+| `lessons.md` | All hard-won gotchas — slot ordering, orientation formula, animation sequencing |
 | `cubing-js-architecture.md` | KPuzzle/KPattern data model, orbit slot ordering |
 | `cubing-js-stickering.md` | Orbit string semantics, stickering architecture |
 | `cube-physical-rules.md` | Physical cube geometry, CFOP conventions |
@@ -123,7 +123,7 @@ Read the five reference docs in `specs/` before touching cube state, rendering, 
 
 ### Before any merge
 
-Run `verify-perms.mjs` (18 cross-checks of `CubeState.toFaceArray()` against cubing.js ground truth). All 18 must pass.
+Run `npm test`. The Vitest suite is the pre-merge gate; it includes `cube-perm-model.test.ts`, an independent cycle-based permutation model cross-checked against cubing.js ground truth (these checks were ported from the retired standalone `verify-perms.mjs`). All tests must pass.
 
 ### Stickering correctness checklist
 
@@ -141,7 +141,7 @@ Run `verify-perms.mjs` (18 cross-checks of `CubeState.toFaceArray()` against cub
 - `specs/spec.md` = feature ledger and canonical status record
 - `specs/<NNN>-<kebab-name>/` = per-feature lifecycle artifacts (spec.md, plan.md, research.md, data-model.md, tasks.md)
 - `CLAUDE.md` = agent context — update with each new module added
-- `cube-mapping-lessons.md` = living document — add lessons as they are discovered
+- `lessons.md` = living document — add lessons as they are discovered
 
 ### Feature sequence and graduation
 

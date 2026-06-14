@@ -1,7 +1,6 @@
-# Cube State Mapping — Lessons Learned
+# Cubify — Lessons Learned
 
-Hard-won ground truth about cubing.js internals and 3D rendering.
-Took significant debugging time to establish. Treat as foundational reference for any future cube state / rendering work.
+Hard-won ground truth, established at significant debugging cost. §1–20 are cubing.js internals, 3D rendering, and stickering — treat as foundational reference for any cube state / rendering work. §21 is the mask-rendering quick reference — read it when touching stickering, the renderers, or `CubeExporter`. Operational gotchas (GitHub Packages publishing, Playwright automation) live in [`cubify-notes.md`](cubify-notes.md).
 
 ---
 
@@ -389,3 +388,16 @@ pause(): void {
 ```
 
 **Why this is safe**: `_generation++` immediately follows, so the animation callback checks `gen !== _generation` and returns early — no double-increment. If pause was pressed during the gap between moves (`isAnimating === false`), `_stepIndex` is already correct and no adjustment is made.
+
+---
+
+## 21. Mask rendering rules — quick reference (read before touching stickering, the renderers, or `CubeExporter`)
+
+Condensed checklist; the full mechanics are in §12, §16, and §18.
+
+- **Mask travels with the cubelet** — grey sticker materials are baked into Three.js mesh materials at `applyStickering()`. When a move animates the mesh, materials travel with it — no reapplication needed.
+- **Never reapply mask in animation callbacks** — call `applyStickering()` only on case load, mask change, or state reset.
+- **Identity-based rendering** — the vis map is keyed by `homePos` (piece identity, never changes through moves).
+- **`CubeExporter.toPNG` stickering must use slot-based visMap** — `getVisLevel` in `CubeRenderer2D` looks up by solved-state orbit position keys, so the visMap must be built with `fromOrbitString` (null rawPattern). Calling `fromOrbitStringWithState(str, state.toRawPattern())` rekeys the map by current piece home positions, causing mismatches after any cube rotation (z2 etc.) and making the U face look all-dim. `CubeExporter.toPNG` must call `fromOrbitString(stickering)` only.
+
+> **Operational guidance** (GitHub Packages publishing, Playwright/web-component automation) moved to [`cubify-notes.md`](cubify-notes.md).
