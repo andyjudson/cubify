@@ -42,7 +42,7 @@ No public API changes: `solveF2lIntuitive` is a `cfop/`-internal function consum
 | Algorithm data lives in cfop repo JSON; cubify does not duplicate | **Yes** | ✅ Procedures are geometric logic authored in-repo (FR-008), not copied alg tables |
 | Harness-first development | **Yes** | ✅ Exercised via CFOP worker + "Solve (cfop)" harness button; regression-guarded by Vitest |
 | Module responsibility boundaries | **Yes** | ✅ Change confined to `cfop/F2lSolver.ts` (+ optional `CaseLibrary.ts` data) |
-| Run `verify-perms.mjs` before merge | **Yes** | ✅ Included in quickstart verification |
+| Run `npm test` (perm cross-check) before merge | **Yes** | ✅ Included in quickstart verification; `cube-perm-model.test.ts` carries the independent cross-check that replaced `verify-perms.mjs` |
 
 **Gate result: PASS** — no violations, no Complexity Tracking entries required.
 

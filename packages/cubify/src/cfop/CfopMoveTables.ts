@@ -85,6 +85,7 @@ export const CORNER_PIECES: ReadonlyArray<ReadonlyArray<number>> = [
   [3,0,1,2,5,6,7,4],   // y' (39)
   [3,2,6,5,0,4,7,1],   // z  (40)
   [4,7,1,0,5,3,2,6],   // z' (41)
+  [2,3,0,1,6,7,4,5],   // y2 (42)
 ];
 
 export const CORNER_ORIENT: ReadonlyArray<ReadonlyArray<number>> = [
@@ -131,6 +132,7 @@ export const CORNER_ORIENT: ReadonlyArray<ReadonlyArray<number>> = [
   [0,0,0,0,0,0,0,0],   // y' (39)
   [1,2,1,2,2,1,2,1],   // z  (40)
   [1,2,1,2,2,1,2,1],   // z' (41)
+  [0,0,0,0,0,0,0,0],   // y2 (42)
 ];
 
 export const EDGE_PIECES: ReadonlyArray<ReadonlyArray<number>> = [
@@ -177,6 +179,7 @@ export const EDGE_PIECES: ReadonlyArray<ReadonlyArray<number>> = [
   [3,0,1,2,7,4,5,6,9,11,8,10],   // y' (39)
   [9,3,11,7,8,1,10,5,0,4,2,6],   // z  (40)
   [8,5,10,1,9,7,11,3,4,0,6,2],   // z' (41)
+  [2,3,0,1,6,7,4,5,11,10,9,8],   // y2 (42)
 ];
 
 export const EDGE_ORIENT: ReadonlyArray<ReadonlyArray<number>> = [
@@ -223,6 +226,7 @@ export const EDGE_ORIENT: ReadonlyArray<ReadonlyArray<number>> = [
   [0,0,0,0,0,0,0,0,1,1,1,1],   // y' (39)
   [1,1,1,1,1,1,1,1,1,1,1,1],   // z  (40)
   [1,1,1,1,1,1,1,1,1,1,1,1],   // z' (41)
+  [0,0,0,0,0,0,0,0,0,0,0,0],   // y2 (42)
 ];
 
 // ── Move token → index lookup ─────────────────────────────────────────────────
@@ -244,6 +248,7 @@ MOVE_INDEX['u']  = 33; MOVE_INDEX["u'"] = 34;
 MOVE_INDEX['x']  = 35; MOVE_INDEX["x'"] = 36; MOVE_INDEX['x2'] = 37;
 MOVE_INDEX['y']  = 38; MOVE_INDEX["y'"] = 39;
 MOVE_INDEX['z']  = 40; MOVE_INDEX["z'"] = 41;
+MOVE_INDEX['y2'] = 42;
 
 /** Convert a WCA notation string to an array of move indices. Strips parentheses. */
 export function algToMoveIndices(alg: string): number[] {

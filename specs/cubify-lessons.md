@@ -1,6 +1,6 @@
 # Cubify — Lessons Learned
 
-Hard-won ground truth, established at significant debugging cost. §1–20 are cubing.js internals, 3D rendering, and stickering — treat as foundational reference for any cube state / rendering work. §21–23 are targeted operational gotchas (mask rendering quick-reference, GitHub Packages publishing, Playwright automation) — read the relevant one when the situation arises.
+Hard-won ground truth, established at significant debugging cost. §1–20 are cubing.js internals, 3D rendering, and stickering — treat as foundational reference for any cube state / rendering work. §21 is the mask-rendering quick reference — read it when touching stickering, the renderers, or `CubeExporter`. Operational gotchas (GitHub Packages publishing, Playwright automation) live in [`cubify-notes.md`](cubify-notes.md).
 
 ---
 
@@ -400,30 +400,4 @@ Condensed checklist; the full mechanics are in §12, §16, and §18.
 - **Identity-based rendering** — the vis map is keyed by `homePos` (piece identity, never changes through moves).
 - **`CubeExporter.toPNG` stickering must use slot-based visMap** — `getVisLevel` in `CubeRenderer2D` looks up by solved-state orbit position keys, so the visMap must be built with `fromOrbitString` (null rawPattern). Calling `fromOrbitStringWithState(str, state.toRawPattern())` rekeys the map by current piece home positions, causing mismatches after any cube rotation (z2 etc.) and making the U face look all-dim. `CubeExporter.toPNG` must call `fromOrbitString(stickering)` only.
 
----
-
-## 22. GitHub Packages — publishing gotchas (read before publishing) (031)
-
-**`workspace:*` is pnpm/yarn syntax — not supported by npm.** Use the actual version range (`^1.0.0`) in devDependencies for sibling workspace packages. npm workspace resolution picks up the local version when it satisfies the range.
-
-**Any workflow that installs from GitHub Packages needs `packages: read` in its permissions block.** Specifying an explicit `permissions:` key in a GitHub Actions workflow restricts `GITHUB_TOKEN` to exactly those scopes — all others are dropped. Without `packages: read`, `npm ci` gets a 403 even for packages you own.
-
-**Never use `npm install <tarball>` to work around a missing token.** It resolves correctly locally but writes `file:/path/to/tarball.tgz` into `package-lock.json`. CI runners don't have that path and fail with `ENOENT`. Use `npm link` instead if you need a local install without publishing — it doesn't touch the lock file.
-
-**Local installs from GitHub Packages need a classic PAT with `read:packages`.** The `gh` CLI OAuth token (`gho_...`) does not have this scope. Add to `~/.zprofile`:
-```bash
-export NPM_AUTH_TOKEN=<your-pat>
-```
-
----
-
-## 23. Playwright / web component automation (read before screenshotting a component)
-
-When automating or screenshotting a third-party web component:
-
-1. **Inspect structure first** — write a throwaway script to dump shadow root children and bounding rects.
-2. **Clip to the visualization element** — find the exact element (canvas, SVG wrapper) and use `page.screenshot({ clip: rect })`.
-3. **Use `page.addInitScript()` for intercepts** — runs before any page script.
-4. **`headless: false` required for WebGL on macOS** — headless Chromium blocks WebGL regardless of flags.
-
-See `specs/017-cubify-agent-skill/research.md` for the full debugging record.
+> **Operational guidance** (GitHub Packages publishing, Playwright/web-component automation) moved to [`cubify-notes.md`](cubify-notes.md).

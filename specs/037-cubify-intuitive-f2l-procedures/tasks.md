@@ -27,7 +27,7 @@ Single-package library change. Production: `packages/cubify/src/cfop/`. Tests: `
 
 **Purpose**: Capture the starting point so the fall-through counter's progress is measurable.
 
-- [ ] T001 Run `npm test` and `npx vitest run packages/cubify/test/cfop-f2l-setup-poc.test.ts`; record the current fall-through count, move-count histograms, and round-trip status for FR/FL tier-2 and tier-3 as the baseline (note in the PR description, not committed to a file).
+- [X] T001 Run `npm test` and `npx vitest run packages/cubify/test/cfop-f2l-setup-poc.test.ts`; record the current fall-through count, move-count histograms, and round-trip status for FR/FL tier-2 and tier-3 as the baseline (note in the PR description, not committed to a file).
 
 **Checkpoint**: Baseline numbers known — every later phase is measured against them.
 
@@ -39,9 +39,9 @@ Single-package library change. Production: `packages/cubify/src/cfop/`. Tests: `
 
 **⚠️ CRITICAL**: No user-story work begins until this phase is complete.
 
-- [ ] T002 In `packages/cubify/src/cfop/F2lSolver.ts`, add and export `type BeginnerMethod = 'already-solved' | 'easy-insert' | 'setup-insert' | 'extract-insert' | 'search-fallback'` and `interface IntuitiveStage { label: string; alg: string; method: BeginnerMethod }`; change `solveF2lIntuitive`'s return type to `IntuitiveStage[]` (per contracts/f2l-beginner-internal.md, Contract A).
-- [ ] T003 Verify `packages/cubify/src/cfop/cfop.worker.ts` consumes only `label`/`alg` from `solveF2lIntuitive` results; confirm the additive `method` field needs no worker change (adjust only if it destructures the array element shape).
-- [ ] T004 In `packages/cubify/src/cfop/F2lSolver.ts`, introduce the dispatch skeleton — `frontProcedure(state, frontSlot, mustSolve): { alg: string; method: BeginnerMethod } | null`, `conjugateBackSlot(state, backSlot, mustSolve): { alg: string; method: BeginnerMethod } | null`, and `searchFallback(state, slot, mustSolve): string` — and rewire BOTH call sites in `solveF2lIntuitive` (the while-loop body, ~L565, and the trailing for-loop, ~L604) to: try procedure → on `null`, run counted `searchFallback` (tag `'search-fallback'`). Skeleton may delegate to existing helpers initially; behaviour preserved.
+- [X] T002 In `packages/cubify/src/cfop/F2lSolver.ts`, add and export `type BeginnerMethod = 'already-solved' | 'easy-insert' | 'setup-insert' | 'extract-insert' | 'search-fallback'` and `interface IntuitiveStage { label: string; alg: string; method: BeginnerMethod }`; change `solveF2lIntuitive`'s return type to `IntuitiveStage[]` (per contracts/f2l-beginner-internal.md, Contract A).
+- [X] T003 Verify `packages/cubify/src/cfop/cfop.worker.ts` consumes only `label`/`alg` from `solveF2lIntuitive` results; confirm the additive `method` field needs no worker change (adjust only if it destructures the array element shape).
+- [X] T004 In `packages/cubify/src/cfop/F2lSolver.ts`, introduce the dispatch skeleton — `frontProcedure(state, frontSlot, mustSolve): { alg: string; method: BeginnerMethod } | null`, `conjugateBackSlot(state, backSlot, mustSolve): { alg: string; method: BeginnerMethod } | null`, and `searchFallback(state, slot, mustSolve): string` — and rewire BOTH call sites in `solveF2lIntuitive` (the while-loop body, ~L565, and the trailing for-loop, ~L604) to: try procedure → on `null`, run counted `searchFallback` (tag `'search-fallback'`). Skeleton may delegate to existing helpers initially; behaviour preserved.
 
 **Checkpoint**: `solveF2lIntuitive` returns `method`-tagged stages; procedure/search paths are separated; full suite still green.
 
@@ -55,15 +55,15 @@ Single-package library change. Production: `packages/cubify/src/cfop/`. Tests: `
 
 ### Tests for User Story 1
 
-- [ ] T005 [P] [US1] Create `packages/cubify/test/cfop-f2l-beginner.test.ts` with a vocabulary assertion (SC-003/FR-006): enumerate real positions for all four slots, solve via `solveF2lIntuitive`, assert every token is in `{U,U',U2, R,R',R2, L,L',L2, y,y'}` and that back-slot algs are `y`/`y'`-wrapped. Expect FAIL initially.
-- [ ] T006 [P] [US1] In the same test file, add a structural "recognisable method" check (proxy for SC-005): assert back-slot emits start with a `y`/`y'` rotation and contain no `B*` token, and that tier-1 positions emit AUF+trigger only (≤ trigger length).
+- [X] T005 [P] [US1] Create `packages/cubify/test/cfop-f2l-beginner.test.ts` with a vocabulary assertion (SC-003/FR-006): enumerate real positions for all four slots, solve via `solveF2lIntuitive`, assert every token is in `{U,U',U2, R,R',R2, L,L',L2, y,y'}` and that back-slot algs are `y`/`y'`-wrapped. Expect FAIL initially.
+- [X] T006 [P] [US1] In the same test file, add a structural "recognisable method" check (proxy for SC-005): assert back-slot emits start with a `y`/`y'` rotation and contain no `B*` token, and that tier-1 positions emit AUF+trigger only (≤ trigger length).
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] In `F2lSolver.ts`, implement `frontProcedure` for FR/FL by composing the existing logic as named, method-tagged procedures: `easy-insert` (`solveEasyInsert`), `setup-insert` (`solveSetupInsert`, 1-ply white-on-side then 2-ply white-up), `extract-insert` (the slot-face extraction branches of `solveSlotIntuitive`, restricted to the slot's own face + U). Return `{ alg, method }` or `null` on no match. Preserve the FR-003 rule (AUF keeps white visible on a side face).
-- [ ] T008 [US1] In `F2lSolver.ts`, implement `conjugateBackSlot` using the verified mapping (research Decision 1): BR → `y` + `frontProcedure(rotated, 'f2l-fr')` + `y'`; BL → `y'` + `frontProcedure(rotated, 'f2l-fl')` + `y`. Apply the leading rotation via `applyAlg`, solve the rotated state, normalise the wrapped sequence, and attribute the **underlying front procedure's** method. Return `null` if the front procedure misses.
-- [ ] T009 [US1] In `F2lSolver.ts`, enforce procedure primacy (FR-004): when `frontProcedure`/`conjugateBackSlot` returns non-`null`, return that alg **as-is** — remove the `INTUITIVE_TIGHTEN_LEN` path that re-runs `shorterSlotFaceAlg` to override a matched procedure. The slot-face search survives only inside `searchFallback` (procedure-miss only).
-- [ ] T010 [US1] In `F2lSolver.ts`, remove the in-place back-slot handling from the procedure path: delete the `solveSlotBackRotation` call (and the `f2l-br`/`f2l-bl` branch) from `solveSlotIntuitive`, and stop routing BL through L-family-in-place. Back slots now go exclusively through `conjugateBackSlot`. Keep `searchFallback` reachable for any residual miss.
+- [X] T007 [US1] In `F2lSolver.ts`, implement `frontProcedure` for FR/FL by composing the existing logic as named, method-tagged procedures: `easy-insert` (`solveEasyInsert`), `setup-insert` (`solveSetupInsert`, 1-ply white-on-side then 2-ply white-up), `extract-insert` (the slot-face extraction branches of `solveSlotIntuitive`, restricted to the slot's own face + U). Return `{ alg, method }` or `null` on no match. Preserve the FR-003 rule (AUF keeps white visible on a side face).
+- [X] T008 [US1] In `F2lSolver.ts`, implement `conjugateBackSlot` using the verified mapping (research Decision 1): BR → `y` + `frontProcedure(rotated, 'f2l-fr')` + `y'`; BL → `y'` + `frontProcedure(rotated, 'f2l-fl')` + `y`. Apply the leading rotation via `applyAlg`, solve the rotated state, normalise the wrapped sequence, and attribute the **underlying front procedure's** method. Return `null` if the front procedure misses.
+- [X] T009 [US1] In `F2lSolver.ts`, enforce procedure primacy (FR-004): when `frontProcedure`/`conjugateBackSlot` returns non-`null`, return that alg **as-is** — remove the `INTUITIVE_TIGHTEN_LEN` path that re-runs `shorterSlotFaceAlg` to override a matched procedure. The slot-face search survives only inside `searchFallback` (procedure-miss only).
+- [X] T010 [US1] In `F2lSolver.ts`, remove the in-place back-slot handling from the procedure path: delete the `solveSlotBackRotation` call (and the `f2l-br`/`f2l-bl` branch) from `solveSlotIntuitive`, and stop routing BL through L-family-in-place. Back slots now go exclusively through `conjugateBackSlot`. Keep `searchFallback` reachable for any residual miss.
 
 **Checkpoint**: T005/T006 pass. Beginner output is procedure-shaped for the common cases; back slots show the `y`/`y'` conjugate; no B/wide/slice anywhere.
 
@@ -77,12 +77,12 @@ Single-package library change. Production: `packages/cubify/src/cfop/`. Tests: `
 
 ### Tests for User Story 2
 
-- [ ] T012 [P] [US2] In `packages/cubify/test/cfop-f2l-beginner.test.ts`, add a length assertion (SC-004): across the enumeration for all four slots, assert every single-pair emit's move count ≤ `PROCEDURE_MAX`. Expect FAIL if any procedure (or stray search result) exceeds the bound.
+- [X] T012 [P] [US2] In `packages/cubify/test/cfop-f2l-beginner.test.ts`, add a length assertion (SC-004): across the enumeration for all four slots, assert every single-pair emit's move count ≤ `PROCEDURE_MAX`. Expect FAIL if any procedure (or stray search result) exceeds the bound.
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] In `F2lSolver.ts`, define `const PROCEDURE_MAX` = the longest normalised emit any encoded procedure can produce (derived from the 2-ply setup-insert worst case + AUF + back-slot conjugate wrapper), with a comment deriving the number rather than hard-coding blindly.
-- [ ] T013 [US2] If T012 reveals any procedure emitting longer than `PROCEDURE_MAX`, refine the **procedure** (tighter setup/insert composition or better AUF choice) to stay within bound — never reach for search to shorten a matched procedure (preserves FR-004).
+- [X] T011 [US2] In `F2lSolver.ts`, define `const PROCEDURE_MAX` = the longest normalised emit any encoded procedure can produce (derived from the 2-ply setup-insert worst case + AUF + back-slot conjugate wrapper), with a comment deriving the number rather than hard-coding blindly.
+- [X] T013 [US2] If T012 reveals any procedure emitting longer than `PROCEDURE_MAX`, refine the **procedure** (tighter setup/insert composition or better AUF choice) to stay within bound — never reach for search to shorten a matched procedure (preserves FR-004).
 
 **Checkpoint**: T012 passes; histogram max is bounded by the procedure-derived maximum; no blow-ups.
 
@@ -96,13 +96,13 @@ Single-package library change. Production: `packages/cubify/src/cfop/`. Tests: `
 
 ### Tests for User Story 3
 
-- [ ] T014 [US3] Evolve `packages/cubify/test/cfop-f2l-setup-poc.test.ts` into the fall-through counter (FR-007): read `method` off each `solveF2lIntuitive` result and compute a `CoverageReport` per slot/tier (`total`, `byMethod`, `fallThrough`, `roundTripFails`, `vocabularyViolations`, `maxLen`) for FR/FL tier-2 and tier-3 via the existing `enumerateCases`. Log the report (visibility while encoding).
-- [ ] T015 [US3] In the counter test, add BR/BL coverage: enumerate BR/BL tier-2/tier-3 cases and assert each is solved through conjugation (`method ≠ 'search-fallback'`) and round-trips — verifying back slots inherit front-slot coverage.
-- [ ] T017 [US3] Convert the counter into hard build gates (SC-001/002/003): `expect(report.fallThrough).toBe(0)`, `expect(report.roundTripFails).toBe(0)`, `expect(report.vocabularyViolations).toBe(0)` for every slot/tier.
+- [X] T014 [US3] Evolve `packages/cubify/test/cfop-f2l-setup-poc.test.ts` into the fall-through counter (FR-007): read `method` off each `solveF2lIntuitive` result and compute a `CoverageReport` per slot/tier (`total`, `byMethod`, `fallThrough`, `roundTripFails`, `vocabularyViolations`, `maxLen`) for FR/FL tier-2 and tier-3 via the existing `enumerateCases`. Log the report (visibility while encoding).
+- [X] T015 [US3] In the counter test, add BR/BL coverage: enumerate BR/BL tier-2/tier-3 cases and assert each is solved through conjugation (`method ≠ 'search-fallback'`) and round-trips — verifying back slots inherit front-slot coverage.
+- [X] T017 [US3] Convert the counter into hard build gates (SC-001/002/003): `expect(report.fallThrough).toBe(0)`, `expect(report.roundTripFails).toBe(0)`, `expect(report.vocabularyViolations).toBe(0)` for every slot/tier.
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Drive `fallThrough` to 0: for each enumerated position the counter tags `'search-fallback'`, identify its tier + white-facing variant and extend `frontProcedure` in `F2lSolver.ts` to cover it (front slots only — BR/BL follow via conjugation). Iterate T014→T016 until the counter reports zero fall-throughs.
+- [X] T016 [US3] Drive `fallThrough` to 0: for each enumerated position the counter tags `'search-fallback'`, identify its tier + white-facing variant and extend `frontProcedure` in `F2lSolver.ts` to cover it (front slots only — BR/BL follow via conjugation). Iterate T014→T016 until the counter reports zero fall-throughs.
 
 **Checkpoint**: All gates green; `fallThrough === 0`; SC-001 met.
 
@@ -112,11 +112,11 @@ Single-package library change. Production: `packages/cubify/src/cfop/`. Tests: `
 
 **Purpose**: Remove dead code, regression-guard, document.
 
-- [ ] T018 [P] In `F2lSolver.ts`, remove now-dead code surfaced by the refactor (e.g. `solveSlotBackRotation` + `B_U_MOVES` if unused, stale `INTUITIVE_TIGHTEN_LEN` tightening comments, unreferenced combined `SETUP_ALGS`/`EXTRACTIONS` if the full solver no longer needs them — verify with a usage grep before deleting).
-- [ ] T019 Run `npm test` — confirm the full CFOP suite (9-stage solution, OLL/PLL stages, PLL recognition) and all prior tests stay green (FR-010 regression guard).
-- [ ] T020 Run `node cubify-harness/verify-perms.mjs` — all 18 permutation cross-checks must pass (constitution pre-merge gate).
-- [ ] T021 [P] Manual harness smoke test per quickstart.md §5: scramble → "Solve (cfop)" in beginner mode → step through an F2L solve and confirm moves map to named method steps and back slots show a leading `y`/`y'` (qualitative SC-005).
-- [ ] T022 [P] Update `CLAUDE.md` (Current Status + Recent Changes for 037) and the `specs/spec.md` ledger entry to mark 037 complete with the final test count.
+- [X] T018 [P] In `F2lSolver.ts`, remove now-dead code surfaced by the refactor (e.g. `solveSlotBackRotation` + `B_U_MOVES` if unused, stale `INTUITIVE_TIGHTEN_LEN` tightening comments, unreferenced combined `SETUP_ALGS`/`EXTRACTIONS` if the full solver no longer needs them — verify with a usage grep before deleting).
+- [X] T019 Run `npm test` — confirm the full CFOP suite (9-stage solution, OLL/PLL stages, PLL recognition) and all prior tests stay green (FR-010 regression guard).
+- [X] T020 Run the permutation cross-check (constitution pre-merge gate). **RESOLVED:** the standalone `verify-perms.mjs` was broken under `tsx`/Node 26 (cubing.js dual-realm: `alg.childAlgNodes is not a function`, introduced by node_modules consolidation 50bb5dd) and redundant as a gate. Its unique value — an *independent* cycle-based permutation model cross-checked against cubing.js — was ported to `packages/cubify/test/cube-perm-model.test.ts` (19 tests, green under Vitest's deduped resolution), and the standalone runner deleted. The pre-merge gate is now `npm test`; constitution/CLAUDE.md/README/ledger updated accordingly.
+- [ ] T021 [P] Manual harness smoke test per quickstart.md §5: scramble → "Solve (cfop)" in beginner mode → step through an F2L solve and confirm moves map to named method steps and back slots show a leading `y2` (qualitative SC-005). **Pending user local review.**
+- [X] T022 [P] Update `CLAUDE.md` (Current Status + Recent Changes for 037) and the `specs/spec.md` ledger entry to mark 037 complete with the final test count.
 
 ---
 
@@ -185,7 +185,7 @@ Task T022: CLAUDE.md + specs/spec.md ledger update
 
 - `fallThrough === 0`, `roundTripFails === 0`, `vocabularyViolations === 0` (SC-001/002/003).
 - `maxLen ≤ PROCEDURE_MAX` (SC-004).
-- `npm test` + `verify-perms.mjs` green; harness smoke confirms recognisable method (SC-005).
+- `npm test` green (includes `cube-perm-model.test.ts`, the independent perm cross-check that replaced the retired `verify-perms.mjs`); harness smoke confirms recognisable method (SC-005).
 - No public-API/advanced/OLL/PLL change (FR-010).
 
 ---

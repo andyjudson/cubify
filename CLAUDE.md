@@ -13,7 +13,7 @@ Project context for Claude Code. See [`specs/ledger.md`](specs/ledger.md) for th
 
 ## Current Status
 
-Features 022–035 complete; 037 (beginner intuitive F2L procedures) in progress. Latest shipped: 035 added `beginner?: boolean` on `CfopSolverOptions` (intuitive F2L + 2-look OLL/PLL, 9-stage solution). Per-feature scope, status, and what-shipped detail is in the feature ledger [`specs/ledger.md`](specs/ledger.md).
+Features 022–035 and 037 complete. Latest shipped: 035 added `beginner?: boolean` on `CfopSolverOptions` (intuitive F2L + 2-look OLL/PLL, 9-stage solution). 037 restructured the intuitive F2L solver so encoded procedures (U+R+L+F, back slots via `y2 … y2`) are the primary emitter with a demoted counted-search net; fall-through is 0 over the enumerated domain (~1.5% on real scrambles, covered by the safety net). Also retired the standalone `verify-perms.mjs`: its independent permutation cross-check moved into `packages/cubify/test/cube-perm-model.test.ts`, and `npm test` (294 tests) is now the pre-merge gate. Per-feature scope, status, and what-shipped detail is in the feature ledger [`specs/ledger.md`](specs/ledger.md).
 
 ## Reference Docs — Ground Truth
 
@@ -24,10 +24,11 @@ Features 022–035 complete; 037 (beginner intuitive F2L procedures) in progress
 | [`specs/cubing-js-architecture.md`](specs/cubing-js-architecture.md) | Cubing.js KPuzzle/KPattern data model, orbit slot ordering, move application |
 | [`specs/cubing-js-stickering.md`](specs/cubing-js-stickering.md) | Cubing.js Stickering architecture, orbit string char semantics |
 | [`specs/cube-physical-rules.md`](specs/cube-physical-rules.md) | Physical cube geometry, CFOP conventions, masking philosophy |
-| [`specs/lessons.md`](specs/lessons.md) | Hard-won implementation gotchas (slot ordering, orientation formula, animation, mask rendering, GitHub Packages publishing, Playwright automation) |
+| [`specs/cubify-lessons.md`](specs/cubify-lessons.md) | Hard-won implementation gotchas (slot ordering, orientation formula, animation, mask rendering) |
 | [`specs/cube-concepts.md`](specs/cube-concepts.md) | Face state and KPattern concepts overview |
+| [`specs/cubify-notes.md`](specs/cubify-notes.md) | Reference & notes — quickstart, usage, architecture, and operational gotchas (publishing, Playwright automation) |
 
-Key facts from `lessons.md`:
+Key facts from `cubify-lessons.md`:
 
 - Cubing.js KPattern corner/edge slot ordering (§1–2) — the documented order is wrong; verified order is 0=URF
 - Orientation formula: `(s - orientation + 3) % 3` for corners — NOT `(s + orientation) % 3` (§3)
@@ -76,7 +77,7 @@ Build: `npm run build --workspace=packages/cubify-react` → `packages/cubify-re
 |------|------|
 | `cubify-harness/index.html` | Interactive harness; imports from `../packages/cubify/src/` |
 | `packages/cubify/test/` | Vitest suite — no headed browser (`npm test`) |
-| `cubify-harness/verify-perms.mjs` | 18-test permutation cross-check suite against cubing.js ground truth |
+| `packages/cubify/test/cube-perm-model.test.ts` | Independent cycle-based permutation model cross-checked vs cubing.js (ported from the retired `verify-perms.mjs`) |
 
 ## cubify-scripts Architecture
 
@@ -138,7 +139,7 @@ npm run dev -- --host 127.0.0.1 --port 5174
 ## Working Style
 
 - Iterate in small steps
-- Before any merge/push: run `verify-perms.mjs` cross-check suite
+- Before any merge/push: run `npm test` (the Vitest suite is the pre-merge gate; it includes `cube-perm-model.test.ts`, the independent permutation cross-check that replaced the retired standalone `verify-perms.mjs`)
 
 ## Local Dev (cubify + cfop-app simultaneously)
 
@@ -167,8 +168,9 @@ git push && git push --tags              # triggers publish.yml CI → publishes
 ## Reference Files (read-on-demand)
 
 - [`specs/ledger.md`](specs/ledger.md) — feature ledger: per-feature scope, status, and what shipped (022→).
-- Targeted lessons live in [`specs/lessons.md`](specs/lessons.md): **mask rendering rules** §21 (read before touching stickering/renderers/`CubeExporter`), GitHub Packages publishing gotchas §22 (read before publishing), Playwright/web-component automation §23 (read before screenshotting a component).
+- Targeted lessons live in [`specs/cubify-lessons.md`](specs/cubify-lessons.md): **mask rendering rules** §21 (read before touching stickering/renderers/`CubeExporter`).
+- Reference & notes live in [`specs/cubify-notes.md`](specs/cubify-notes.md): quickstart, usage, architecture, and operational gotchas — GitHub Packages publishing (read before publishing), Playwright/web-component automation (read before screenshotting a component).
 
 <!-- SPECKIT START -->
-- Active plan: [specs/037-cubify-intuitive-f2l-procedures/plan.md](specs/037-cubify-intuitive-f2l-procedures/plan.md) — beginner F2L procedure layer (primary) + counted search safety net; back slots via `y`-conjugation of the front procedure; fall-through counter → 0.
+- Active plan: [specs/037-cubify-intuitive-f2l-procedures/plan.md](specs/037-cubify-intuitive-f2l-procedures/plan.md) — beginner F2L procedure layer (primary) + counted search safety net; vocabulary U+R+L+F, back slots via `y2 … y2` conjugation of the opposite front procedure; fall-through counter → 0. See spec.md correction block + research.md Decisions 1/1b for the two user-approved corrections (F-vocabulary; `y2` not `y`/`y'`).
 <!-- SPECKIT END -->

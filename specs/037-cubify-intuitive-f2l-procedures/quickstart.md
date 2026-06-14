@@ -38,10 +38,10 @@ The existing CFOP suite (9-stage solution, OLL/PLL stages, PLL recognition) must
 ## 4. Pre-merge cross-check (constitution requirement)
 
 ```bash
-node cubify-harness/verify-perms.mjs
+npm test
 ```
 
-All 18 permutation cross-checks must pass before any merge.
+The Vitest suite is the pre-merge gate. It includes `cube-perm-model.test.ts` — an independent cycle-based permutation model cross-checked against cubing.js ground truth (ported from the retired standalone `verify-perms.mjs`). All tests must pass before any merge.
 
 ## 5. Manual harness smoke test (qualitative SC-005)
 

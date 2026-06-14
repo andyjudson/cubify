@@ -2,8 +2,14 @@
 
 **Feature Branch**: `037-cubify-intuitive-f2l-procedures`  
 **Created**: 2026-06-13  
-**Status**: Draft  
+**Status**: Implemented (with two user-approved corrections — see below)  
 **Input**: User description: "Tightly map the beginner (intuitive) CFOP F2L solver output to the standard intuitive-F2L teaching method, so the on-screen moves match what a learner following the method would naturally do."
+
+> **Corrections during implementation (2026-06-14, user-approved).** Two assumptions in the original spec proved infeasible and were corrected (details in `research.md` Decisions 1 & 1b; gates in `contracts/f2l-beginner-internal.md`):
+> 1. **Vocabulary includes `F`.** "U + the working slot's side face" cannot solve a general F2L slot while keeping the cross — the DF/DB cross edges are never moved by U/R/L. The beginner vocabulary is therefore **U + R + L + F** (the front face is the natural pairing move), still excluding `B`/`D`/wide/slice.
+> 2. **Back-slot wrapper is `y2`, not `y`/`y'`.** A single quarter rotation does not round-trip (it flips equatorial edge orientation). Back slots are solved as **`y2 [opposite-front-procedure] y2`** (BR↔FL, BL↔FR). The leading/closing rotation requirement (SC-005) still holds; only the rotation amount changed.
+>
+> Where the requirement text below still reads "side face" or "`y`/`y'`", read it as corrected above.
 
 ## Overview
 

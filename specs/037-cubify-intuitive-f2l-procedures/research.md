@@ -6,7 +6,13 @@ All Technical Context unknowns are resolved below. The spec had no `[NEEDS CLARI
 
 ## Decision 1 — Back slots solved by conjugating the front procedure
 
-**Decision**: Solve BR/BL by wrapping the **front-slot procedure** in a cube-rotation conjugate, not by working them in place.
+> **CORRECTION (2026-06-14, user-approved).** The conjugate is a **`y2` half turn**, not a single `y`/`y'`:
+> - **BR** → `y2 [FL-procedure] y2` (solved with the **L**-family)
+> - **BL** → `y2 [FR-procedure] y2` (solved with the **R**-family)
+>
+> The `y`/`y'` conjugate below was found *not to round-trip*: a single quarter `y` flips equatorial edge orientation, so `y [FR-proc] y'` leaves the inserted edge mis-oriented (verified empirically). `y2` is its own inverse and does **not** flip edge orientation, so the same token both leads and closes, and the front trigger table matches the relocated pieces directly. Note the face family **swaps** across the 180° turn (right-back is solved as left-front, and vice versa) — see the `y2` row of the mapping table below, which already showed BR→FL and BL→FR. Validation happens in the original (un-rotated) frame because `slotSolved`/`crossOk` are not rotation-invariant. Implemented in `conjugateBackSlot`.
+
+**Decision (superseded — see correction above)**: Solve BR/BL by wrapping the **front-slot procedure** in a cube-rotation conjugate, not by working them in place.
 - **BR** → `y [FR-procedure] y'`
 - **BL** → `y' [FL-procedure] y`
 
@@ -34,6 +40,18 @@ So a single `y` brings BR to the FR working position (keeping the **R**-family t
 
 ---
 
+## Decision 1b — Beginner vocabulary includes the front face `F` (correction)
+
+> **CORRECTION (2026-06-14, user-approved).** The beginner emit vocabulary is **U + R + L + F** (quarter and half turns) plus the `y2` back-slot wrapper — not "U + the working slot's side face" as originally specified.
+
+**Finding**: ⟨U, side⟩ alone — and even ⟨U, R, L⟩ — **cannot** solve a general F2L slot while keeping the cross. The DF/DB cross edges (slot positions 4 and 6) are never moved by U/R/L, so a pair whose corner/edge must be joined across the front cannot be assembled. Empirically (depth-bounded search from real cross-solved positions): U+side → unsolvable, U+R+L → unsolvable at depth 10, **U+side+F → solves within ≤8**, U+side+D → unsolvable. `F` is therefore group-theoretically required; it is the natural "front pairing" move a beginner already uses (`F U F'`-type pairing), so it stays faithful to the taught method and adds no back-face/wide/slice moves.
+
+**Knock-on**: the fall-through enumeration generator was also `U + side` only, which was **circular** — it could only ever produce positions a `U + side` procedure can reverse, hiding the entire `F`-dependent domain. The generator now includes `F` (so the enumerated domain is the honest beginner front-block), and the procedure families gained `F`-based setups and extractions (`F U F'`, `F' U' F`, …).
+
+**Per-slot move sets**: front-right family = U + R + F; front-left family = U + L + F. Restricted-search depth tightened to ≤8 (the 9-move set solves every reachable slot within 8 plies).
+
+---
+
 ## Decision 2 — Procedure layer is primary; search is a counted safety net
 
 **Decision**: Reorganise `solveF2lIntuitive`'s per-slot escalation so a matched procedure is **always** returned as-is, and the IDA* searches run **only** when no procedure matches. Each slot's result carries a `method` tag; search results are tagged `search-fallback` and counted.
@@ -41,13 +59,13 @@ So a single `y` brings BR to the FR working position (keeping the **R**-family t
 Per-slot escalation (front slot; back slots run the same against the conjugated front procedure):
 1. `easy-insert` (tier 1) — `solveEasyInsert`
 2. `setup-insert` (tier 2) — `solveSetupInsert` (1-ply white-on-side, 2-ply white-up)
-3. `extract-insert` (tier 3/4) — extraction branches of `solveSlotIntuitive`, **restricted to the slot's own face** (R for FR, L for FL) + U
-4. — *no procedure matched* —
-5. `search-fallback` — slot-face IDA* → U+R+L IDA* → full-F2L IDA* (unchanged internally, now **counted**)
+3. `extract-insert` (tier 3/4) — extraction branches, in the beginner vocabulary (U + R/L + F); the **shortest** round-tripping spelling is kept (still a procedure chosen among procedures, not search-tightening — see Decision 1b for the `F` correction)
+4. — *no procedure matched, or the procedure exceeds `PROCEDURE_MAX`* —
+5. `search-fallback` — slot-face IDA* (U + R/L + F, depth ≤8) → U+R+L+F IDA* (depth ≤8), **counted**. The full-F2L tier was dropped so even a fall-through stays in beginner vocabulary. Back slots keep the `y2 … y2` shape via `backConjugateSearch`, so SC-005 holds on a miss too.
 
 **Rationale**: FR-004 ("encoded procedures MUST be the primary emitter … MUST NOT override a procedure that matches") and the spec clarification "the encoded procedure always wins." The current code's `INTUITIVE_TIGHTEN_LEN` search-tightening **overrides** a matched procedure whenever its length exceeds 8 — directly contradicting FR-004. Under this feature, length blow-ups are fixed by **encoding the missing procedure**, not by search-tightening a matched one.
 
-**Consequence on length (SC-004)**: dropping the search-tightening of matched procedures may make a few outputs a move or two longer than the interim search-tightened numbers, because the procedure spelling (the method) is preferred over the shortest spelling. This is the explicit beginner/advanced tradeoff the user chose. SC-004's bound is "the maximum length produced by the taught procedures," and the procedures are finite setup+insert compositions (normalised), so no 11–12-move blow-ups recur. Length is **not** the success metric — coverage is.
+**Consequence on length (SC-004)**: dropping the search-tightening of matched procedures may make a few outputs a move or two longer than the interim search-tightened numbers, because the procedure spelling (the method) is preferred over the shortest spelling. This is the explicit beginner/advanced tradeoff the user chose. `PROCEDURE_MAX = 15` is the measured worst case over the enumerated domain (front max 13; a back slot is a ≤13 front body wrapped `y2 … y2` = 15). **Correction (2026-06-14):** a *procedure* that would exceed `PROCEDURE_MAX` (seen only on rare out-of-enumerated-domain real scrambles — a two-step extract body can balloon to ~17) is **rejected like a miss** and falls through to the bounded counted net (≤10), rather than inflating the bound — a 16+-move single-pair insert is no longer a recognisable beginner procedure. Length is **not** the success metric — coverage is.
 
 **Disposition of `INTUITIVE_TIGHTEN_LEN` / `shorterSlotFaceAlg`**: the slot-face search is retained but moved strictly behind the procedure dispatch (only runs on a procedure miss). It is no longer used to "tighten" a matched procedure.
 

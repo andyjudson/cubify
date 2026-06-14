@@ -23,8 +23,8 @@ Establish the foundation: cube state model, 3D renderer, stickering, algorithm p
 - `CubeStickering` — hardcoded CFOP preset maps: full, cross, f2l, oll, oll-2look, pll, pll-2look
 - `AlgParser` — WCA notation parser; handles wide moves, slice moves, x/y/z rotations
 - Interactive harness (`index.html`) — algorithm selector, play/step/speed controls, event log / face state / KPattern debug panels
-- `verify-perms.mjs` — 18-test cross-check suite; CubeState ground truth + physical facts
-- `lessons.md` — corner/edge slot ordering, orientation formula, animation sequencing, stickerIndex formulas
+- `cube-perm-model.test.ts` — independent permutation-model cross-check; CubeState ground truth + physical facts (replaced the retired `verify-perms.mjs`)
+- `cubify-lessons.md` — corner/edge slot ordering, orientation formula, animation sequencing, stickerIndex formulas
 - cubing.js U/D direction convention documented and animation-only fix applied
 
 ---
@@ -301,4 +301,4 @@ Upgrade `CubeScramble.random()` from random-move generation to true WCA random-s
 | 035 | cubify-solver-cfop-flags | Complete ✅ |
 | — | refactor-architecture | Complete ✅ |
 | 036 | cubify-f2l-recognition-table (advanced) | Planned 📋 |
-| 037 | cubify-intuitive-f2l-procedures (beginner) | In progress 🚧 |
+| 037 | cubify-intuitive-f2l-procedures (beginner) | Implemented — pending local review 🔍 |

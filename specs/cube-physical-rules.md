@@ -1,7 +1,7 @@
 # Cube Physical Rules & CFOP Conventions
 
 Reference document for the cubify renderer and CFOP learning app.
-Companion to `lessons.md` (cubing.js implementation gotchas) and the cubing.js architecture doc.
+Companion to `cubify-lessons.md` (cubing.js implementation gotchas) and the cubing.js architecture doc.
 
 ---
 
@@ -28,7 +28,7 @@ Companion to `lessons.md` (cubing.js implementation gotchas) and the cubing.js a
 | L    | Orange |
 | B    | Blue   |
 
-This is the reference orientation used by cubing.js `defaultPattern()` and all piece/orientation tables in `lessons.md`.
+This is the reference orientation used by cubing.js `defaultPattern()` and all piece/orientation tables in `cubify-lessons.md`.
 
 ### 1.3 Center Behaviour
 
@@ -137,7 +137,7 @@ After `z2`: white (was U) is now D, yellow (was D) is now U. Red and orange swap
 
 cubing.js animates U moves with the **opposite** visual rotation to the WCA convention. This is an animation-only difference — the **state** (KPattern) is correct. Do not compensate in state logic; compensate only in animation axis direction if needed.
 
-See `lessons.md` §5 for detail.
+See `cubify-lessons.md` §5 for detail.
 
 ---
 

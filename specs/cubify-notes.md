@@ -1,6 +1,8 @@
-# cubify — Reference
+# cubify — Reference & Notes
 
 Cubify is a 3×3 cube rendering library for CFOP apps. Delegates permutation state and move application to [cubing.js](https://github.com/cubing/cubing.js) (Lucas Garron), then owns the rendering layer — typed theme system, stickering API for CFOP case visualisation, and React wrappers that expose cube state as a first-class value.
+
+This is the general guidance file: quickstart, usage, architecture, and operational gotchas (publishing, automation). Cube-state/rendering ground truth lives in [`cubify-lessons.md`](cubify-lessons.md).
 
 ---
 
@@ -309,3 +311,31 @@ git push && git push --tags           # → CI builds and publishes both package
 ```
 
 The workflow requires `packages: write` (implies `read`). Any CI workflow that *installs* from GitHub Packages needs `packages: read` in its permissions block — an explicit `permissions:` key silently drops all unspecified scopes, including package read access.
+
+---
+
+## Operational gotchas
+
+### GitHub Packages — publishing (read before publishing)
+
+**`workspace:*` is pnpm/yarn syntax — not supported by npm.** Use the actual version range (`^1.0.0`) in devDependencies for sibling workspace packages. npm workspace resolution picks up the local version when it satisfies the range.
+
+**Any workflow that installs from GitHub Packages needs `packages: read` in its permissions block.** Specifying an explicit `permissions:` key in a GitHub Actions workflow restricts `GITHUB_TOKEN` to exactly those scopes — all others are dropped. Without `packages: read`, `npm ci` gets a 403 even for packages you own.
+
+**Never use `npm install <tarball>` to work around a missing token.** It resolves correctly locally but writes `file:/path/to/tarball.tgz` into `package-lock.json`. CI runners don't have that path and fail with `ENOENT`. Use `npm link` instead if you need a local install without publishing — it doesn't touch the lock file.
+
+**Local installs from GitHub Packages need a classic PAT with `read:packages`.** The `gh` CLI OAuth token (`gho_...`) does not have this scope. Add to `~/.zprofile`:
+```bash
+export NPM_AUTH_TOKEN=<your-pat>
+```
+
+### Playwright / web component automation (read before screenshotting a component)
+
+When automating or screenshotting a third-party web component:
+
+1. **Inspect structure first** — write a throwaway script to dump shadow root children and bounding rects.
+2. **Clip to the visualization element** — find the exact element (canvas, SVG wrapper) and use `page.screenshot({ clip: rect })`.
+3. **Use `page.addInitScript()` for intercepts** — runs before any page script.
+4. **`headless: false` required for WebGL on macOS** — headless Chromium blocks WebGL regardless of flags.
+
+See `specs/017-cubify-agent-skill/research.md` for the full debugging record.
