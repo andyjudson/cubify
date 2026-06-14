@@ -12,9 +12,10 @@ import { solveF2lIntuitive, getPairTier, PROCEDURE_MAX, type BeginnerMethod } fr
 // 100% of the domain (search-fallback === 0), round-trip, stay in beginner
 // vocabulary, and never exceed PROCEDURE_MAX moves (SC-001..SC-004).
 //
-// Back slots (BR/BL) are emitted as a `y2 … y2` conjugate of the OPPOSITE front
-// procedure (BR↔FL, BL↔FR); a single y/y' cannot solve a back slot, see
-// F2lSolver.conjugateBackSlot. They are enumerated and gated here directly.
+// Every non-trivial pair is routed to a FRONT working slot via a cube-rotation
+// conjugate (FR via no rotation or `y…y'`, FL via `y'…y`, BL via `y2…y2`, BR via
+// `y…y'`), so back slots and front slots alike emit `y`/`y'`/`y2` wrappers around a
+// side-family body — see F2lSolver.SLOT_ROTATION. They are enumerated and gated here.
 
 const z2 = () => applyMove(solvedState(), 18);
 
@@ -39,9 +40,9 @@ function key(s: RawState): string {
   return s.cornerPieces.join('')+'|'+s.cornerOrient.join('')+'|'+s.edgePieces.join('')+'|'+s.edgeOrient.join('');
 }
 
-// Beginner emit vocabulary: U/R/L/F quarter+half turns and the y2 back-slot wrapper.
-// Never B/D, wide (lowercase), or slice (M/E/S).
-const VOCAB = /^(U[2']?|R[2']?|L[2']?|F[2']?|y2)$/;
+// Beginner emit vocabulary: U/R/L/F quarter+half turns and the y/y'/y2 working-slot
+// rotation wrappers. Never B/D, wide (lowercase), or slice (M/E/S).
+const VOCAB = /^(U[2']?|R[2']?|L[2']?|F[2']?|y[2']?)$/;
 
 function enumerateCases(target: string, tier: number, maxLen: number): RawState[] {
   const isRight = target === 'f2l-fr' || target === 'f2l-br';

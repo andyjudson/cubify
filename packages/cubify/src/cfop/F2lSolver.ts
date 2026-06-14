@@ -626,20 +626,227 @@ function backConjugateSearch(
   return null;
 }
 
-/** Solve one F2L slot in beginner mode: procedure first, counted search on miss.
- *  A procedure that exceeds PROCEDURE_MAX (SC-004) is rejected as well as a miss —
- *  a 16+-move single-pair insert is no longer a recognisable beginner procedure, so
- *  we prefer the short counted net (back slots keep the y2-conjugate via
- *  `backConjugateSearch` so SC-005 still holds). On the enumerated domain every
- *  procedure is ≤ PROCEDURE_MAX, so this rejection never fires there (SC-001). */
+// ── FR-centric solve (the y-rotation working-slot model) ─────────────────────
+
+/** Slot → front-right rotation conjugate. `y` cycles FR→FL→BL→BR, so the listed
+ *  `lead` rotation brings each slot's pair into the front-right working slot and
+ *  `close` undoes it. FL/BR use a quarter turn (which flips equatorial edge
+ *  orientation — handled by structural verification, not table matching); BL uses
+ *  the self-inverse `y2`. "Lots of y turns" is the expected beginner shape. */
+const SLOT_ROTATION: Record<string, { lead: string; close: string }> = {
+  'f2l-fr': { lead: '',   close: ''   },
+  'f2l-fl': { lead: "y'", close: 'y'  },
+  'f2l-bl': { lead: 'y2', close: 'y2' },
+  'f2l-br': { lead: 'y',  close: "y'" },
+};
+
+/** Slot → front-LEFT rotation conjugate (the mirror of `SLOT_ROTATION`). Brings a
+ *  slot's pair into the front-left working slot, where it is solved with L-family
+ *  triggers (the L face touches BL, the slot used to hide the edge). */
+const SLOT_ROTATION_FL: Record<string, { lead: string; close: string }> = {
+  'f2l-fr': { lead: 'y',  close: "y'" },
+  'f2l-fl': { lead: '',   close: ''   },
+  'f2l-bl': { lead: "y'", close: 'y'  },
+  'f2l-br': { lead: 'y2', close: 'y2' },
+};
+
+/** Canonical front-slot inserts — clean side-hand triggers (the taught shapes). AUF
+ *  is enumerated separately, so these three + AUF cover the connected, disconnected
+ *  and U2 cases. R-family at the FR working slot, L-family at FL. */
+const FR_TRIGGERS = ["R U R'", "R U' R'", "R U2 R'"];
+const FL_TRIGGERS = ["L' U' L", "L' U L", "L' U2 L"];
+
+/** A front working slot the target can be rotated into: the rotation conjugate plus
+ *  the side-face move sets used there. The beginner solves each pair from EITHER the
+ *  front-right (R-family, hide via BR) or front-left (L-family, hide via BL) working
+ *  slot — whichever the edge's colours suit — so both are tried and the cleaner
+ *  (shortest round-tripping) shape wins. */
+interface WorkSlot {
+  lead: string; close: string;
+  triggers: string[]; sideSetups: string[]; setups: string[];
+  extracts: string[]; shortExt: string[];
+}
+
+function frontWorkSlots(slot: string): WorkSlot[] {
+  const fr = SLOT_ROTATION[slot], fl = SLOT_ROTATION_FL[slot];
+  return [
+    { ...fr, triggers: FR_TRIGGERS, sideSetups: R_SETUP_ALGS,
+      setups: [...R_SETUP_ALGS, ...F_SETUP_ALGS],
+      extracts: [...R_EXTRACTIONS, ...F_EXTRACTIONS],
+      shortExt: [...R_SHORT_EXTRACTIONS, ...F_SHORT_EXTRACTIONS] },
+    { ...fl, triggers: FL_TRIGGERS, sideSetups: L_SETUP_ALGS,
+      setups: [...L_SETUP_ALGS, ...F_SETUP_ALGS],
+      extracts: [...L_EXTRACTIONS, ...F_EXTRACTIONS],
+      shortExt: [...L_SHORT_EXTRACTIONS, ...F_SHORT_EXTRACTIONS] },
+  ];
+}
+
+/** A shortest-round-tripping accumulator over candidate bodies wrapped in a working
+ *  slot's rotation conjugate. Each candidate is APPLIED and VERIFIED against the real
+ *  slot in the original frame (so it is robust to the quarter-y edge-orientation flip
+ *  that breaks trigger-table matching), length-pruned against the current best and
+ *  PROCEDURE_MAX. `flush(method)` returns the shortest hit so far and resets. */
+function shortestSolve(state: RawState, slot: string, mustSolve: string[]) {
+  let best = ''; let bestLen = Infinity;
+  return {
+    consider(cfg: WorkSlot, body: string) {
+      const full = normalizeAlg(cfg.lead ? `${cfg.lead} ${body} ${cfg.close}` : body);
+      const len = algLen(full);
+      if (len >= bestLen || len > PROCEDURE_MAX) return;
+      const after = applyAlg(state, full);
+      if (slotSolved(after, slot) && crossOk(after) && mustSolve.every(m => slotSolved(after, m))) {
+        bestLen = len; best = full;
+      }
+    },
+    flush(method: BeginnerMethod): { alg: string; method: BeginnerMethod } | null {
+      if (!best) return null;
+      const r = { alg: best, method }; best = ''; bestLen = Infinity; return r;
+    },
+  };
+}
+
+/** True iff the slot's corner is in the U-layer with its white sticker facing UP
+ *  (cornerOrient 0) — the white-up case. Verified empirically: a D-layer corner in a
+ *  U-slot is white-up exactly when cornerOrient === 0 (orient 1/2 = white on a side,
+ *  directly insertable). */
+function isWhiteUpCorner(state: RawState, slot: string): boolean {
+  const def = SLOT_DEFS[slot];
+  const cIdx = state.cornerPieces.indexOf(def.cornerPiece);
+  return cIdx < 4 && state.cornerOrient[cIdx] === 0;
+}
+
+/** White-up corner — a DISTINCT procedure with its own move logic. The corner sits
+ *  in the U-layer with white facing up; you read the EDGE's colours: if its side
+ *  sticker matches the RIGHT centre (other colour to front) the pair is solved at the
+ *  front-RIGHT working slot, hiding the edge via BR (R-family); if it matches the LEFT
+ *  centre, at the front-LEFT, hiding via BL (L-family) — roughly 50:50. The taught
+ *  shape is `AUF · hide(side conjugate) · AUF · insert(side trigger)` (set the edge,
+ *  hide it to the back, bring the corner over, re-pair, insert) using ONLY the side
+ *  family (never F). We try both working slots and keep the shortest round-tripping
+ *  shape — which self-selects the colour-correct side, since only that side hides and
+ *  restores cleanly. Returns null if the corner is not white-up or no template fits
+ *  (e.g. the edge is stuck → handled by `solveFromFront`). */
+function solveWhiteUp(
+  state: RawState, slot: string, mustSolve: string[],
+): { alg: string; method: BeginnerMethod } | null {
+  if (!isWhiteUpCorner(state, slot)) return null;
+  const acc = shortestSolve(state, slot, mustSolve);
+  const cfgs = frontWorkSlots(slot);
+
+  // Set edge · hide to back (one side conjugate) · bring corner over · insert.
+  for (const cfg of cfgs)
+    for (const a of AUF_ALGS) for (const su of cfg.sideSetups) for (const b of AUF_ALGS) for (const ins of cfg.triggers)
+      acc.consider(cfg, [a, su, b, ins].filter(Boolean).join(' '));
+  let r = acc.flush('setup-insert'); if (r) return r;
+
+  // Awkward white-up that one hide cannot re-orient: two side conjugates, then insert.
+  for (const cfg of cfgs)
+    for (const a of AUF_ALGS) for (const s1 of cfg.sideSetups) for (const s2 of cfg.sideSetups) for (const ins of cfg.triggers)
+      acc.consider(cfg, [a, s1, s2, ins].filter(Boolean).join(' '));
+  r = acc.flush('setup-insert'); if (r) return r;
+
+  return null;
+}
+
+/** Solve a slot from a front working slot — the core beginner model for everything
+ *  that is NOT a white-up corner (`solveWhiteUp`) or a trivial in-place easy insert:
+ *  white-on-side pairs that need a setup, and stuck pieces that need extracting. The
+ *  pair is rotated into the front-right (R-family) OR front-left (L-family) working
+ *  slot — whichever the edge's colours suit — worked there with clean side (+F to
+ *  hide/extract) triggers, then the rotation is closed. "Lots of y turns" is the
+ *  expected beginner shape; an FR-target solves in place, an FL/back slot rotates in.
+ *
+ *  Both working slots are tried at every tier and the SHORTEST round-tripping shape
+ *  wins (clean spelling, ≤PROCEDURE_MAX). Escalates easy → 1/2 setups → extract
+ *  (+setup) → two-step extract. Returns null on a miss (→ conjugate procedure / net). */
+function solveFromFront(
+  state: RawState, slot: string, mustSolve: string[],
+): { alg: string; method: BeginnerMethod } | null {
+  const acc = shortestSolve(state, slot, mustSolve);
+  const cfgs = frontWorkSlots(slot);
+
+  // Tier easy — AUF + clean trigger (connected/insertable pair brought to front).
+  for (const cfg of cfgs)
+    for (const a of AUF_ALGS) for (const ins of cfg.triggers)
+      acc.consider(cfg, [a, ins].filter(Boolean).join(' '));
+  let r = acc.flush('easy-insert'); if (r) return r;
+
+  // Tier setup ×1 — the hide-to-back staging (side family only): set the edge, hide
+  // it via the back slot (one side conjugate), bring the other piece over (mid-AUF),
+  // then insert. This is the same taught shape as the white-up case, for a corner
+  // whose white faces a side. F is reserved for genuine stuck-piece extraction below.
+  for (const cfg of cfgs)
+    for (const a of AUF_ALGS) for (const su of cfg.sideSetups) for (const b of AUF_ALGS) for (const ins of cfg.triggers)
+      acc.consider(cfg, [a, su, b, ins].filter(Boolean).join(' '));
+  r = acc.flush('setup-insert'); if (r) return r;
+
+  // Tier setup ×2 — stage twice (side family) for an awkward pair.
+  for (const cfg of cfgs)
+    for (const a of AUF_ALGS) for (const s1 of cfg.sideSetups) for (const s2 of cfg.sideSetups) for (const ins of cfg.triggers)
+      acc.consider(cfg, [a, s1, s2, ins].filter(Boolean).join(' '));
+  r = acc.flush('setup-insert'); if (r) return r;
+
+  // Tier extract — pop the stuck piece (top-layer piece turned aside), re-pair, insert.
+  for (const cfg of cfgs)
+    for (const ex of cfg.extracts) for (const a of AUF_ALGS) for (const ins of cfg.triggers)
+      acc.consider(cfg, [ex, a, ins].filter(Boolean).join(' '));
+  for (const cfg of cfgs)
+    for (const ex of cfg.extracts) for (const a of AUF_ALGS) for (const su of cfg.setups) for (const ins of cfg.triggers)
+      acc.consider(cfg, [ex, a, su, ins].filter(Boolean).join(' '));
+  r = acc.flush('extract-insert'); if (r) return r;
+
+  // Tier extract ×2 — two short extractions for a doubly-stuck pair.
+  for (const cfg of cfgs)
+    for (const e1 of cfg.shortExt) for (const e2 of cfg.shortExt) for (const a of AUF_ALGS) for (const ins of cfg.triggers)
+      acc.consider(cfg, [e1, e2, a, ins].filter(Boolean).join(' '));
+  r = acc.flush('extract-insert'); if (r) return r;
+
+  return null;
+}
+
+/** Solve one F2L slot in beginner mode. Dispatch mirrors the taught recognition:
+ *    1. Easy insert — a connected pair, white on a side, dropping straight into its
+ *       own front slot with one clean trigger (no rotation).
+ *    2. White-up corner — a DISTINCT procedure (`solveWhiteUp`): read the edge's
+ *       colours, hide it to the back via BR/BL, bring the corner over, re-pair,
+ *       insert (side family only; FR or FL working slot, ~50:50 by colour).
+ *    3. Everything else (`solveFromFront`) — white-on-side setups and stuck pieces,
+ *       rotated into the FR (R-family) or FL (L-family) working slot.
+ *  The conjugate procedure and the counted search net remain as fallbacks for any
+ *  miss. A solve over PROCEDURE_MAX (SC-004) is rejected like a miss; back slots keep
+ *  the recognisable rotation conjugate via `backConjugateSearch` (SC-005). */
 function solveOneSlot(
   state: RawState, slot: string, completed: string[],
 ): { alg: string; method: BeginnerMethod } {
   const isBack = BACK_SLOTS.has(slot);
+  if (goalReached(state, slot, completed)) return { alg: '', method: 'already-solved' };
+
+  // 1. Easy insert in place (front slots only — back slots always rotate in).
+  if (!isBack) {
+    const easy = solveEasyInsert(state, targetFor(slot));
+    if (easy) {
+      const full = normalizeAlg(easy);
+      if (goalReached(applyAlg(state, full), slot, completed)) {
+        return { alg: full, method: 'easy-insert' };
+      }
+    }
+  }
+
+  // 2. White-up corner — its own hide-to-back / corner-over / re-pair / insert logic.
+  const wu = solveWhiteUp(state, slot, completed);
+  if (wu && algLen(wu.alg) <= PROCEDURE_MAX) return wu;
+
+  // 3. White-on-side setup / stuck extraction, from the FR or FL working slot.
+  const front = solveFromFront(state, slot, completed);
+  if (front && algLen(front.alg) <= PROCEDURE_MAX) return front;
+
+  // 3b. Conjugate procedure — coverage for any miss above.
   const proc = isBack
     ? conjugateBackSlot(state, slot, completed)
     : frontProcedure(state, slot, completed);
   if (proc && algLen(proc.alg) <= PROCEDURE_MAX) return proc;
+
+  // 4. Counted search net (back slots keep the y2 conjugate shape).
   if (isBack) {
     const wrapped = backConjugateSearch(state, slot, completed);
     if (wrapped) return wrapped;

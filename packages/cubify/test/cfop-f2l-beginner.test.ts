@@ -17,7 +17,9 @@ const SLOT_DEFS: Record<string, { cornerSlot: number; edgeSlot: number; cornerPi
 };
 const ALL_SLOTS = ['f2l-fr', 'f2l-fl', 'f2l-bl', 'f2l-br'];
 const BACK_SLOTS = new Set(['f2l-br', 'f2l-bl']);
-const VOCAB = /^(U[2']?|R[2']?|L[2']?|F[2']?|y2)$/;
+const VOCAB = /^(U[2']?|R[2']?|L[2']?|F[2']?|y[2']?)$/;
+// A cube rotation token (the FR-rotation conjugate wrappers): y / y' / y2.
+const ROT = /^y[2']?$/;
 
 function crossOk(s: RawState): boolean {
   return s.edgePieces[4]===0 && s.edgeOrient[4]===0 && s.edgePieces[5]===3 && s.edgeOrient[5]===0 &&
@@ -59,7 +61,7 @@ function crossSolvedScramble(rand: () => number): RawState {
 describe('beginner F2L end-to-end (round-trip + vocabulary + recognisable method)', () => {
   it('solves F2L in beginner vocabulary over 200 cross-solved scrambles', () => {
     const rand = mulberry32(0xC0FFEE);
-    let vocabViolations = 0, rtFails = 0, backWithoutY2 = 0, fallThrough = 0, overLength = 0;
+    let vocabViolations = 0, rtFails = 0, backInPlace = 0, fallThrough = 0, overLength = 0;
     let backProcedures = 0, totalStages = 0;
     for (let n = 0; n < 200; n++) {
       const start = crossSolvedScramble(rand);
@@ -75,13 +77,15 @@ describe('beginner F2L end-to-end (round-trip + vocabulary + recognisable method
         if (toks.length > PROCEDURE_MAX) overLength++;
         if (st.method === 'search-fallback') fallThrough++;
         if (BACK_SLOTS.has(st.label) && toks.length > 0) {
-          if (toks[0] === 'y2' && toks[toks.length - 1] === 'y2') backProcedures++;
-          else backWithoutY2++;
+          // SC-005: a back slot is always solved through a rotation conjugate —
+          // BR via `y … y'`, BL via `y2 … y2` (and the y2-fallbacks) — never in place.
+          if (ROT.test(toks[0]) && ROT.test(toks[toks.length - 1])) backProcedures++;
+          else backInPlace++;
         }
       }
       if (!(ALL_SLOTS.every(l => slotSolved(s, l)) && crossOk(s))) rtFails++;
     }
-    console.log(`stages=${totalStages} backProcedures=${backProcedures} fallThrough=${fallThrough} vocab=${vocabViolations} rtFail=${rtFails} backWithoutY2=${backWithoutY2} overLen=${overLength}`);
+    console.log(`stages=${totalStages} backProcedures=${backProcedures} fallThrough=${fallThrough} vocab=${vocabViolations} rtFail=${rtFails} backInPlace=${backInPlace} overLen=${overLength}`);
     // SC-002/003/004/005 are the contract for this end-to-end test. Note that even
     // the counted search net stays in beginner vocabulary (U/R/L/F only — the full-
     // move tier is gone), so vocab/length/round-trip hold regardless of which layer
@@ -89,7 +93,7 @@ describe('beginner F2L end-to-end (round-trip + vocabulary + recognisable method
     expect(rtFails, 'SC-002: every beginner solve completes all four F2L slots').toBe(0);
     expect(vocabViolations, 'SC-003: only U/R/L/F + y2 tokens').toBe(0);
     expect(overLength, 'SC-004: within PROCEDURE_MAX').toBe(0);
-    expect(backWithoutY2, 'SC-005: back slots use the y2…y2 conjugate, never in-place').toBe(0);
+    expect(backInPlace, 'SC-005: back slots use a rotation conjugate (BR via y…y prime, BL via y2…y2), never in-place').toBe(0);
     expect(backProcedures, 'sanity: back slots were exercised').toBeGreaterThan(0);
     // SC-001 (fall-through === 0) is formally gated by the EXHAUSTIVE enumerated
     // counter in cfop-f2l-setup-poc.test.ts (per FR-007 / contract line 79). Here,
